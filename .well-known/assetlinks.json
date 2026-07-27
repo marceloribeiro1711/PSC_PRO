@@ -1,1 +1,10 @@
-
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.marceloribeiro.padelscoreandcoaching",
+    "sha256_cert_fingerprints": [
+      "7C:8F:4B:A7:E5:D6:5D:3E:C1:A1:7B:16:FE:25:D0:68:FC:EB:22:DC:9E:B4:56:EE:EE:7B:54:68:F9:E2:E0:70"
+    ]
+  }
+}]
