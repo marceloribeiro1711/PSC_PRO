@@ -3,6 +3,7 @@
       "target": {
         "namespace": "android_app",
         "package_name": "com.marceloribeiro.PSC_PRO",
-        "sha256_cert_fingerprints": ["7E:F7:B0:B9:D6:0F:9C:0C:EE:A4:D6:5B:32:89:AA:75:0D:A8:DE:F7:0D:0A:CA:4E:63:2F:0E:3E:06:A8:FD:00"]
-      }
-    }]
+        "sha256_cert_fingerprints": ["B1:27:87:F9:ED:CB:83:EE:F8:90:C1:92:23:79:D2:09:83:60:89:67:2E:A6:91:55:08:F0:0A:3F:91:DD:DE:9A"]
+    }
+  }
+]
