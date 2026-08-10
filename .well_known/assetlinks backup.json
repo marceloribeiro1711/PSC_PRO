@@ -1,0 +1,9 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.marceloribeiro.PSC_PRO",
+        "sha256_cert_fingerprints": ["B1:27:87:F9:ED:CB:83:EE:F8:90:C1:92:23:79:D2:09:83:60:89:67:2E:A6:91:55:08:F0:0A:3F:91:DD:DE:9A"]
+    }
+  }
+]
