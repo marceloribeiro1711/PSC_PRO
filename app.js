@@ -752,22 +752,18 @@
         game.points.forEach((pt, i) => {
             const isLastPoint = i === total - 1;
             const isWinningPoint = isLastPoint && pt.gameWinner;
-            // Ponto decisivo: em vez de repetir o rótulo (ex: "40"), mostra
-            // só o checkmark — não há novo número a comunicar, só quem fechou
-            if (pt.wonBy === 'team1') {
-                html1 += isWinningPoint
-                    ? '<span class="pointlog-node pointlog-node-win">✅</span>'
-                    : '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
-            } else {
-                html1 += '<span class="pointlog-node empty"></span>';
-            }
-            if (pt.wonBy === 'team2') {
-                html2 += isWinningPoint
-                    ? '<span class="pointlog-node pointlog-node-win">✅</span>'
-                    : '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
-            } else {
-                html2 += '<span class="pointlog-node empty"></span>';
-            }
+            // Toda coluna mostra o placar das DUAS duplas naquele momento
+            // (leitura tipo placar ao vivo), não só de quem ganhou o ponto.
+            // Exceção: a dupla vencedora, na coluna final, mostra só o
+            // checkmark em vez de repetir o número (ex: "40").
+            const winnerIsTeam1 = isWinningPoint && pt.wonBy === 'team1';
+            const winnerIsTeam2 = isWinningPoint && pt.wonBy === 'team2';
+            html1 += winnerIsTeam1
+                ? '<span class="pointlog-node pointlog-node-win">✅</span>'
+                : '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
+            html2 += winnerIsTeam2
+                ? '<span class="pointlog-node pointlog-node-win">✅</span>'
+                : '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
             if (!isLastPoint) {
                 html1 += '<span class="pointlog-connector"></span>';
                 html2 += '<span class="pointlog-connector"></span>';
