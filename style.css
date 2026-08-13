@@ -35,7 +35,10 @@
         ============================================================ */
         .p-fab-menu {
             position: fixed;
-            bottom: calc(2.5vh + env(safe-area-inset-bottom, 12px));
+            /* Elevado para deixar espaço reservado aos botões de navegação
+               do Android (gesture bar), que às vezes cobrem a barra de
+               endereço mesmo com safe-area-inset reportado */
+            bottom: calc(4vh + env(safe-area-inset-bottom, 16px));
             right: 4vw;
             z-index: 300;
             display: flex;
@@ -164,6 +167,10 @@
         .license-bar {
             display: flex; align-items: center; justify-content: space-between;
             padding: 0.4vh 4vw; flex-shrink: 0;
+            /* Sobe a barra, reservando espaço em branco abaixo dela para
+               os botões de navegação do Android (gesture bar) não a
+               sobreporem quando invocados pelo usuário */
+            margin-bottom: calc(1.2vh + env(safe-area-inset-bottom, 12px));
             font-size: 1.2vh; font-weight: 700; letter-spacing: 0.5px;
             background: var(--panel-bg);
             border-top: 1px solid var(--divider);
@@ -993,6 +1000,59 @@
             color: var(--text-dim); font-size: 3vh; line-height: 1;
         }
         .config-close:hover { color: var(--text-main); }
+
+        /* ============================================================
+           POINT LOG POPUP
+        ============================================================ */
+        .pointlog-modal { gap: 1vh; }
+        .pointlog-team-name {
+            font-size: 1.7dvh; font-weight: 800; letter-spacing: 0.5px;
+            color: var(--text-main); text-transform: uppercase;
+        }
+        .pointlog-team-name.pointlog-team1 { color: var(--accent-blue); }
+        .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: 0.3vh; }
+        /* Cada linha tem seu próprio scroll horizontal, sincronizado via JS
+           (initPointLogScrollSync) — rolar uma rola a outra junto */
+        .pointlog-trail {
+            display: flex; align-items: center; flex-wrap: nowrap;
+            overflow-x: auto; padding: 0.4vh 0;
+        }
+        .pointlog-node {
+            flex: 0 0 auto;
+            width: 5.6vw; min-width: 36px;
+            height: 5.6vh; min-height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--card-bg); border: 1.5px solid var(--border-card);
+            border-radius: 8px; margin-right: 0.35vw;
+            font-size: 2.6dvh; font-weight: 900; color: var(--text-main);
+            white-space: nowrap; box-sizing: border-box;
+        }
+        .pointlog-node.empty {
+            background: transparent; border-color: transparent;
+        }
+        .pointlog-node.dim { color: var(--text-dim); border-style: dashed; }
+        .pointlog-node-win {
+            background: rgba(92, 199, 143, 0.15); border-color: #5cc78f;
+            font-size: 2.2dvh;
+        }
+        .pointlog-connector {
+            flex: 0 0 1vw; height: 2px; background: var(--border-card);
+            margin-right: 0.35vw;
+        }
+        .pointlog-divider {
+            border-top: 1px dashed var(--border-card); margin: 0.6vh 0;
+        }
+        .pointlog-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 0.5vh;
+        }
+        .pointlog-nav-btn {
+            background: var(--card-bg); border: 1.5px solid var(--border-card);
+            color: var(--text-main); border-radius: 8px; cursor: pointer;
+            padding: 0.8vh 3vw; font-size: 1.6dvh; font-weight: 700;
+            visibility: hidden;
+        }
+        .pointlog-nav-btn:hover { border-color: var(--accent-blue); }
 
         .check-update-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);

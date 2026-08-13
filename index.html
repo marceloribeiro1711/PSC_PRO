@@ -305,6 +305,27 @@
 </div>
 
 <!-- ============================================================
+     POINT LOG POPUP — trajetória de pontos (pausa técnica / troca de lado)
+============================================================ -->
+<div class="config-overlay" id="pointlog-overlay">
+    <div class="config-modal pointlog-modal">
+        <div class="config-modal-header">
+            <h2 id="pointlog-title">GAME</h2>
+            <button class="config-close" onclick="closePointLogPopup()">✕</button>
+        </div>
+        <div class="pointlog-team-name pointlog-team1" id="pointlog-team1-name">Team 1</div>
+        <div class="pointlog-trail" id="pointlog-trail-team1"></div>
+        <div class="pointlog-divider"></div>
+        <div class="pointlog-team-name pointlog-team2" id="pointlog-team2-name">Team 2</div>
+        <div class="pointlog-trail" id="pointlog-trail-team2"></div>
+        <div class="pointlog-nav">
+            <button class="pointlog-nav-btn" id="pointlog-prev" onclick="pointLogPrev()">◀ Game</button>
+            <button class="pointlog-nav-btn" id="pointlog-next" onclick="pointLogNext()">Game ▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
      CONFIG MODAL
 ============================================================ -->
 <div class="config-overlay" id="config-overlay" onclick="closeConfigOnBg(event)">
@@ -340,6 +361,15 @@
                 <div class="config-toggle-opt set-mode" id="cfg-stats-off" onclick="setStatsMode(false)">Off</div>
             </div>
         </div>
+        <div class="config-row">
+            <div class="config-row-label">Game Log</div>
+            <div class="config-toggle" id="cfg-gamelog-toggle">
+                <div class="config-toggle-opt set-mode" id="cfg-gamelog-on" onclick="setGameLogMode(true)">On</div>
+                <div class="config-toggle-divider"></div>
+                <div class="config-toggle-opt set-mode" id="cfg-gamelog-off" onclick="setGameLogMode(false)">Off</div>
+            </div>
+            <div class="config-hint">Point-by-point popup at each change of ends</div>
+        </div>
         <div class="config-version" id="config-version-label">V 3.0.0</div>
     </div>
 </div>
@@ -370,6 +400,7 @@
     <div class="p-fab-dropdown" id="p-fab-dropdown">
         <button class="p-fab-item" onclick="askResetMatch()">New Game</button>
         <button class="p-fab-item" onclick="openHistory()">History</button>
+        <button class="p-fab-item js-gamelog-menu-item" onclick="openGameLogMenu()">Game Log</button>
         <button class="p-fab-item" onclick="openNotes()">Notes</button>
         <button class="p-fab-item" onclick="openConfig()">Config</button>
     </div>
@@ -419,6 +450,7 @@
         <div class="ls-menu-dropdown" id="ls-menu-dropdown">
             <button class="ls-menu-item" onclick="askResetMatch()">New Game</button>
             <button class="ls-menu-item" onclick="openHistory()">History</button>
+            <button class="ls-menu-item js-gamelog-menu-item" onclick="openGameLogMenu()">Game Log</button>
             <button class="ls-menu-item" onclick="openNotes()">Notes</button>
             <button class="ls-menu-item" onclick="openConfig()">Config</button>
         </div>

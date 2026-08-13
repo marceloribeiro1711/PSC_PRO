@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '1.0.6';
+    const APP_VERSION   = '3.0.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -613,6 +613,189 @@
 
     function serveTeamOf(playerIdx) {
         return playerIdx < 2 ? 0 : 1;
+    }
+
+    // ============================================================
+    // POINT LOG — trajetória de pontos do game (spec: pausa técnica)
+    // ============================================================
+    const SCORE_LABELS = ['0', '15', '30', '40', 'AD'];
+    let matchGameLogs = [];        // todos os games da partida (persistido no histórico)
+    let currentGamePoints = [];    // pontos do game em curso
+    let currentGameServingTeam = null; // 0 = dupla1, 1 = dupla2 (capturado no 1º ponto do game)
+    let gameLogEnabled = true;     // Config: Coach pode desligar o Game Log
+
+    // Regista um ponto no gameLog do game em curso. Fora de âmbito na v1:
+    // tie-break normal e SuperTie (escala numérica própria, sem 15/30/40).
+    function logGamePoint(idx) {
+        if (state.isSuperTieBreak || state.isTieBreakMode) return;
+        if (currentGameServingTeam === null && SERVE.current !== null) {
+            currentGameServingTeam = serveTeamOf(SERVE.current);
+        }
+        const scoreAfter = {
+            team1: SCORE_LABELS[Math.min(state.pts[0], 4)],
+            team2: SCORE_LABELS[Math.min(state.pts[1], 4)]
+        };
+        currentGamePoints.push({
+            point: currentGamePoints.length + 1,
+            wonBy: 'team' + (idx + 1),
+            scoreAfter: scoreAfter
+        });
+    }
+
+    // ---- UI do popup Point Log ----
+    let pointLogWindow = [];      // TODOS os games do set em navegação (mais antigo primeiro)
+    let pointLogViewIndex = 0;
+
+    // Núcleo de abertura do popup — usado tanto pelo gatilho automático da
+    // pausa técnica quanto pela entrada manual no menu hambúrguer.
+    // `manual` = true dá feedback (toast) quando não há nada pra mostrar;
+    // o gatilho automático fica em silêncio nesse caso.
+    function openPointLogPopup(manual) {
+        if (!gameLogEnabled) {
+            if (manual) showToast('Game Log is turned off (Config)');
+            return;
+        }
+        const sameSetGames = matchGameLogs.filter(g => g.set === state.currentSet);
+        if (sameSetGames.length === 0) {
+            if (manual) showToast('No games logged yet this set');
+            return;
+        }
+        pointLogWindow = sameSetGames; // TODOS os games do set em andamento
+        pointLogViewIndex = pointLogWindow.length - 1; // mostrar o game mais recente
+        initPointLogScrollSync();
+        renderPointLog();
+        const overlay = document.getElementById('pointlog-overlay');
+        if (overlay) overlay.classList.add('show');
+    }
+
+    // Gatilho automático (chamado de winGame na troca de lado)
+    function maybeShowPointLogPopup() {
+        openPointLogPopup(false);
+    }
+
+    // Entrada manual pelo menu hambúrguer — Coach pode abrir a qualquer momento
+    function openGameLogMenu() {
+        openPointLogPopup(true);
+    }
+
+    function closePointLogPopup() {
+        const overlay = document.getElementById('pointlog-overlay');
+        if (overlay) overlay.classList.remove('show');
+    }
+
+    function pointLogPrev() {
+        if (pointLogViewIndex > 0) { pointLogViewIndex--; renderPointLog(); }
+    }
+
+    function pointLogNext() {
+        if (pointLogViewIndex < pointLogWindow.length - 1) { pointLogViewIndex++; renderPointLog(); }
+    }
+
+    function pointLogPlayerNames(teamKey) {
+        const ids = teamKey === 'team1' ? ['t1-p1', 't1-p2'] : ['t2-p1', 't2-p2'];
+        const names = ids.map(id => {
+            const el = document.getElementById(id);
+            return el && el.innerText ? el.innerText.trim() : '';
+        });
+        return names.filter(Boolean).join(' / ') || (teamKey === 'team1' ? 'Team 1' : 'Team 2');
+    }
+
+    function renderPointLog() {
+        const game = pointLogWindow[pointLogViewIndex];
+        if (!game) return;
+
+        const gamesInSet = matchGameLogs.filter(g => g.set === game.set);
+        const gameNumber = gamesInSet.indexOf(game) + 1;
+        const titleEl = document.getElementById('pointlog-title');
+        if (titleEl) titleEl.textContent = 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
+
+        const t1El = document.getElementById('pointlog-team1-name');
+        const t2El = document.getElementById('pointlog-team2-name');
+        if (t1El) t1El.textContent = (game.servingTeam === 'team1' ? '🎾 ' : '') + pointLogPlayerNames('team1');
+        if (t2El) t2El.textContent = (game.servingTeam === 'team2' ? '🎾 ' : '') + pointLogPlayerNames('team2');
+
+        renderPointLogTrails(game);
+
+        const prevBtn = document.getElementById('pointlog-prev');
+        const nextBtn = document.getElementById('pointlog-next');
+        const prevGame = pointLogWindow[pointLogViewIndex - 1];
+        const nextGame = pointLogWindow[pointLogViewIndex + 1];
+        if (prevBtn) {
+            prevBtn.style.visibility = prevGame ? 'visible' : 'hidden';
+            if (prevGame) {
+                const prevNum = matchGameLogs.filter(g => g.set === prevGame.set).indexOf(prevGame) + 1;
+                prevBtn.textContent = '◀ Game ' + prevNum;
+            }
+        }
+        if (nextBtn) {
+            nextBtn.style.visibility = nextGame ? 'visible' : 'hidden';
+            if (nextGame) {
+                const nextNum = matchGameLogs.filter(g => g.set === nextGame.set).indexOf(nextGame) + 1;
+                nextBtn.textContent = 'Game ' + nextNum + ' ▶';
+            }
+        }
+    }
+
+    // Renderiza as duas linhas (Dupla 1 / Dupla 2) em COLUNAS alinhadas pela
+    // ordem cronológica do ponto: coluna 1 = ponto 1, coluna 2 = ponto 2, etc.
+    // Cada coluna preenche a linha de quem ganhou aquele ponto específico;
+    // a linha da outra dupla fica vazia na mesma coluna. Isso preserva a
+    // leitura de sequência (ex: 3 pontos seguidos perdidos aparecem como
+    // 3 colunas vazias consecutivas na linha da dupla que perdeu).
+    function renderPointLogTrails(game) {
+        const c1 = document.getElementById('pointlog-trail-team1');
+        const c2 = document.getElementById('pointlog-trail-team2');
+        if (!c1 || !c2) return;
+        const total = game.points.length;
+        let html1 = '';
+        let html2 = '';
+        game.points.forEach((pt, i) => {
+            const isLastPoint = i === total - 1;
+            const isWinningPoint = isLastPoint && pt.gameWinner;
+            // Ponto decisivo: em vez de repetir o rótulo (ex: "40"), mostra
+            // só o checkmark — não há novo número a comunicar, só quem fechou
+            if (pt.wonBy === 'team1') {
+                html1 += isWinningPoint
+                    ? '<span class="pointlog-node pointlog-node-win">✅</span>'
+                    : '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
+            } else {
+                html1 += '<span class="pointlog-node empty"></span>';
+            }
+            if (pt.wonBy === 'team2') {
+                html2 += isWinningPoint
+                    ? '<span class="pointlog-node pointlog-node-win">✅</span>'
+                    : '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
+            } else {
+                html2 += '<span class="pointlog-node empty"></span>';
+            }
+            if (!isLastPoint) {
+                html1 += '<span class="pointlog-connector"></span>';
+                html2 += '<span class="pointlog-connector"></span>';
+            }
+        });
+        c1.innerHTML = html1 || '<span class="pointlog-node dim">—</span>';
+        c2.innerHTML = html2 || '<span class="pointlog-node dim">—</span>';
+    }
+
+    // Sincroniza o scroll horizontal das duas linhas (Dupla 1 / Dupla 2),
+    // já que cada uma tem seu próprio contêiner rolável — rolar uma rola
+    // a outra junto, mantendo as colunas sempre alinhadas.
+    let _pointLogScrollSynced = false;
+    function initPointLogScrollSync() {
+        if (_pointLogScrollSynced) return;
+        const c1 = document.getElementById('pointlog-trail-team1');
+        const c2 = document.getElementById('pointlog-trail-team2');
+        if (!c1 || !c2) return;
+        let syncing = false;
+        c1.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true; c2.scrollLeft = c1.scrollLeft; syncing = false;
+        });
+        c2.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true; c1.scrollLeft = c2.scrollLeft; syncing = false;
+        });
+        _pointLogScrollSynced = true;
     }
 
     // Calcular próximo servidor automático após um game
@@ -1266,6 +1449,24 @@
         // Stats toggle
         document.getElementById('cfg-stats-on').classList.toggle('active', statsEnabled);
         document.getElementById('cfg-stats-off').classList.toggle('active', !statsEnabled);
+        // Game Log toggle
+        document.getElementById('cfg-gamelog-on').classList.toggle('active', gameLogEnabled);
+        document.getElementById('cfg-gamelog-off').classList.toggle('active', !gameLogEnabled);
+        applyGameLogMenuVisibility();
+    }
+
+    function setGameLogMode(val) {
+        gameLogEnabled = val;
+        updateConfig();
+        saveGameState();
+    }
+
+    // Esconde os itens "Game Log" dos menus (portrait e landscape) quando
+    // o Coach desligou o recurso em Config
+    function applyGameLogMenuVisibility() {
+        document.querySelectorAll('.js-gamelog-menu-item').forEach(el => {
+            el.style.display = gameLogEnabled ? '' : 'none';
+        });
     }
 
     // ============================================================
@@ -1652,6 +1853,7 @@
     }
 
     function winGame(ti) {
+        const _pointLogSet = state.currentSet; // capturado antes de qualquer winSet() mudar o set
         // Esconder banners imediatamente para evitar flash visual
         const gpEl = document.getElementById('golden-point-p');
         const bpEl = document.getElementById('break-point-p');
@@ -1664,10 +1866,35 @@
         gameTrack = { inDeuce: false, deuceCountGame: 0 };
         _serveStatCounted = false;
         let setEnded = false;
+
+        // ---- POINT LOG: finalizar o game em curso ----
+        // Precisa correr ANTES de qualquer winSet(), porque winSet() pode
+        // chamar endMatch() -> saveMatchHistory() de forma síncrona, e o
+        // pointLog salvo no histórico tem de já incluir o game decisivo
+        // (o "match point"), não só os anteriores.
+        let _pointLogFinalized = false;
+        function finalizePointLogGame(willSetEnd) {
+            if (_pointLogFinalized) return;
+            _pointLogFinalized = true;
+            if (currentGamePoints.length === 0) return;
+            currentGamePoints[currentGamePoints.length - 1].gameWinner = true;
+            matchGameLogs.push({
+                set: _pointLogSet,
+                winner: 'team' + (ti + 1),
+                servingTeam: currentGameServingTeam !== null ? ('team' + (currentGameServingTeam + 1)) : null,
+                points: currentGamePoints
+            });
+            const totalGamesInSet = state.sets[_pointLogSet][0] + state.sets[_pointLogSet][1];
+            if (!willSetEnd && (totalGamesInSet % 2 === 1)) {
+                maybeShowPointLogPopup();
+            }
+        }
+
         if (state.isSuperTieBreak) {
             state.sets[2][0] = state.pts[0];
             state.sets[2][1] = state.pts[1];
             state.pts = [0, 0];
+            finalizePointLogGame(true);
             winSet();
             setEnded = true;
         } else {
@@ -1678,16 +1905,32 @@
             state.sets[state.currentSet][ti]++;
             state.pts = [0,0];
             const g1 = state.sets[state.currentSet][0], g2 = state.sets[state.currentSet][1];
-            if (state.isTieBreakMode) { winSet(); setEnded = true; }
+            if (state.isTieBreakMode) {
+                finalizePointLogGame(true);
+                winSet(); setEnded = true;
+            }
             else if (prosetMode) {
                 // PROSET: tiebreak a 8-8, vitória a 9 com diferença de 2
                 if (g1 === 8 && g2 === 8) { state.isTieBreakMode = true; }
-                else if ((g1 >= 9 || g2 >= 9) && Math.abs(g1-g2) >= 2) { winSet(); setEnded = true; }
+                else if ((g1 >= 9 || g2 >= 9) && Math.abs(g1-g2) >= 2) {
+                    finalizePointLogGame(true);
+                    winSet(); setEnded = true;
+                }
             } else {
                 if (g1 === 6 && g2 === 6) { state.isTieBreakMode = true; }
-                else if ((g1 >= 6 || g2 >= 6) && Math.abs(g1-g2) >= 2) { winSet(); setEnded = true; }
+                else if ((g1 >= 6 || g2 >= 6) && Math.abs(g1-g2) >= 2) {
+                    finalizePointLogGame(true);
+                    winSet(); setEnded = true;
+                }
             }
         }
+        // Rede de segurança: caminhos que NÃO terminam o set (game comum)
+        // ainda não passaram por finalizePointLogGame — chamado aqui.
+        finalizePointLogGame(setEnded);
+
+        currentGamePoints = [];
+        currentGameServingTeam = null;
+
         // onGameEnd só corre se o set NÃO terminou — se terminou, initServeNewSet já tratou o serve
         if (!setEnded) onGameEnd();
     }
@@ -1828,10 +2071,10 @@
                         winGame(idx);
                     } else {
                         // Sem ADV marca → volta a 40-40, conta DC
-                        trackPointWon(si, idx);
                         state.pts = [3, 3];
                         state.deuceCount++;
                         setStats[si].deuces++;
+                        trackPointWon(si, idx);
                     }
                 } else if (isDeuce) {
                     if (state.deuceCount >= 2) {
@@ -1867,6 +2110,7 @@
     function trackPointWon(si, idx) {
         setStats[si].ptsWon[idx]++;
         setStats[si].ptsLost[1 - idx]++;
+        logGamePoint(idx);
     }
 
     function removePoint(event, teamIndex) {
@@ -1968,6 +2212,10 @@
             prosetMode,
             pointMode,
             statsEnabled,
+            gameLogEnabled,
+            matchGameLogs,
+            currentGamePoints,
+            currentGameServingTeam,
             statsState: { ...statsState },
             setStats,
             gameTrack,
@@ -2000,6 +2248,10 @@
         prosetMode    = snap.prosetMode || false;
         pointMode     = snap.pointMode;
         statsEnabled  = snap.statsEnabled;
+        gameLogEnabled = (snap.gameLogEnabled !== undefined) ? snap.gameLogEnabled : true;
+        matchGameLogs  = snap.matchGameLogs || [];
+        currentGamePoints = snap.currentGamePoints || [];
+        currentGameServingTeam = (snap.currentGameServingTeam !== undefined) ? snap.currentGameServingTeam : null;
         setStats      = snap.setStats;
         gameTrack     = snap.gameTrack;
         currentNotes  = snap.currentNotes || '';
@@ -2227,7 +2479,8 @@
             stats: Object.assign({}, statsState),
             setMode: prosetMode ? 'proset' : (superTieMode ? 'supertie' : '3sets'),
             pointMode: pointMode,
-            notes: currentNotes
+            notes: currentNotes,
+            pointLog: matchGameLogs
         };
 
         let history = [];
@@ -2962,6 +3215,9 @@
         clearGameState();
         state = { sets:[[0,0],[0,0],[0,0]], currentSet:0, pts:[0,0], isSuperTieBreak:false, isTieBreakMode:false, matchOver:false, tiebreakPts:[null,null,null], deuceCount:0 };
         currentNotes = '';
+        matchGameLogs = [];
+        currentGamePoints = [];
+        currentGameServingTeam = null;
         resetSetStats();
         resetTimer();
         document.getElementById('game-over-p').classList.remove('show');
@@ -3105,6 +3361,9 @@
         exportHistoryGameToExcel,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
+        // Point Log — popup de pausa técnica
+        closePointLogPopup, pointLogPrev, pointLogNext,
+        setGameLogMode, openGameLogMenu,
     });
 
 })();
