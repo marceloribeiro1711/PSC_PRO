@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.0.0';
+    const APP_VERSION   = '3.0.1';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -678,6 +678,30 @@
         openPointLogPopup(true);
     }
 
+    // Abre o Game Log de uma partida já salva no histórico (tela "Last 10
+    // Games"). Ao contrário da versão ao vivo (que usa o estado da partida
+    // em curso), aqui os dados vêm do `pointLog` gravado no histórico.
+    // v1: mostra o ÚLTIMO set jogado nessa partida (o mais provável de
+    // interessar numa revisão pós-jogo), com navegação por todos os games
+    // desse set.
+    function openPointLogFromHistory(idx) {
+        const history = loadHistory();
+        const entry = history[idx];
+        if (!entry) return;
+        const pointLog = entry.pointLog || [];
+        if (pointLog.length === 0) {
+            showToast('No Game Log data for this match');
+            return;
+        }
+        const lastSet = pointLog[pointLog.length - 1].set;
+        pointLogWindow = pointLog.filter(g => g.set === lastSet);
+        pointLogViewIndex = pointLogWindow.length - 1;
+        initPointLogScrollSync();
+        renderPointLog();
+        const overlay = document.getElementById('pointlog-overlay');
+        if (overlay) overlay.classList.add('show');
+    }
+
     function closePointLogPopup() {
         const overlay = document.getElementById('pointlog-overlay');
         if (overlay) overlay.classList.remove('show');
@@ -704,8 +728,11 @@
         const game = pointLogWindow[pointLogViewIndex];
         if (!game) return;
 
-        const gamesInSet = matchGameLogs.filter(g => g.set === game.set);
-        const gameNumber = gamesInSet.indexOf(game) + 1;
+        // pointLogWindow já É o set completo (ao vivo ou do histórico),
+        // então a numeração vem direto dele — nunca de matchGameLogs
+        // (que é sempre a partida AO VIVO e ficaria errado ao mostrar
+        // dados de uma partida antiga vindos do histórico)
+        const gameNumber = pointLogWindow.indexOf(game) + 1;
         const titleEl = document.getElementById('pointlog-title');
         if (titleEl) titleEl.textContent = 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
 
@@ -723,14 +750,14 @@
         if (prevBtn) {
             prevBtn.style.visibility = prevGame ? 'visible' : 'hidden';
             if (prevGame) {
-                const prevNum = matchGameLogs.filter(g => g.set === prevGame.set).indexOf(prevGame) + 1;
+                const prevNum = pointLogWindow.indexOf(prevGame) + 1;
                 prevBtn.textContent = '◀ Game ' + prevNum;
             }
         }
         if (nextBtn) {
             nextBtn.style.visibility = nextGame ? 'visible' : 'hidden';
             if (nextGame) {
-                const nextNum = matchGameLogs.filter(g => g.set === nextGame.set).indexOf(nextGame) + 1;
+                const nextNum = pointLogWindow.indexOf(nextGame) + 1;
                 nextBtn.textContent = 'Game ' + nextNum + ' ▶';
             }
         }
@@ -2810,14 +2837,19 @@
                         <span class="h-game-modebadge">${modeLabel}</span>
                         ${duration ? `<span class="h-game-duration">MATCH TIME: ${duration}</span>` : ''}
                     </div>
-                    <button class="h-delete-btn" onclick="deleteMatch(${idx})" title="Delete">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                            <path d="M10 11v6M14 11v6"/>
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
-                    </button>
+                    <div class="h-game-meta-right">
+                        <button class="h-gamelog-btn" onclick="openPointLogFromHistory(${idx})" title="Game Log">
+                            🎾 Game Log
+                        </button>
+                        <button class="h-delete-btn" onclick="deleteMatch(${idx})" title="Delete">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 ${buildPairBlock(entry, 0, entry.winner === 0)}
                 ${buildPairBlock(entry, 1, entry.winner === 1)}
@@ -3352,7 +3384,7 @@
         toggleTimer,
         updateNotesCounter, updateNotesFsCounter,
         // Histórico (chamadas dinâmicas em buildGameSlide)
-        deleteMatch, openNotesFs,
+        deleteMatch, openNotesFs, openPointLogFromHistory,
         sendGameByEmail, closeEmailPrompt, confirmSendEmail,
         exportHistoryGameToExcel,
         // Estatísticas — não têm onclick mas expostas por segurança

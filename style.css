@@ -113,6 +113,12 @@
         #layout-portrait {
             display: flex; flex-direction: column;
             width: 100vw; height: 100vh;
+            box-sizing: border-box;
+            /* Reserva espaço real na base da tela para os botões de
+               navegação do Android — feito aqui (no container raiz) e não
+               via margin em elementos filhos, porque .p-teams usa
+               overflow:visible e anula esse tipo de ajuste em cascata */
+            padding-bottom: calc(1.5vh + env(safe-area-inset-bottom, 16px));
         }
 
         /* ============================================================
@@ -167,10 +173,6 @@
         .license-bar {
             display: flex; align-items: center; justify-content: space-between;
             padding: 0.4vh 4vw; flex-shrink: 0;
-            /* Sobe a barra, reservando espaço em branco abaixo dela para
-               os botões de navegação do Android (gesture bar) não a
-               sobreporem quando invocados pelo usuário */
-            margin-bottom: calc(1.2vh + env(safe-area-inset-bottom, 12px));
             font-size: 1.2vh; font-weight: 700; letter-spacing: 0.5px;
             background: var(--panel-bg);
             border-top: 1px solid var(--divider);
@@ -660,6 +662,15 @@
             font-size: 1.3vh; font-weight: 700; color: var(--accent-blue);
             letter-spacing: 0.5px; flex-shrink: 0;
         }
+        .h-game-meta-right { display: flex; align-items: center; gap: 1.5vw; flex-shrink: 0; }
+        .h-gamelog-btn {
+            background: var(--card-bg); border: 1.5px solid var(--border-card);
+            cursor: pointer; color: var(--text-main);
+            padding: 0.5vh 2vw; border-radius: 6px;
+            font-size: 1.3vh; font-weight: 700; letter-spacing: 0.5px;
+            transition: border-color 0.2s;
+        }
+        .h-gamelog-btn:hover { border-color: var(--accent-blue); }
         .h-delete-btn {
             background: rgba(224,48,48,0.12); border: 1.5px solid #e03030;
             cursor: pointer; color: #e03030;
