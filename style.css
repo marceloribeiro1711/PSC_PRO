@@ -589,7 +589,7 @@
             border-top: 1.5px solid var(--divider);
             flex-shrink: 0;
         }
-        .history-footer-actions { display: flex; align-items: center; gap: 2vw; }
+        .history-footer-actions { display: flex; align-items: center; gap: 1.5vw; }
         .history-back-btn {
             background: var(--bg); border: none; cursor: pointer;
             color: #fff; font-size: 2vh; font-weight: 700;
@@ -690,9 +690,9 @@
         .h-email-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             cursor: pointer; color: #fff;
-            padding: 0.7vh 3vw; border-radius: 6px;
-            display: flex; align-items: center; gap: 1.5vw;
-            font-size: 1.4vh; font-weight: 700; letter-spacing: 1px;
+            padding: 0.7vh 2.2vw; border-radius: 6px;
+            display: flex; align-items: center; gap: 1.2vw;
+            font-size: 1.3vh; font-weight: 700; letter-spacing: 0.5px;
             text-transform: uppercase;
             transition: background 0.2s;
         }
@@ -1016,6 +1016,19 @@
            POINT LOG POPUP
         ============================================================ */
         .pointlog-modal { gap: 1vh; }
+        .pointlog-set-tabs {
+            display: none; gap: 1vw; margin-bottom: 0.3vh;
+        }
+        .pointlog-set-tab {
+            background: var(--card-bg); border: 1.5px solid var(--border-card);
+            color: var(--text-dim); border-radius: 6px; cursor: pointer;
+            padding: 0.6vh 3vw; font-size: 1.3vh; font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        .pointlog-set-tab.active {
+            color: var(--text-main); border-color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.12);
+        }
         .pointlog-team-name {
             font-size: 1.7dvh; font-weight: 800; letter-spacing: 0.5px;
             color: var(--text-main); text-transform: uppercase;
@@ -1050,6 +1063,15 @@
             flex: 0 0 1vw; height: 2px; background: var(--border-card);
             margin-right: 0.35vw;
         }
+        /* Modo compacto — usado no SuperTie, que pode ter muito mais
+           pontos que um game normal (sem teto de 15/30/40) */
+        .pointlog-trail.compact .pointlog-node {
+            width: 3.4vw; min-width: 24px;
+            height: 3.4vh; min-height: 24px;
+            font-size: 1.5dvh; border-radius: 6px;
+        }
+        .pointlog-trail.compact .pointlog-node-win { font-size: 1.3dvh; }
+        .pointlog-trail.compact .pointlog-connector { flex-basis: 0.5vw; margin-right: 0.2vw; }
         .pointlog-divider {
             border-top: 1px dashed var(--border-card); margin: 0.6vh 0;
         }

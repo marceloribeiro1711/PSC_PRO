@@ -627,14 +627,19 @@
     // Regista um ponto no gameLog do game em curso. Fora de âmbito na v1:
     // tie-break normal e SuperTie (escala numérica própria, sem 15/30/40).
     function logGamePoint(idx) {
-        if (state.isSuperTieBreak || state.isTieBreakMode) return;
+        // Tie-break normal (6-6) segue fora do escopo v1. SuperTie é
+        // suportado, com escala numérica corrida (0,1,2...) em vez de
+        // 15/30/40 — não tem teto, por isso o rótulo é o valor bruto.
+        if (state.isTieBreakMode) return;
         if (currentGameServingTeam === null && SERVE.current !== null) {
             currentGameServingTeam = serveTeamOf(SERVE.current);
         }
-        const scoreAfter = {
-            team1: SCORE_LABELS[Math.min(state.pts[0], 4)],
-            team2: SCORE_LABELS[Math.min(state.pts[1], 4)]
-        };
+        const scoreAfter = state.isSuperTieBreak
+            ? { team1: String(state.pts[0]), team2: String(state.pts[1]) }
+            : {
+                team1: SCORE_LABELS[Math.min(state.pts[0], 4)],
+                team2: SCORE_LABELS[Math.min(state.pts[1], 4)]
+              };
         currentGamePoints.push({
             point: currentGamePoints.length + 1,
             wonBy: 'team' + (idx + 1),
@@ -643,8 +648,36 @@
     }
 
     // ---- UI do popup Point Log ----
-    let pointLogWindow = [];      // TODOS os games do set em navegação (mais antigo primeiro)
+    let pointLogSourceData = [];  // TODOS os games disponíveis (todos os sets da fonte actual)
+    let pointLogActiveSet = 0;    // set actualmente selecionado nas tabs
+    let pointLogWindow = [];      // games do set activo (mais antigo primeiro)
     let pointLogViewIndex = 0;
+
+    // Monta as tabs "SET 1 / SET 2 / SET 3" com base nos sets presentes em
+    // pointLogSourceData. Só aparece quando há mais de 1 set disponível
+    // (ex: popup ao vivo no set 1 não precisa de tabs).
+    function renderPointLogSetTabs() {
+        const wrap = document.getElementById('pointlog-set-tabs');
+        if (!wrap) return;
+        const sets = [...new Set(pointLogSourceData.map(g => g.set))].sort((a, b) => a - b);
+        if (sets.length <= 1) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+        wrap.style.display = 'flex';
+        wrap.innerHTML = sets.map(s => {
+            const isSuperTieSet = pointLogSourceData.some(g => g.set === s && g.isSuperTie);
+            const label = isSuperTieSet ? 'SUPERTIE' : ('SET ' + (s + 1));
+            return '<button class="pointlog-set-tab' + (s === pointLogActiveSet ? ' active' : '') + '" ' +
+                'onclick="setPointLogActiveSet(' + s + ')">' + label + '</button>';
+        }).join('');
+    }
+
+    // Troca o set exibido dentro do popup já aberto (chamado pelas tabs)
+    function setPointLogActiveSet(setNum) {
+        pointLogActiveSet = setNum;
+        pointLogWindow = pointLogSourceData.filter(g => g.set === setNum);
+        pointLogViewIndex = pointLogWindow.length - 1; // game mais recente desse set
+        renderPointLogSetTabs();
+        renderPointLog();
+    }
 
     // Núcleo de abertura do popup — usado tanto pelo gatilho automático da
     // pausa técnica quanto pela entrada manual no menu hambúrguer.
@@ -655,13 +688,18 @@
             if (manual) showToast('Game Log is turned off (Config)');
             return;
         }
-        const sameSetGames = matchGameLogs.filter(g => g.set === state.currentSet);
-        if (sameSetGames.length === 0) {
-            if (manual) showToast('No games logged yet this set');
+        if (matchGameLogs.length === 0) {
+            if (manual) showToast('No games logged yet this match');
             return;
         }
-        pointLogWindow = sameSetGames; // TODOS os games do set em andamento
-        pointLogViewIndex = pointLogWindow.length - 1; // mostrar o game mais recente
+        pointLogSourceData = matchGameLogs; // todos os sets já jogados nesta partida
+        // Por padrão mostra o set em curso; se ainda não tiver games nele
+        // (ex: acabou de mudar de set), cai para o set mais recente disponível
+        const hasCurrentSet = pointLogSourceData.some(g => g.set === state.currentSet);
+        pointLogActiveSet = hasCurrentSet ? state.currentSet : pointLogSourceData[pointLogSourceData.length - 1].set;
+        pointLogWindow = pointLogSourceData.filter(g => g.set === pointLogActiveSet);
+        pointLogViewIndex = pointLogWindow.length - 1;
+        renderPointLogSetTabs();
         initPointLogScrollSync();
         renderPointLog();
         const overlay = document.getElementById('pointlog-overlay');
@@ -680,10 +718,8 @@
 
     // Abre o Game Log de uma partida já salva no histórico (tela "Last 10
     // Games"). Ao contrário da versão ao vivo (que usa o estado da partida
-    // em curso), aqui os dados vêm do `pointLog` gravado no histórico.
-    // v1: mostra o ÚLTIMO set jogado nessa partida (o mais provável de
-    // interessar numa revisão pós-jogo), com navegação por todos os games
-    // desse set.
+    // em curso), aqui os dados vêm do `pointLog` gravado no histórico —
+    // com TODOS os sets da partida disponíveis via tabs.
     function openPointLogFromHistory(idx) {
         const history = loadHistory();
         const entry = history[idx];
@@ -693,13 +729,22 @@
             showToast('No Game Log data for this match');
             return;
         }
-        const lastSet = pointLog[pointLog.length - 1].set;
-        pointLogWindow = pointLog.filter(g => g.set === lastSet);
+        pointLogSourceData = pointLog; // todos os sets dessa partida
+        pointLogActiveSet = pointLog[pointLog.length - 1].set; // set mais recente por padrão
+        pointLogWindow = pointLogSourceData.filter(g => g.set === pointLogActiveSet);
         pointLogViewIndex = pointLogWindow.length - 1;
+        renderPointLogSetTabs();
         initPointLogScrollSync();
         renderPointLog();
         const overlay = document.getElementById('pointlog-overlay');
         if (overlay) overlay.classList.add('show');
+    }
+
+    // Wrapper sem parâmetro para o botão do footer do histórico (mesmo
+    // padrão de sendGameByEmail/exportHistoryGameToExcel — sempre o game
+    // atualmente visível no carousel)
+    function openPointLogFromHistoryCurrent() {
+        openPointLogFromHistory(carouselIdx);
     }
 
     function closePointLogPopup() {
@@ -734,7 +779,11 @@
         // dados de uma partida antiga vindos do histórico)
         const gameNumber = pointLogWindow.indexOf(game) + 1;
         const titleEl = document.getElementById('pointlog-title');
-        if (titleEl) titleEl.textContent = 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
+        if (titleEl) {
+            titleEl.textContent = game.isSuperTie
+                ? 'SET ' + (game.set + 1) + ' — SUPERTIE'
+                : 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
+        }
 
         const t1El = document.getElementById('pointlog-team1-name');
         const t2El = document.getElementById('pointlog-team2-name');
@@ -773,6 +822,10 @@
         const c1 = document.getElementById('pointlog-trail-team1');
         const c2 = document.getElementById('pointlog-trail-team2');
         if (!c1 || !c2) return;
+        // SuperTie pode ter muito mais pontos que um game normal — usa
+        // nós menores (modo compacto) pra reduzir o quanto precisa rolar
+        c1.classList.toggle('compact', !!game.isSuperTie);
+        c2.classList.toggle('compact', !!game.isSuperTie);
         const total = game.points.length;
         let html1 = '';
         let html2 = '';
@@ -1905,7 +1958,8 @@
                 set: _pointLogSet,
                 winner: 'team' + (ti + 1),
                 servingTeam: currentGameServingTeam !== null ? ('team' + (currentGameServingTeam + 1)) : null,
-                points: currentGamePoints
+                points: currentGamePoints,
+                isSuperTie: state.isSuperTieBreak
             });
             const totalGamesInSet = state.sets[_pointLogSet][0] + state.sets[_pointLogSet][1];
             if (!willSetEnd && (totalGamesInSet % 2 === 1)) {
@@ -2057,6 +2111,7 @@
             state.pts[idx]++;
             setStats[si].tbPtsWon[idx]++;
             SERVE.tbPoints++;   // incrementar antes para onTbPoint calcular o servidor correcto
+            if (state.isSuperTieBreak) logGamePoint(idx); // Game Log: só SuperTie, não tie-break normal
             onTbPoint();
         } else {
             const p0 = state.pts[0], p1 = state.pts[1];
@@ -2837,19 +2892,14 @@
                         <span class="h-game-modebadge">${modeLabel}</span>
                         ${duration ? `<span class="h-game-duration">MATCH TIME: ${duration}</span>` : ''}
                     </div>
-                    <div class="h-game-meta-right">
-                        <button class="h-gamelog-btn" onclick="openPointLogFromHistory(${idx})" title="Game Log">
-                            🎾 Game Log
-                        </button>
-                        <button class="h-delete-btn" onclick="deleteMatch(${idx})" title="Delete">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                <path d="M10 11v6M14 11v6"/>
-                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                            </svg>
-                        </button>
-                    </div>
+                    <button class="h-delete-btn" onclick="deleteMatch(${idx})" title="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6M14 11v6"/>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                    </button>
                 </div>
                 ${buildPairBlock(entry, 0, entry.winner === 0)}
                 ${buildPairBlock(entry, 1, entry.winner === 1)}
@@ -3384,14 +3434,14 @@
         toggleTimer,
         updateNotesCounter, updateNotesFsCounter,
         // Histórico (chamadas dinâmicas em buildGameSlide)
-        deleteMatch, openNotesFs, openPointLogFromHistory,
+        deleteMatch, openNotesFs, openPointLogFromHistory, openPointLogFromHistoryCurrent,
         sendGameByEmail, closeEmailPrompt, confirmSendEmail,
         exportHistoryGameToExcel,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu,
+        setGameLogMode, openGameLogMenu, setPointLogActiveSet,
     });
 
 })();
