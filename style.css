@@ -1036,7 +1036,7 @@
         .pointlog-team-name.pointlog-team1 { color: var(--accent-blue); }
         .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: 0.3vh; }
         .pointlog-bp {
-            font-size: 1.2vh; font-weight: 600; color: var(--text-dim);
+            font-size: 1.6vh; font-weight: 700; color: var(--text-dim);
             margin-bottom: 0.4vh; letter-spacing: 0.3px;
         }
         /* Cada linha tem seu próprio scroll horizontal, sincronizado via JS
@@ -1064,8 +1064,10 @@
             font-size: 2.2dvh;
         }
         .pointlog-node-lose {
-            background: rgba(224, 48, 48, 0.12); border-color: #e05555;
-            font-size: 2.2dvh;
+            width: auto; min-width: 8vw; padding: 0 1vw;
+            background: rgba(224, 48, 48, 0.15); border-color: #e05555;
+            color: #ff6b6b; font-size: 1.4dvh; font-weight: 900;
+            letter-spacing: 0.5px;
         }
         .pointlog-connector {
             flex: 0 0 1vw; height: 2px; background: var(--border-card);
@@ -1078,8 +1080,8 @@
             height: 3.4vh; min-height: 24px;
             font-size: 1.5dvh; border-radius: 6px;
         }
-        .pointlog-trail.compact .pointlog-node-win,
-        .pointlog-trail.compact .pointlog-node-lose { font-size: 1.3dvh; }
+        .pointlog-trail.compact .pointlog-node-win { font-size: 1.3dvh; }
+        .pointlog-trail.compact .pointlog-node-lose { min-width: 6vw; font-size: 1dvh; }
         .pointlog-trail.compact .pointlog-connector { flex-basis: 0.5vw; margin-right: 0.2vw; }
         .pointlog-divider {
             border-top: 1px dashed var(--border-card); margin: 0.6vh 0;

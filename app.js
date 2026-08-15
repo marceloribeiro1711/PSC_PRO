@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.0.2';
+    const APP_VERSION   = '3.0.3';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -809,8 +809,8 @@
 
         const t1El = document.getElementById('pointlog-team1-name');
         const t2El = document.getElementById('pointlog-team2-name');
-        if (t1El) t1El.textContent = (game.servingTeam === 'team1' ? '🎾 ' : '') + pointLogPlayerNames('team1');
-        if (t2El) t2El.textContent = (game.servingTeam === 'team2' ? '🎾 ' : '') + pointLogPlayerNames('team2');
+        if (t1El) t1El.textContent = pointLogPlayerNames('team1') + (game.servingTeam === 'team1' ? ' are serving 🎾' : '');
+        if (t2El) t2El.textContent = pointLogPlayerNames('team2') + (game.servingTeam === 'team2' ? ' are serving 🎾' : '');
 
         // Break Points opportunities — não se aplica ao SuperTie (não usa
         // conceito de saque/quebra da mesma forma que um game normal)
@@ -865,19 +865,19 @@
             // Toda coluna mostra o placar das DUAS duplas naquele momento
             // (leitura tipo placar ao vivo), não só de quem ganhou o ponto.
             // Exceção na coluna final: vencedor mostra só ✅; o perdedor
-            // mostra ❌ se estava sacando (ou seja, teve o serviço quebrado)
-            // — se não estava sacando, fica sem nada (célula vazia).
+            // mostra o rótulo "BROKEN" se estava sacando (teve o serviço
+            // quebrado) — se não estava sacando, fica sem nada (célula vazia).
             const winnerIsTeam1 = isWinningPoint && pt.wonBy === 'team1';
             const winnerIsTeam2 = isWinningPoint && pt.wonBy === 'team2';
             if (winnerIsTeam1) {
                 html1 += '<span class="pointlog-node pointlog-node-win">✅</span>';
                 html2 += (game.servingTeam === 'team2')
-                    ? '<span class="pointlog-node pointlog-node-lose">❌</span>'
+                    ? '<span class="pointlog-node pointlog-node-lose">BROKEN</span>'
                     : '<span class="pointlog-node empty"></span>';
             } else if (winnerIsTeam2) {
                 html2 += '<span class="pointlog-node pointlog-node-win">✅</span>';
                 html1 += (game.servingTeam === 'team1')
-                    ? '<span class="pointlog-node pointlog-node-lose">❌</span>'
+                    ? '<span class="pointlog-node pointlog-node-lose">BROKEN</span>'
                     : '<span class="pointlog-node empty"></span>';
             } else {
                 html1 += '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
