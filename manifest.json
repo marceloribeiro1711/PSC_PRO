@@ -6,7 +6,7 @@
   "start_url": "https://marceloribeiro1711.github.io/PSC_PRO/",
   "scope": "https://marceloribeiro1711.github.io/PSC_PRO/",
   "display": "fullscreen",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#0b1a35",
   "theme_color": "#0b1a35",
   "lang": "en",
