@@ -1098,6 +1098,53 @@
         }
         .pointlog-nav-btn:hover { border-color: var(--accent-blue); }
 
+        /* ============================================================
+           SET LOG — trajetória de games do set (nível acima do Game Log)
+        ============================================================ */
+        .setlog-block { margin-bottom: 0.3vh; }
+        .setlog-team-name {
+            font-size: 1.4vh; font-weight: 700; letter-spacing: 0.3px;
+            color: var(--text-dim); text-transform: uppercase;
+        }
+        .setlog-team-name.setlog-team1 { color: var(--accent-blue); }
+        .setlog-team-name.setlog-team2 { color: var(--accent-yellow); margin-bottom: 0.3vh; }
+        .setlog-trail {
+            display: flex; align-items: center; flex-wrap: nowrap;
+            overflow-x: auto; padding: 0.3vh 0;
+        }
+        .setlog-node {
+            flex: 0 0 auto; cursor: pointer;
+            width: 4.4vw; min-width: 30px;
+            height: 4.4vh; min-height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--card-bg); border: 1.5px solid var(--border-card);
+            border-radius: 7px; margin-right: 0.3vw;
+            font-size: 1.9dvh; font-weight: 800; color: var(--text-main);
+            box-sizing: border-box;
+        }
+        /* Ponto activo (o que está a alimentar o Game Log abaixo) —
+           fonte vermelha, forte, para destacar a ligação entre as duas
+           secções, conforme pedido */
+        .setlog-node.active {
+            color: #ff3b3b; border-color: #ff3b3b;
+            background: rgba(255, 59, 59, 0.12);
+        }
+        .setlog-connector {
+            flex: 0 0 0.8vw; height: 2px; background: var(--border-card);
+            margin-right: 0.3vw;
+        }
+        .setlog-divider {
+            border-top: 1px dashed var(--border-card); margin: 0.4vh 0;
+        }
+        .pointlog-major-divider {
+            border-top: 2px solid var(--border-card); margin: 1vh 0;
+            opacity: 0.6;
+        }
+        .pointlog-empty-msg {
+            color: var(--text-dim); font-size: 1.5vh; font-style: italic;
+            padding: 1vh 0; text-align: center;
+        }
+
         .check-update-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             color: #fff; border-radius: 8px; cursor: pointer;

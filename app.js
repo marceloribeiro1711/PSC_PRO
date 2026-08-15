@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.0.3';
+    const APP_VERSION   = '3.1.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -707,7 +707,7 @@
     // o gatilho automático fica em silêncio nesse caso.
     function openPointLogPopup(manual) {
         if (!gameLogEnabled) {
-            if (manual) showToast('Game Log is turned off (Config)');
+            if (manual) showToast('Match Log is turned off (Config)');
             return;
         }
         if (matchGameLogs.length === 0) {
@@ -748,7 +748,7 @@
         if (!entry) return;
         const pointLog = entry.pointLog || [];
         if (pointLog.length === 0) {
-            showToast('No Game Log data for this match');
+            showToast('No Match Log data for this match');
             return;
         }
         pointLogSourceData = pointLog; // todos os sets dessa partida
@@ -807,20 +807,43 @@
                 : 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
         }
 
+        // SET LOG — não faz sentido para SuperTie (não é medido em games)
+        const setlogBlock = document.getElementById('setlog-block');
+        if (setlogBlock) setlogBlock.style.display = game.isSuperTie ? 'none' : '';
+        if (!game.isSuperTie) renderSetLogTrail();
+
         const t1El = document.getElementById('pointlog-team1-name');
         const t2El = document.getElementById('pointlog-team2-name');
         if (t1El) t1El.textContent = pointLogPlayerNames('team1') + (game.servingTeam === 'team1' ? ' are serving 🎾' : '');
         if (t2El) t2El.textContent = pointLogPlayerNames('team2') + (game.servingTeam === 'team2' ? ' are serving 🎾' : '');
 
-        // Break Points opportunities — não se aplica ao SuperTie (não usa
-        // conceito de saque/quebra da mesma forma que um game normal)
+        // Break Points opportunities — não se aplica ao SuperTie nem ao
+        // game decidido no tie-break normal (sem dados ponto-a-ponto)
         const bp1El = document.getElementById('pointlog-team1-bp');
         const bp2El = document.getElementById('pointlog-team2-bp');
         const bp = game.breakPoints || { team1: 0, team2: 0 };
-        if (bp1El) bp1El.textContent = game.isSuperTie ? '' : 'Break Points opportunities: ' + bp.team1;
-        if (bp2El) bp2El.textContent = game.isSuperTie ? '' : 'Break Points opportunities: ' + bp.team2;
+        const hideBp = game.isSuperTie || game.isTiebreakGame;
+        if (bp1El) bp1El.textContent = hideBp ? '' : 'Break Points opportunities: ' + bp.team1;
+        if (bp2El) bp2El.textContent = hideBp ? '' : 'Break Points opportunities: ' + bp.team2;
 
-        renderPointLogTrails(game);
+        // Game decidido por tie-break normal não tem dados ponto-a-ponto
+        // (fora do escopo v1) — mostra mensagem em vez da trilha vazia/quebrada
+        const emptyMsgEl = document.getElementById('pointlog-empty-msg');
+        const t1TrailEl = document.getElementById('pointlog-trail-team1');
+        const t2TrailEl = document.getElementById('pointlog-trail-team2');
+        if (game.isTiebreakGame) {
+            if (emptyMsgEl) {
+                emptyMsgEl.style.display = '';
+                emptyMsgEl.textContent = 'This game was decided in a tie-break — point-by-point detail is not tracked.';
+            }
+            if (t1TrailEl) t1TrailEl.style.display = 'none';
+            if (t2TrailEl) t2TrailEl.style.display = 'none';
+        } else {
+            if (emptyMsgEl) emptyMsgEl.style.display = 'none';
+            if (t1TrailEl) t1TrailEl.style.display = '';
+            if (t2TrailEl) t2TrailEl.style.display = '';
+            renderPointLogTrails(game);
+        }
 
         const prevBtn = document.getElementById('pointlog-prev');
         const nextBtn = document.getElementById('pointlog-next');
@@ -840,6 +863,44 @@
                 nextBtn.textContent = 'Game ' + nextNum + ' ▶';
             }
         }
+    }
+
+    // SET LOG — trajectória de games do set (nível acima do Game Log).
+    // Cada coluna é um GAME (não um ponto): mostra o placar de games de
+    // ambas as duplas após aquele game, com o game actualmente
+    // seleccionado destacado a vermelho — é ele que alimenta o Game Log
+    // (ponto-a-ponto) exibido logo abaixo.
+    function renderSetLogTrail() {
+        const c1 = document.getElementById('setlog-trail-team1');
+        const c2 = document.getElementById('setlog-trail-team2');
+        if (!c1 || !c2) return;
+        let t1 = 0, t2 = 0;
+        let html1 = '';
+        let html2 = '';
+        pointLogWindow.forEach((g, i) => {
+            if (g.winner === 'team1') t1++; else t2++;
+            const activeClass = i === pointLogViewIndex ? ' active' : '';
+            html1 += '<span class="setlog-node' + activeClass + '" onclick="setPointLogViewIndex(' + i + ')">' + t1 + '</span>';
+            html2 += '<span class="setlog-node' + activeClass + '" onclick="setPointLogViewIndex(' + i + ')">' + t2 + '</span>';
+            if (i < pointLogWindow.length - 1) {
+                html1 += '<span class="setlog-connector"></span>';
+                html2 += '<span class="setlog-connector"></span>';
+            }
+        });
+        c1.innerHTML = html1;
+        c2.innerHTML = html2;
+
+        const t1NameEl = document.getElementById('setlog-team1-name');
+        const t2NameEl = document.getElementById('setlog-team2-name');
+        if (t1NameEl) t1NameEl.textContent = pointLogPlayerNames('team1');
+        if (t2NameEl) t2NameEl.textContent = pointLogPlayerNames('team2');
+    }
+
+    // Selecciona directamente um game clicando na coluna do Set Log
+    function setPointLogViewIndex(i) {
+        if (i < 0 || i >= pointLogWindow.length) return;
+        pointLogViewIndex = i;
+        renderPointLog();
     }
 
     // Renderiza as duas linhas (Dupla 1 / Dupla 2) em COLUNAS alinhadas pela
@@ -892,24 +953,28 @@
         c2.innerHTML = html2 || '<span class="pointlog-node dim">—</span>';
     }
 
-    // Sincroniza o scroll horizontal das duas linhas (Dupla 1 / Dupla 2),
-    // já que cada uma tem seu próprio contêiner rolável — rolar uma rola
-    // a outra junto, mantendo as colunas sempre alinhadas.
+    // Sincroniza o scroll horizontal de duas linhas irmãs (cada uma com
+    // seu próprio contêiner rolável) — rolar uma rola a outra junto,
+    // mantendo as colunas sempre alinhadas. Reutilizável para o Game Log
+    // (Dupla 1/Dupla 2) e para o Set Log (Dupla 1/Dupla 2).
+    function syncScrollPair(el1, el2) {
+        if (!el1 || !el2) return;
+        let syncing = false;
+        el1.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true; el2.scrollLeft = el1.scrollLeft; syncing = false;
+        });
+        el2.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true; el1.scrollLeft = el2.scrollLeft; syncing = false;
+        });
+    }
+
     let _pointLogScrollSynced = false;
     function initPointLogScrollSync() {
         if (_pointLogScrollSynced) return;
-        const c1 = document.getElementById('pointlog-trail-team1');
-        const c2 = document.getElementById('pointlog-trail-team2');
-        if (!c1 || !c2) return;
-        let syncing = false;
-        c1.addEventListener('scroll', function () {
-            if (syncing) return;
-            syncing = true; c2.scrollLeft = c1.scrollLeft; syncing = false;
-        });
-        c2.addEventListener('scroll', function () {
-            if (syncing) return;
-            syncing = true; c1.scrollLeft = c2.scrollLeft; syncing = false;
-        });
+        syncScrollPair(document.getElementById('pointlog-trail-team1'), document.getElementById('pointlog-trail-team2'));
+        syncScrollPair(document.getElementById('setlog-trail-team1'), document.getElementById('setlog-trail-team2'));
         _pointLogScrollSynced = true;
     }
 
@@ -1988,17 +2053,23 @@
         // pointLog salvo no histórico tem de já incluir o game decisivo
         // (o "match point"), não só os anteriores.
         let _pointLogFinalized = false;
-        function finalizePointLogGame(willSetEnd) {
+        function finalizePointLogGame(willSetEnd, isTiebreakClose) {
             if (_pointLogFinalized) return;
             _pointLogFinalized = true;
-            if (currentGamePoints.length === 0) return;
-            currentGamePoints[currentGamePoints.length - 1].gameWinner = true;
+            // Tie-break normal não tem pontos registados (fora do escopo v1),
+            // mas ainda assim precisa de uma entrada — sem ela, a trajectória
+            // de games do Set Log ficaria com um buraco no game decisivo.
+            if (currentGamePoints.length === 0 && !isTiebreakClose) return;
+            if (currentGamePoints.length > 0) {
+                currentGamePoints[currentGamePoints.length - 1].gameWinner = true;
+            }
             matchGameLogs.push({
                 set: _pointLogSet,
                 winner: 'team' + (ti + 1),
                 servingTeam: currentGameServingTeam !== null ? ('team' + (currentGameServingTeam + 1)) : null,
-                points: currentGamePoints,
+                points: currentGamePoints, // vazio se foi decidido no tie-break
                 isSuperTie: state.isSuperTieBreak,
+                isTiebreakGame: !!isTiebreakClose,
                 breakPoints: { team1: currentGameBreakPoints[0], team2: currentGameBreakPoints[1] }
             });
             const totalGamesInSet = state.sets[_pointLogSet][0] + state.sets[_pointLogSet][1];
@@ -2023,7 +2094,7 @@
             state.pts = [0,0];
             const g1 = state.sets[state.currentSet][0], g2 = state.sets[state.currentSet][1];
             if (state.isTieBreakMode) {
-                finalizePointLogGame(true);
+                finalizePointLogGame(true, true);
                 winSet(); setEnded = true;
             }
             else if (prosetMode) {
@@ -3491,7 +3562,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, setPointLogActiveSet,
+        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex,
     });
 
 })();

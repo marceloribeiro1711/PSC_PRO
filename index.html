@@ -255,9 +255,9 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export
             </button>
-            <button class="h-email-btn" onclick="openPointLogFromHistoryCurrent()" title="Game Log">
+            <button class="h-email-btn" onclick="openPointLogFromHistoryCurrent()" title="Match Log">
                 <span style="font-size:1.6vh;">🎾</span>
-                Game Log
+                Match Log
             </button>
         </div>
         <button class="history-back-btn" onclick="closeHistory()">BACK</button>
@@ -318,6 +318,24 @@
             <button class="config-close" onclick="closePointLogPopup()">✕</button>
         </div>
         <div class="pointlog-set-tabs" id="pointlog-set-tabs"></div>
+
+        <!-- SET LOG — trajetória de games do set, navegável -->
+        <div class="setlog-block" id="setlog-block">
+            <div class="setlog-team-name setlog-team1" id="setlog-team1-name">Team 1</div>
+            <div class="setlog-trail" id="setlog-trail-team1"></div>
+            <div class="setlog-divider"></div>
+            <div class="setlog-trail" id="setlog-trail-team2"></div>
+            <div class="setlog-team-name setlog-team2" id="setlog-team2-name">Team 2</div>
+            <div class="pointlog-nav">
+                <button class="pointlog-nav-btn" id="pointlog-prev" onclick="pointLogPrev()">◀ Game</button>
+                <button class="pointlog-nav-btn" id="pointlog-next" onclick="pointLogNext()">Game ▶</button>
+            </div>
+        </div>
+
+        <div class="pointlog-major-divider"></div>
+
+        <!-- Detalhe ponto-a-ponto do game seleccionado no Set Log acima —
+             sem navegação própria, muda automaticamente -->
         <div class="pointlog-team-name pointlog-team1" id="pointlog-team1-name">Team 1</div>
         <div class="pointlog-bp" id="pointlog-team1-bp"></div>
         <div class="pointlog-trail" id="pointlog-trail-team1"></div>
@@ -325,10 +343,7 @@
         <div class="pointlog-team-name pointlog-team2" id="pointlog-team2-name">Team 2</div>
         <div class="pointlog-bp" id="pointlog-team2-bp"></div>
         <div class="pointlog-trail" id="pointlog-trail-team2"></div>
-        <div class="pointlog-nav">
-            <button class="pointlog-nav-btn" id="pointlog-prev" onclick="pointLogPrev()">◀ Game</button>
-            <button class="pointlog-nav-btn" id="pointlog-next" onclick="pointLogNext()">Game ▶</button>
-        </div>
+        <div class="pointlog-empty-msg" id="pointlog-empty-msg" style="display:none;"></div>
     </div>
 </div>
 
@@ -369,7 +384,7 @@
             </div>
         </div>
         <div class="config-row">
-            <div class="config-row-label">Game Log</div>
+            <div class="config-row-label">Match Log</div>
             <div class="config-toggle" id="cfg-gamelog-toggle">
                 <div class="config-toggle-opt set-mode" id="cfg-gamelog-on" onclick="setGameLogMode(true)">On</div>
                 <div class="config-toggle-divider"></div>
@@ -377,7 +392,7 @@
             </div>
             <div class="config-hint">Point-by-point popup at each change of ends</div>
         </div>
-        <div class="config-version" id="config-version-label">V 3.0.3</div>
+        <div class="config-version" id="config-version-label">V 3.1.0</div>
     </div>
 </div>
 
@@ -407,7 +422,7 @@
     <div class="p-fab-dropdown" id="p-fab-dropdown">
         <button class="p-fab-item" onclick="askResetMatch()">New Game</button>
         <button class="p-fab-item" onclick="openHistory()">History</button>
-        <button class="p-fab-item js-gamelog-menu-item" onclick="openGameLogMenu()">Game Log</button>
+        <button class="p-fab-item js-gamelog-menu-item" onclick="openGameLogMenu()">Match Log</button>
         <button class="p-fab-item" onclick="openNotes()">Notes</button>
         <button class="p-fab-item" onclick="openConfig()">Config</button>
     </div>
@@ -457,7 +472,7 @@
         <div class="ls-menu-dropdown" id="ls-menu-dropdown">
             <button class="ls-menu-item" onclick="askResetMatch()">New Game</button>
             <button class="ls-menu-item" onclick="openHistory()">History</button>
-            <button class="ls-menu-item js-gamelog-menu-item" onclick="openGameLogMenu()">Game Log</button>
+            <button class="ls-menu-item js-gamelog-menu-item" onclick="openGameLogMenu()">Match Log</button>
             <button class="ls-menu-item" onclick="openNotes()">Notes</button>
             <button class="ls-menu-item" onclick="openConfig()">Config</button>
         </div>
