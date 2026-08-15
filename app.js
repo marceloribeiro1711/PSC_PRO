@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.0.1';
+    const APP_VERSION   = '3.0.2';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -834,16 +834,25 @@
             const isWinningPoint = isLastPoint && pt.gameWinner;
             // Toda coluna mostra o placar das DUAS duplas naquele momento
             // (leitura tipo placar ao vivo), não só de quem ganhou o ponto.
-            // Exceção: a dupla vencedora, na coluna final, mostra só o
-            // checkmark em vez de repetir o número (ex: "40").
+            // Exceção na coluna final: vencedor mostra só ✅; o perdedor
+            // mostra ❌ se estava sacando (ou seja, teve o serviço quebrado)
+            // — se não estava sacando, fica sem nada (célula vazia).
             const winnerIsTeam1 = isWinningPoint && pt.wonBy === 'team1';
             const winnerIsTeam2 = isWinningPoint && pt.wonBy === 'team2';
-            html1 += winnerIsTeam1
-                ? '<span class="pointlog-node pointlog-node-win">✅</span>'
-                : '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
-            html2 += winnerIsTeam2
-                ? '<span class="pointlog-node pointlog-node-win">✅</span>'
-                : '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
+            if (winnerIsTeam1) {
+                html1 += '<span class="pointlog-node pointlog-node-win">✅</span>';
+                html2 += (game.servingTeam === 'team2')
+                    ? '<span class="pointlog-node pointlog-node-lose">❌</span>'
+                    : '<span class="pointlog-node empty"></span>';
+            } else if (winnerIsTeam2) {
+                html2 += '<span class="pointlog-node pointlog-node-win">✅</span>';
+                html1 += (game.servingTeam === 'team1')
+                    ? '<span class="pointlog-node pointlog-node-lose">❌</span>'
+                    : '<span class="pointlog-node empty"></span>';
+            } else {
+                html1 += '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
+                html2 += '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
+            }
             if (!isLastPoint) {
                 html1 += '<span class="pointlog-connector"></span>';
                 html2 += '<span class="pointlog-connector"></span>';
