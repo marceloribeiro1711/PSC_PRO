@@ -622,7 +622,29 @@
     let matchGameLogs = [];        // todos os games da partida (persistido no histórico)
     let currentGamePoints = [];    // pontos do game em curso
     let currentGameServingTeam = null; // 0 = dupla1, 1 = dupla2 (capturado no 1º ponto do game)
+    let currentGameBreakPoints = [0, 0]; // oportunidades de quebra no game em curso, por dupla
     let gameLogEnabled = true;     // Config: Coach pode desligar o Game Log
+
+    // Diz se a situação ATUAL (antes do próximo ponto ser jogado) é break
+    // point, e para qual dupla — mesmo critério do banner "BREAK POINT"
+    // que já existe na tela (golden/star point), só que reutilizável aqui
+    // para contabilizar oportunidades por game, não só exibir o banner.
+    function currentBreakPointTeam() {
+        if (state.isSuperTieBreak || state.isTieBreakMode || state.matchOver) return null;
+        if (!(SERVE.phase === 'auto' || SERVE.phase === 'tb') || SERVE.current === null) return null;
+        const serverTeam = serveTeamOf(SERVE.current);
+        const recvTeam   = 1 - serverTeam;
+        const serverPts  = state.pts[serverTeam];
+        const recvPts    = state.pts[recvTeam];
+        let isBP;
+        if (pointMode === 'golden' || prosetMode) {
+            isBP = recvPts === 3 && serverPts <= 3;
+        } else {
+            const isStarPoint = state.deuceCount >= 2 && recvPts === 3 && serverPts === 3;
+            isBP = (recvPts === 3 && serverPts < 3) || (recvPts === 4 && serverPts === 3) || isStarPoint;
+        }
+        return isBP ? recvTeam : null;
+    }
 
     // Regista um ponto no gameLog do game em curso. Fora de âmbito na v1:
     // tie-break normal e SuperTie (escala numérica própria, sem 15/30/40).
@@ -789,6 +811,14 @@
         const t2El = document.getElementById('pointlog-team2-name');
         if (t1El) t1El.textContent = (game.servingTeam === 'team1' ? '🎾 ' : '') + pointLogPlayerNames('team1');
         if (t2El) t2El.textContent = (game.servingTeam === 'team2' ? '🎾 ' : '') + pointLogPlayerNames('team2');
+
+        // Break Points opportunities — não se aplica ao SuperTie (não usa
+        // conceito de saque/quebra da mesma forma que um game normal)
+        const bp1El = document.getElementById('pointlog-team1-bp');
+        const bp2El = document.getElementById('pointlog-team2-bp');
+        const bp = game.breakPoints || { team1: 0, team2: 0 };
+        if (bp1El) bp1El.textContent = game.isSuperTie ? '' : 'Break Points opportunities: ' + bp.team1;
+        if (bp2El) bp2El.textContent = game.isSuperTie ? '' : 'Break Points opportunities: ' + bp.team2;
 
         renderPointLogTrails(game);
 
@@ -1968,7 +1998,8 @@
                 winner: 'team' + (ti + 1),
                 servingTeam: currentGameServingTeam !== null ? ('team' + (currentGameServingTeam + 1)) : null,
                 points: currentGamePoints,
-                isSuperTie: state.isSuperTieBreak
+                isSuperTie: state.isSuperTieBreak,
+                breakPoints: { team1: currentGameBreakPoints[0], team2: currentGameBreakPoints[1] }
             });
             const totalGamesInSet = state.sets[_pointLogSet][0] + state.sets[_pointLogSet][1];
             if (!willSetEnd && (totalGamesInSet % 2 === 1)) {
@@ -2016,6 +2047,7 @@
 
         currentGamePoints = [];
         currentGameServingTeam = null;
+        currentGameBreakPoints = [0, 0];
 
         // onGameEnd só corre se o set NÃO terminou — se terminou, initServeNewSet já tratou o serve
         if (!setEnded) onGameEnd();
@@ -2111,6 +2143,12 @@
             return;
         }
         if (!timerRunning && timerSeconds === 0) toggleTimer();
+
+        // Game Log: se este ponto começa numa situação de break point,
+        // contabiliza a oportunidade para a dupla que está a receber —
+        // independente de ela converter ou não este ponto específico.
+        const bpTeam = currentBreakPointTeam();
+        if (bpTeam !== null) currentGameBreakPoints[bpTeam]++;
 
         const idx = teamIndex - 1;
         const opp = 1 - idx;
@@ -2303,6 +2341,7 @@
             matchGameLogs,
             currentGamePoints,
             currentGameServingTeam,
+            currentGameBreakPoints,
             statsState: { ...statsState },
             setStats,
             gameTrack,
@@ -2339,6 +2378,7 @@
         matchGameLogs  = snap.matchGameLogs || [];
         currentGamePoints = snap.currentGamePoints || [];
         currentGameServingTeam = (snap.currentGameServingTeam !== undefined) ? snap.currentGameServingTeam : null;
+        currentGameBreakPoints = snap.currentGameBreakPoints || [0, 0];
         setStats      = snap.setStats;
         gameTrack     = snap.gameTrack;
         currentNotes  = snap.currentNotes || '';
@@ -3305,6 +3345,7 @@
         matchGameLogs = [];
         currentGamePoints = [];
         currentGameServingTeam = null;
+        currentGameBreakPoints = [0, 0];
         resetSetStats();
         resetTimer();
         document.getElementById('game-over-p').classList.remove('show');

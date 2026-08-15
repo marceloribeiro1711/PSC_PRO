@@ -1035,6 +1035,10 @@
         }
         .pointlog-team-name.pointlog-team1 { color: var(--accent-blue); }
         .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: 0.3vh; }
+        .pointlog-bp {
+            font-size: 1.2vh; font-weight: 600; color: var(--text-dim);
+            margin-bottom: 0.4vh; letter-spacing: 0.3px;
+        }
         /* Cada linha tem seu próprio scroll horizontal, sincronizado via JS
            (initPointLogScrollSync) — rolar uma rola a outra junto */
         .pointlog-trail {
