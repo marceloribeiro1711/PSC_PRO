@@ -319,31 +319,28 @@
         </div>
         <div class="pointlog-set-tabs" id="pointlog-set-tabs"></div>
 
-        <!-- SET LOG — trajetória de games do set, navegável -->
+        <!-- SET LOG — trajetória de games do set. Cada coluna é clicável;
+             não precisa de botões de navegação separados. -->
         <div class="setlog-block" id="setlog-block">
             <div class="setlog-team-name setlog-team1" id="setlog-team1-name">Team 1</div>
             <div class="setlog-trail" id="setlog-trail-team1"></div>
             <div class="setlog-divider"></div>
             <div class="setlog-trail" id="setlog-trail-team2"></div>
             <div class="setlog-team-name setlog-team2" id="setlog-team2-name">Team 2</div>
-            <div class="pointlog-nav">
-                <button class="pointlog-nav-btn" id="pointlog-prev" onclick="pointLogPrev()">◀ Game</button>
-                <button class="pointlog-nav-btn" id="pointlog-next" onclick="pointLogNext()">Game ▶</button>
-            </div>
         </div>
-
-        <div class="pointlog-major-divider"></div>
 
         <!-- Detalhe ponto-a-ponto do game seleccionado no Set Log acima —
              sem navegação própria, muda automaticamente -->
-        <div class="pointlog-team-name pointlog-team1" id="pointlog-team1-name">Team 1</div>
-        <div class="pointlog-bp" id="pointlog-team1-bp"></div>
-        <div class="pointlog-trail" id="pointlog-trail-team1"></div>
-        <div class="pointlog-divider"></div>
-        <div class="pointlog-team-name pointlog-team2" id="pointlog-team2-name">Team 2</div>
-        <div class="pointlog-bp" id="pointlog-team2-bp"></div>
-        <div class="pointlog-trail" id="pointlog-trail-team2"></div>
-        <div class="pointlog-empty-msg" id="pointlog-empty-msg" style="display:none;"></div>
+        <div class="gamelog-block" id="gamelog-block">
+            <div class="pointlog-team-name pointlog-team1" id="pointlog-team1-name">Team 1</div>
+            <div class="pointlog-bp" id="pointlog-team1-bp"></div>
+            <div class="pointlog-trail" id="pointlog-trail-team1"></div>
+            <div class="pointlog-divider"></div>
+            <div class="pointlog-team-name pointlog-team2" id="pointlog-team2-name">Team 2</div>
+            <div class="pointlog-bp" id="pointlog-team2-bp"></div>
+            <div class="pointlog-trail" id="pointlog-trail-team2"></div>
+            <div class="pointlog-empty-msg" id="pointlog-empty-msg" style="display:none;"></div>
+        </div>
     </div>
 </div>
 
@@ -384,15 +381,16 @@
             </div>
         </div>
         <div class="config-row">
-            <div class="config-row-label">Match Log</div>
+            <div class="config-row-label">SHOW GAME LOG AT CHANGE OF ENDS</div>
             <div class="config-toggle" id="cfg-gamelog-toggle">
                 <div class="config-toggle-opt set-mode" id="cfg-gamelog-on" onclick="setGameLogMode(true)">On</div>
                 <div class="config-toggle-divider"></div>
                 <div class="config-toggle-opt set-mode" id="cfg-gamelog-off" onclick="setGameLogMode(false)">Off</div>
             </div>
-            <div class="config-hint">Point-by-point popup at each change of ends</div>
+            <div class="config-hint">Data is always recorded. This only controls the automatic popup shown at each change of ends — manual access from the menu and match history is never affected.</div>
         </div>
-        <div class="config-version" id="config-version-label">V 3.1.0</div>
+
+        <div class="config-version" id="config-version-label">V 3.1.1</div>
     </div>
 </div>
 

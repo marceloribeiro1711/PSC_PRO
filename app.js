@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.1.0';
+    const APP_VERSION   = '3.1.1';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -705,11 +705,10 @@
     // pausa técnica quanto pela entrada manual no menu hambúrguer.
     // `manual` = true dá feedback (toast) quando não há nada pra mostrar;
     // o gatilho automático fica em silêncio nesse caso.
+    // O toggle gameLogEnabled controla APENAS o popup automático na troca
+    // de campo (ver maybeShowPointLogPopup) — a gravação de dados e o
+    // acesso manual (menu, histórico) nunca dependem dele.
     function openPointLogPopup(manual) {
-        if (!gameLogEnabled) {
-            if (manual) showToast('Match Log is turned off (Config)');
-            return;
-        }
         if (matchGameLogs.length === 0) {
             if (manual) showToast('No games logged yet this match');
             return;
@@ -728,8 +727,12 @@
         if (overlay) overlay.classList.add('show');
     }
 
-    // Gatilho automático (chamado de winGame na troca de lado)
+    // Gatilho automático (chamado de winGame na troca de lado). Não deve
+    // interromper o modo TV/landscape — a tela existe pra ficar visível à
+    // distância durante o jogo, sem popups por cima.
     function maybeShowPointLogPopup() {
+        if (!gameLogEnabled) return; // toggle só controla o popup automático
+        if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) return;
         openPointLogPopup(false);
     }
 
@@ -802,9 +805,13 @@
         const gameNumber = pointLogWindow.indexOf(game) + 1;
         const titleEl = document.getElementById('pointlog-title');
         if (titleEl) {
-            titleEl.textContent = game.isSuperTie
-                ? 'SET ' + (game.set + 1) + ' — SUPERTIE'
-                : 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
+            if (game.isSuperTie) {
+                titleEl.textContent = 'SUPERTIE'; // não é um "set" — sem prefixo SET X
+            } else if (prosetMode) {
+                titleEl.textContent = 'GAME ' + gameNumber; // ProSet é um único set — sem número
+            } else {
+                titleEl.textContent = 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
+            }
         }
 
         // SET LOG — não faz sentido para SuperTie (não é medido em games)
@@ -814,8 +821,8 @@
 
         const t1El = document.getElementById('pointlog-team1-name');
         const t2El = document.getElementById('pointlog-team2-name');
-        if (t1El) t1El.textContent = pointLogPlayerNames('team1') + (game.servingTeam === 'team1' ? ' are serving 🎾' : '');
-        if (t2El) t2El.textContent = pointLogPlayerNames('team2') + (game.servingTeam === 'team2' ? ' are serving 🎾' : '');
+        if (t1El) t1El.textContent = pointLogPlayerNames('team1') + (game.servingTeam === 'team1' ? ' were serving 🎾' : '');
+        if (t2El) t2El.textContent = pointLogPlayerNames('team2') + (game.servingTeam === 'team2' ? ' were serving 🎾' : '');
 
         // Break Points opportunities — não se aplica ao SuperTie nem ao
         // game decidido no tie-break normal (sem dados ponto-a-ponto)
@@ -843,25 +850,6 @@
             if (t1TrailEl) t1TrailEl.style.display = '';
             if (t2TrailEl) t2TrailEl.style.display = '';
             renderPointLogTrails(game);
-        }
-
-        const prevBtn = document.getElementById('pointlog-prev');
-        const nextBtn = document.getElementById('pointlog-next');
-        const prevGame = pointLogWindow[pointLogViewIndex - 1];
-        const nextGame = pointLogWindow[pointLogViewIndex + 1];
-        if (prevBtn) {
-            prevBtn.style.visibility = prevGame ? 'visible' : 'hidden';
-            if (prevGame) {
-                const prevNum = pointLogWindow.indexOf(prevGame) + 1;
-                prevBtn.textContent = '◀ Game ' + prevNum;
-            }
-        }
-        if (nextBtn) {
-            nextBtn.style.visibility = nextGame ? 'visible' : 'hidden';
-            if (nextGame) {
-                const nextNum = pointLogWindow.indexOf(nextGame) + 1;
-                nextBtn.textContent = 'Game ' + nextNum + ' ▶';
-            }
         }
     }
 
@@ -1629,24 +1617,15 @@
         // Stats toggle
         document.getElementById('cfg-stats-on').classList.toggle('active', statsEnabled);
         document.getElementById('cfg-stats-off').classList.toggle('active', !statsEnabled);
-        // Game Log toggle
+        // Match Log toggle
         document.getElementById('cfg-gamelog-on').classList.toggle('active', gameLogEnabled);
         document.getElementById('cfg-gamelog-off').classList.toggle('active', !gameLogEnabled);
-        applyGameLogMenuVisibility();
     }
 
     function setGameLogMode(val) {
         gameLogEnabled = val;
         updateConfig();
         saveGameState();
-    }
-
-    // Esconde os itens "Game Log" dos menus (portrait e landscape) quando
-    // o Coach desligou o recurso em Config
-    function applyGameLogMenuVisibility() {
-        document.querySelectorAll('.js-gamelog-menu-item').forEach(el => {
-            el.style.display = gameLogEnabled ? '' : 'none';
-        });
     }
 
     // ============================================================

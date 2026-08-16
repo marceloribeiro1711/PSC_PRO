@@ -1017,17 +1017,17 @@
         ============================================================ */
         .pointlog-modal { gap: 1vh; }
         .pointlog-set-tabs {
-            display: none; gap: 1vw; margin-bottom: 0.3vh;
+            display: none; gap: 1.2vw; margin-bottom: 0.8vh;
         }
         .pointlog-set-tab {
-            background: var(--card-bg); border: 1.5px solid var(--border-card);
-            color: var(--text-dim); border-radius: 6px; cursor: pointer;
-            padding: 0.6vh 3vw; font-size: 1.3vh; font-weight: 800;
+            background: var(--card-bg); border: 2px solid var(--border-card);
+            color: var(--text-dim); border-radius: 8px; cursor: pointer;
+            padding: 1.1vh 4.5vw; font-size: 1.8vh; font-weight: 900;
             letter-spacing: 0.5px;
         }
         .pointlog-set-tab.active {
-            color: var(--text-main); border-color: var(--accent-blue);
-            background: rgba(56, 189, 248, 0.12);
+            color: #ff3b3b; border-color: #ff3b3b;
+            background: rgba(255, 59, 59, 0.12);
         }
         .pointlog-team-name {
             font-size: 1.7dvh; font-weight: 800; letter-spacing: 0.5px;
@@ -1101,7 +1101,11 @@
         /* ============================================================
            SET LOG — trajetória de games do set (nível acima do Game Log)
         ============================================================ */
-        .setlog-block { margin-bottom: 0.3vh; }
+        .setlog-block {
+            margin-bottom: 0.3vh; padding: 1.2vh 1vw;
+            background: var(--panel-bg); border: 1.5px solid var(--border-card);
+            border-radius: 10px;
+        }
         .setlog-team-name {
             font-size: 1.4vh; font-weight: 700; letter-spacing: 0.3px;
             color: var(--text-dim); text-transform: uppercase;
@@ -1136,9 +1140,10 @@
         .setlog-divider {
             border-top: 1px dashed var(--border-card); margin: 0.4vh 0;
         }
-        .pointlog-major-divider {
-            border-top: 2px solid var(--border-card); margin: 1vh 0;
-            opacity: 0.6;
+        .gamelog-block {
+            padding: 1.2vh 1vw;
+            background: var(--card-bg); border: 1.5px solid var(--border-card);
+            border-radius: 10px;
         }
         .pointlog-empty-msg {
             color: var(--text-dim); font-size: 1.5vh; font-style: italic;
