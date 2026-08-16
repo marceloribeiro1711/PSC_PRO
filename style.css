@@ -326,9 +326,9 @@
         }
         .stat-label {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 1.4vh; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.3px; color: #ffffff;
-            text-align: center; line-height: 1.2;
+            font-size: 1.15vh; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.2px; color: #ffffff;
+            text-align: center; line-height: 1.15;
         }
         /* Colunas de percentual de serve — entre counts e labels, alinhadas linha a linha */
         .stats-pct {
@@ -350,7 +350,7 @@
         .stat-label-row { display: none; }
         .srv-pct-label { display: none; }
         .stat-box {
-            width: 6.5vh; height: 3.5vh;
+            width: 5.2vh; height: 3.5vh;
             display: flex; align-items: center; justify-content: center;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 6px; cursor: pointer;
@@ -1036,7 +1036,7 @@
         .pointlog-team-name.pointlog-team1 { color: var(--accent-blue); }
         .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: 0.3vh; }
         .pointlog-bp {
-            font-size: 1.6vh; font-weight: 700; color: var(--text-dim);
+            font-size: 1.6vh; font-weight: 800; color: #ff5252;
             margin-bottom: 0.4vh; letter-spacing: 0.3px;
         }
         /* Cada linha tem seu próprio scroll horizontal, sincronizado via JS

@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.1.1';
+    const APP_VERSION   = '3.1.3';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -622,6 +622,7 @@
     let matchGameLogs = [];        // todos os games da partida (persistido no histórico)
     let currentGamePoints = [];    // pontos do game em curso
     let currentGameServingTeam = null; // 0 = dupla1, 1 = dupla2 (capturado no 1º ponto do game)
+    let currentGameServingPlayer = null; // 0..3 = jogador específico que sacou (t1p1,t1p2,t2p1,t2p2)
     let currentGameBreakPoints = [0, 0]; // oportunidades de quebra no game em curso, por dupla
     let gameLogEnabled = true;     // Config: Coach pode desligar o Game Log
 
@@ -655,6 +656,7 @@
         if (state.isTieBreakMode) return;
         if (currentGameServingTeam === null && SERVE.current !== null) {
             currentGameServingTeam = serveTeamOf(SERVE.current);
+            currentGameServingPlayer = SERVE.current;
         }
         const scoreAfter = state.isSuperTieBreak
             ? { team1: String(state.pts[0]), team2: String(state.pts[1]) }
@@ -794,6 +796,19 @@
         return names.filter(Boolean).join(' / ') || (teamKey === 'team1' ? 'Team 1' : 'Team 2');
     }
 
+    // Nome do JOGADOR específico que sacou naquele game (não a dupla toda)
+    // — ajuda o Coach a identificar exatamente quem teve o serviço quebrado.
+    // Cai para o nome da dupla se o dado não existir (ex: histórico antigo).
+    function pointLogServingPlayerName(game) {
+        const ids = ['t1-p1', 't1-p2', 't2-p1', 't2-p2'];
+        if (game.servingPlayer === null || game.servingPlayer === undefined || !ids[game.servingPlayer]) {
+            return pointLogPlayerNames(game.servingTeam);
+        }
+        const el = document.getElementById(ids[game.servingPlayer]);
+        const name = el && el.innerText ? el.innerText.trim() : '';
+        return name || pointLogPlayerNames(game.servingTeam);
+    }
+
     function renderPointLog() {
         const game = pointLogWindow[pointLogViewIndex];
         if (!game) return;
@@ -821,8 +836,16 @@
 
         const t1El = document.getElementById('pointlog-team1-name');
         const t2El = document.getElementById('pointlog-team2-name');
-        if (t1El) t1El.textContent = pointLogPlayerNames('team1') + (game.servingTeam === 'team1' ? ' were serving 🎾' : '');
-        if (t2El) t2El.textContent = pointLogPlayerNames('team2') + (game.servingTeam === 'team2' ? ' were serving 🎾' : '');
+        if (t1El) {
+            t1El.textContent = game.servingTeam === 'team1'
+                ? (pointLogServingPlayerName(game) + ' was serving 🎾')
+                : pointLogPlayerNames('team1');
+        }
+        if (t2El) {
+            t2El.textContent = game.servingTeam === 'team2'
+                ? (pointLogServingPlayerName(game) + ' was serving 🎾')
+                : pointLogPlayerNames('team2');
+        }
 
         // Break Points opportunities — não se aplica ao SuperTie nem ao
         // game decidido no tie-break normal (sem dados ponto-a-ponto)
@@ -914,20 +937,24 @@
             // Toda coluna mostra o placar das DUAS duplas naquele momento
             // (leitura tipo placar ao vivo), não só de quem ganhou o ponto.
             // Exceção na coluna final: vencedor mostra só ✅; o perdedor
-            // mostra o rótulo "BROKEN" se estava sacando (teve o serviço
-            // quebrado) — se não estava sacando, fica sem nada (célula vazia).
+            // SEMPRE mostra o próprio placar, e — se estava sacando (ou
+            // seja, teve o serviço quebrado) — o rótulo "BROKEN" aparece
+            // logo depois, como um elemento adicional, nunca substituindo
+            // o placar.
             const winnerIsTeam1 = isWinningPoint && pt.wonBy === 'team1';
             const winnerIsTeam2 = isWinningPoint && pt.wonBy === 'team2';
             if (winnerIsTeam1) {
                 html1 += '<span class="pointlog-node pointlog-node-win">✅</span>';
-                html2 += (game.servingTeam === 'team2')
-                    ? '<span class="pointlog-node pointlog-node-lose">BROKEN</span>'
-                    : '<span class="pointlog-node empty"></span>';
+                html2 += '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
+                if (game.servingTeam === 'team2') {
+                    html2 += '<span class="pointlog-node pointlog-node-lose">BROKEN</span>';
+                }
             } else if (winnerIsTeam2) {
                 html2 += '<span class="pointlog-node pointlog-node-win">✅</span>';
-                html1 += (game.servingTeam === 'team1')
-                    ? '<span class="pointlog-node pointlog-node-lose">BROKEN</span>'
-                    : '<span class="pointlog-node empty"></span>';
+                html1 += '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
+                if (game.servingTeam === 'team1') {
+                    html1 += '<span class="pointlog-node pointlog-node-lose">BROKEN</span>';
+                }
             } else {
                 html1 += '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
                 html2 += '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
@@ -2046,6 +2073,7 @@
                 set: _pointLogSet,
                 winner: 'team' + (ti + 1),
                 servingTeam: currentGameServingTeam !== null ? ('team' + (currentGameServingTeam + 1)) : null,
+                servingPlayer: currentGameServingPlayer,
                 points: currentGamePoints, // vazio se foi decidido no tie-break
                 isSuperTie: state.isSuperTieBreak,
                 isTiebreakGame: !!isTiebreakClose,
@@ -2097,6 +2125,7 @@
 
         currentGamePoints = [];
         currentGameServingTeam = null;
+        currentGameServingPlayer = null;
         currentGameBreakPoints = [0, 0];
 
         // onGameEnd só corre se o set NÃO terminou — se terminou, initServeNewSet já tratou o serve
@@ -2391,6 +2420,7 @@
             matchGameLogs,
             currentGamePoints,
             currentGameServingTeam,
+            currentGameServingPlayer,
             currentGameBreakPoints,
             statsState: { ...statsState },
             setStats,
@@ -2428,6 +2458,7 @@
         matchGameLogs  = snap.matchGameLogs || [];
         currentGamePoints = snap.currentGamePoints || [];
         currentGameServingTeam = (snap.currentGameServingTeam !== undefined) ? snap.currentGameServingTeam : null;
+        currentGameServingPlayer = (snap.currentGameServingPlayer !== undefined) ? snap.currentGameServingPlayer : null;
         currentGameBreakPoints = snap.currentGameBreakPoints || [0, 0];
         setStats      = snap.setStats;
         gameTrack     = snap.gameTrack;
@@ -2486,8 +2517,12 @@
     ];
     statIds.forEach(id => { statsState[id] = 0; });
 
-    // Actualizar percentuais de 1st/2nd Serve em tempo real
+    // Percentuais de 1st/2nd Serve removidos da UI (causavam "quebra
+    // lateral" no painel — largura variável conforme o valor). Função
+    // desabilitada, não removida, para o caso de precisarmos reativar.
     function updateServePct(playerSuffix) {
+        return;
+        /* eslint-disable no-unreachable */
         const s1 = statsState[`s_1srv_${playerSuffix}`] || 0;
         const s2 = statsState[`s_2srv_${playerSuffix}`] || 0;
         const total = s1 + s2;
@@ -3395,6 +3430,7 @@
         matchGameLogs = [];
         currentGamePoints = [];
         currentGameServingTeam = null;
+        currentGameServingPlayer = null;
         currentGameBreakPoints = [0, 0];
         resetSetStats();
         resetTimer();
