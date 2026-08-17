@@ -1047,12 +1047,12 @@
         }
         .pointlog-node {
             flex: 0 0 auto;
-            width: 5.6vw; min-width: 36px;
-            height: 5.6vh; min-height: 36px;
+            width: 4.4vw; min-width: 30px;
+            height: 4.4vh; min-height: 30px;
             display: flex; align-items: center; justify-content: center;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
-            border-radius: 8px; margin-right: 0.35vw;
-            font-size: 2.6dvh; font-weight: 900; color: var(--text-main);
+            border-radius: 7px; margin-right: 0.3vw;
+            font-size: 1.9dvh; font-weight: 800; color: var(--text-main);
             white-space: nowrap; box-sizing: border-box;
         }
         .pointlog-node.empty {
@@ -1061,28 +1061,28 @@
         .pointlog-node.dim { color: var(--text-dim); border-style: dashed; }
         .pointlog-node-win {
             background: rgba(92, 199, 143, 0.15); border-color: #5cc78f;
-            font-size: 2.2dvh;
+            font-size: 1.7dvh;
         }
         .pointlog-node-lose {
-            width: auto; min-width: 8vw; padding: 0 1vw;
+            width: auto; min-width: 7vw; padding: 0 0.8vw;
             background: rgba(224, 48, 48, 0.15); border-color: #e05555;
-            color: #ff6b6b; font-size: 1.4dvh; font-weight: 900;
+            color: #ff6b6b; font-size: 1.2dvh; font-weight: 900;
             letter-spacing: 0.5px;
         }
         .pointlog-connector {
-            flex: 0 0 1vw; height: 2px; background: var(--border-card);
-            margin-right: 0.35vw;
+            flex: 0 0 0.8vw; height: 2px; background: var(--border-card);
+            margin-right: 0.3vw;
         }
         /* Modo compacto — usado no SuperTie, que pode ter muito mais
            pontos que um game normal (sem teto de 15/30/40) */
         .pointlog-trail.compact .pointlog-node {
-            width: 3.4vw; min-width: 24px;
-            height: 3.4vh; min-height: 24px;
-            font-size: 1.5dvh; border-radius: 6px;
+            width: 2.8vw; min-width: 20px;
+            height: 2.8vh; min-height: 20px;
+            font-size: 1.2dvh; border-radius: 6px;
         }
-        .pointlog-trail.compact .pointlog-node-win { font-size: 1.3dvh; }
-        .pointlog-trail.compact .pointlog-node-lose { min-width: 6vw; font-size: 1dvh; }
-        .pointlog-trail.compact .pointlog-connector { flex-basis: 0.5vw; margin-right: 0.2vw; }
+        .pointlog-trail.compact .pointlog-node-win { font-size: 1dvh; }
+        .pointlog-trail.compact .pointlog-node-lose { min-width: 5vw; font-size: 0.85dvh; }
+        .pointlog-trail.compact .pointlog-connector { flex-basis: 0.4vw; margin-right: 0.15vw; }
         .pointlog-divider {
             border-top: 1px dashed var(--border-card); margin: 0.6vh 0;
         }
