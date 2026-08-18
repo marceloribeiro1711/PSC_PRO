@@ -354,8 +354,17 @@
             </div>
             <div class="config-hint">Data is always recorded. This only controls the automatic popup shown at each change of ends — manual access from the menu and match history is never affected.</div>
         </div>
+        <div class="config-row">
+            <div class="config-row-label">AI ANALYSIS</div>
+            <div class="config-toggle" id="cfg-ai-toggle">
+                <div class="config-toggle-opt set-mode" id="cfg-ai-on" onclick="setAiAnalysisMode(true)">On</div>
+                <div class="config-toggle-divider"></div>
+                <div class="config-toggle-opt set-mode" id="cfg-ai-off" onclick="setAiAnalysisMode(false)">Off</div>
+            </div>
+            <div class="config-hint">Off by default. When on, an AI-generated scout analysis is added to Notes automatically at the end of each match. Requires internet connection.</div>
+        </div>
 
-        <div class="config-version" id="config-version-label">V 3.1.4</div>
+        <div class="config-version" id="config-version-label">V 3.2.0</div>
     </div>
 </div>
 

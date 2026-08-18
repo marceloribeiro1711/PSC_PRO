@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.1.4';
+    const APP_VERSION   = '3.2.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -625,6 +625,7 @@
     let currentGameServingPlayer = null; // 0..3 = jogador específico que sacou (t1p1,t1p2,t2p1,t2p2)
     let currentGameBreakPoints = [0, 0]; // oportunidades de quebra no game em curso, por dupla
     let gameLogEnabled = true;     // Config: Coach pode desligar o Game Log
+    let aiAnalysisEnabled = false; // Config: OFF por padrão — custo real por chamada, opt-in consciente
 
     // Diz se a situação ATUAL (antes do próximo ponto ser jogado) é break
     // point, e para qual dupla — mesmo critério do banner "BREAK POINT"
@@ -1647,10 +1648,19 @@
         // Match Log toggle
         document.getElementById('cfg-gamelog-on').classList.toggle('active', gameLogEnabled);
         document.getElementById('cfg-gamelog-off').classList.toggle('active', !gameLogEnabled);
+        // AI Analysis toggle
+        document.getElementById('cfg-ai-on').classList.toggle('active', aiAnalysisEnabled);
+        document.getElementById('cfg-ai-off').classList.toggle('active', !aiAnalysisEnabled);
     }
 
     function setGameLogMode(val) {
         gameLogEnabled = val;
+        updateConfig();
+        saveGameState();
+    }
+
+    function setAiAnalysisMode(val) {
+        aiAnalysisEnabled = val;
         updateConfig();
         saveGameState();
     }
@@ -2417,6 +2427,7 @@
             pointMode,
             statsEnabled,
             gameLogEnabled,
+            aiAnalysisEnabled,
             matchGameLogs,
             currentGamePoints,
             currentGameServingTeam,
@@ -2455,6 +2466,7 @@
         pointMode     = snap.pointMode;
         statsEnabled  = snap.statsEnabled;
         gameLogEnabled = (snap.gameLogEnabled !== undefined) ? snap.gameLogEnabled : true;
+        aiAnalysisEnabled = (snap.aiAnalysisEnabled !== undefined) ? snap.aiAnalysisEnabled : false;
         matchGameLogs  = snap.matchGameLogs || [];
         currentGamePoints = snap.currentGamePoints || [];
         currentGameServingTeam = (snap.currentGameServingTeam !== undefined) ? snap.currentGameServingTeam : null;
@@ -2672,6 +2684,123 @@
     const HISTORY_KEY = 'padel_history';
     const HISTORY_MAX = 10;
 
+    // ============================================================
+    // ANÁLISE POR IA — proxy serverless (Cloudflare Worker)
+    // Nunca chama a API directamente do cliente (chave nunca fica exposta).
+    // IMPORTANTE: troque pela URL real do seu Worker depois do deploy —
+    // ver worker.js entregue junto com este pacote.
+    // ============================================================
+    const AI_WORKER_URL = 'https://psc-ai-analysis.marceloribeiro1711.workers.dev/analyze';
+    const AI_TIMEOUT_MS = 8000;
+
+    function buildPlayerStatsForAi() {
+        const ids = ['t1-p1', 't1-p2', 't2-p1', 't2-p2'];
+        const suffixes = ['p1', 'p2', 'p3', 'p4'];
+        const teams = ['team1', 'team1', 'team2', 'team2'];
+        return suffixes.map(function (suf, i) {
+            const el = document.getElementById(ids[i]);
+            const name = el && el.innerText ? el.innerText.trim() : ('Player ' + (i + 1));
+            return {
+                name: name,
+                team: teams[i],
+                unforcedErrors: statsState['s_ufe_' + suf] || 0,
+                forcedErrors: statsState['s_fe_' + suf] || 0,
+                doubleFaults: statsState['s_df_' + suf] || 0,
+                winners: statsState['s_win_' + suf] || 0,
+                smashWinners: statsState['s_smash_' + suf] || 0
+            };
+        });
+    }
+
+    function buildMatchLogForAi() {
+        return matchGameLogs.map(function (g) {
+            const gamesInSet = matchGameLogs.filter(function (x) { return x.set === g.set; });
+            const gameNumber = gamesInSet.indexOf(g) + 1;
+            return {
+                set: g.set,
+                gameNumber: gameNumber,
+                winner: g.winner,
+                servingTeam: g.servingTeam,
+                servingPlayer: pointLogServingPlayerName(g), // já resolvido pro nome
+                isTiebreakGame: !!g.isTiebreakGame,
+                isSuperTie: !!g.isSuperTie,
+                breakPoints: g.breakPoints || { team1: 0, team2: 0 },
+                points: g.points
+            };
+        });
+    }
+
+    function buildAiAnalysisPayload(entry) {
+        const setsArr = [];
+        (entry.sets || []).forEach(function (pair, i) {
+            if (pair[0] > 0 || pair[1] > 0) {
+                setsArr.push({ set: i + 1, score: pair[0] + '-' + pair[1] });
+            }
+        });
+        return {
+            deviceId: _deviceId || 'UNKNOWN',
+            matchId: entry.date,
+            setMode: entry.setMode,
+            pointMode: entry.pointMode,
+            teams: {
+                team1: { players: [entry.players[0], entry.players[1]] },
+                team2: { players: [entry.players[2], entry.players[3]] }
+            },
+            playerStats: buildPlayerStatsForAi(),
+            sets: setsArr,
+            winner: entry.winner === 0 ? 'team1' : 'team2',
+            matchDuration: formatDuration(timerSeconds),
+            matchLog: buildMatchLogForAi()
+        };
+    }
+
+    async function callAiWorker(payload) {
+        if (!AI_WORKER_URL || AI_WORKER_URL.indexOf('REPLACE') !== -1) return null; // Worker ainda não configurado
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function () { controller.abort(); }, AI_TIMEOUT_MS);
+        try {
+            const res = await fetch(AI_WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (!res.ok) return null;
+            const data = await res.json();
+            return (data && typeof data.analysis === 'string') ? data.analysis : null;
+        } catch (e) {
+            clearTimeout(timeoutId);
+            return null; // falha silenciosa — nunca bloqueia o fluxo de fim de partida
+        }
+    }
+
+    function appendAiAnalysisToHistory(entryDate, analysisText) {
+        try {
+            let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            const idx = history.findIndex(function (h) { return h.date === entryDate; });
+            if (idx === -1) return;
+            const marker = '\n\n✨ AI Analysis:\n';
+            const existing = history[idx].notes || '';
+            if (existing.indexOf(marker) !== -1) return; // já preenchido, nunca duplicar/sobrescrever
+            history[idx].notes = existing + marker + analysisText;
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            if (idx === 0) currentNotes = history[idx].notes; // reflecte se ainda for a partida mais recente
+        } catch (e) { /* falha silenciosa */ }
+    }
+
+    // Ponto de entrada — só executa se o Coach ligou o toggle em Config.
+    // "Se estão zerados, não execute": sem toggle ligado ou sem games
+    // registados, nem monta o payload nem chama o Worker — zero custo.
+    function maybeRunAiAnalysis(entry) {
+        if (!aiAnalysisEnabled) return;
+        if (!matchGameLogs || matchGameLogs.length === 0) return;
+        const payload = buildAiAnalysisPayload(entry);
+        callAiWorker(payload).then(function (analysis) {
+            if (analysis) appendAiAnalysisToHistory(entry.date, analysis);
+        });
+    }
+
     function saveMatchHistory() {
         const p1 = (function(){var _e=document.getElementById('t1-p1');return _e&&_e.innerText?_e.innerText.trim():'Player 1'})();
         const p2 = (function(){var _e=document.getElementById('t1-p2');return _e&&_e.innerText?_e.innerText.trim():'Player 2'})();
@@ -2710,6 +2839,10 @@
                 console.warn('localStorage quota exceeded — history not saved:', e2);
             }
         }
+
+        // Análise por IA — só executa se o Coach ligou o toggle em Config
+        // (ver maybeRunAiAnalysis). Assíncrono: não bloqueia o fim de partida.
+        maybeRunAiAnalysis(entry);
     }
 
     function loadHistory() {
@@ -3577,7 +3710,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex,
+        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisMode,
     });
 
 })();
