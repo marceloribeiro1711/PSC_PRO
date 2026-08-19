@@ -118,7 +118,7 @@
             </div>
             <!-- Timer + Badges centrados na linha divisória -->
             <div class="game-over-banner" id="game-over-p">END OF MATCH</div>
-            <div class="whos-serve-badge" id="whos-serve-p">WHO'S SERVING NEXT?</div>
+            <div class="whos-serve-badge" id="whos-serve-p">WHO IS SERVING FIRST?</div>
             <div class="bp-center-badge" id="break-point-p">BREAK POINT</div>
             <div class="gp-divider-wrap">
                 <div class="gp-divider-badge" id="golden-point-p">GOLDEN POINT</div>
@@ -363,8 +363,17 @@
             </div>
             <div class="config-hint">Off by default. When on, an AI-generated scout analysis is added to Notes automatically at the end of each match. Requires internet connection.</div>
         </div>
+        <div class="config-row">
+            <div class="config-row-label">AI ANALYSIS LANGUAGE</div>
+            <div class="config-lang-toggle" id="cfg-ai-lang-toggle">
+                <button class="config-lang-opt" id="cfg-ai-lang-en" onclick="setAiAnalysisLanguage('en')" title="English">🇬🇧</button>
+                <button class="config-lang-opt" id="cfg-ai-lang-es" onclick="setAiAnalysisLanguage('es')" title="Español">🇪🇸</button>
+                <button class="config-lang-opt" id="cfg-ai-lang-pt" onclick="setAiAnalysisLanguage('pt')" title="Português">🇵🇹</button>
+            </div>
+            <div class="config-hint">Language used for the AI-generated text added to Notes.</div>
+        </div>
 
-        <div class="config-version" id="config-version-label">V 3.2.0</div>
+        <div class="config-version" id="config-version-label">V 3.3.0</div>
     </div>
 </div>
 
@@ -505,7 +514,7 @@
             <div class="ls-divider-line"></div>
             <span class="ls-badge ls-badge-bp" id="ls-break-point">BREAK POINT</span>
             <span class="ls-badge ls-badge-eo" id="ls-end-of-match">END OF MATCH</span>
-            <span class="ls-badge ls-badge-ws" id="ls-whos-serve">WHO'S SERVING NEXT?</span>
+            <span class="ls-badge ls-badge-ws" id="ls-whos-serve">WHO IS SERVING FIRST?</span>
             <div class="ls-divider-line"></div>
             <div class="ls-gp-overlay">
                 <div class="ls-gp-overlay-spacer"></div>

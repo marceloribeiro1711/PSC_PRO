@@ -1026,8 +1026,8 @@
             letter-spacing: 0.5px;
         }
         .pointlog-set-tab.active {
-            color: #ff3b3b; border-color: #ff3b3b;
-            background: rgba(255, 59, 59, 0.12);
+            color: #ffffff; border-color: #ff3b3b;
+            background: #ff3b3b;
         }
         .pointlog-team-name {
             font-size: 1.7dvh; font-weight: 800; letter-spacing: 0.5px;
@@ -1036,8 +1036,13 @@
         .pointlog-team-name.pointlog-team1 { color: var(--accent-blue); }
         .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: 0.3vh; }
         .pointlog-bp {
-            font-size: 1.6vh; font-weight: 800; color: #ff5252;
+            font-size: 1.5vh; font-weight: 700;
             margin-bottom: 0.4vh; letter-spacing: 0.3px;
+        }
+        .pointlog-bp-team1 { color: var(--accent-blue); }
+        .pointlog-bp-team2 { color: var(--accent-yellow); }
+        .pointlog-bp-number {
+            color: #ff5252; font-weight: 900; font-size: 1.8vh;
         }
         /* Cada linha tem seu próprio scroll horizontal, sincronizado via JS
            (initPointLogScrollSync) — rolar uma rola a outra junto */
@@ -1065,8 +1070,8 @@
         }
         .pointlog-node-lose {
             width: auto; min-width: 7vw; padding: 0 0.8vw;
-            background: rgba(224, 48, 48, 0.15); border-color: #e05555;
-            color: #ff6b6b; font-size: 1.2dvh; font-weight: 900;
+            background: #e05555; border-color: #e05555;
+            color: #ffffff; font-size: 1.2dvh; font-weight: 900;
             letter-spacing: 0.5px;
         }
         .pointlog-connector {
@@ -1127,11 +1132,11 @@
             box-sizing: border-box;
         }
         /* Ponto activo (o que está a alimentar o Game Log abaixo) —
-           fonte vermelha, forte, para destacar a ligação entre as duas
-           secções, conforme pedido */
+           fundo vermelho sólido, texto branco, para destacar fortemente a
+           ligação entre as duas secções, conforme pedido */
         .setlog-node.active {
-            color: #ff3b3b; border-color: #ff3b3b;
-            background: rgba(255, 59, 59, 0.12);
+            color: #ffffff; border-color: #ff3b3b;
+            background: #ff3b3b;
         }
         .setlog-connector {
             flex: 0 0 0.8vw; height: 2px; background: var(--border-card);
@@ -1192,6 +1197,21 @@
             width: 1px; height: 60%; background: var(--border-card); flex-shrink: 0;
         }
         .config-toggle.disabled .config-toggle-opt { opacity: 0.4; cursor: not-allowed; }
+        .config-lang-toggle {
+            display: flex; align-items: center; justify-content: center;
+            gap: 2vw; background: var(--card-bg); border: 1.5px solid var(--border-card);
+            border-radius: 10px; padding: 1vh 0;
+        }
+        .config-lang-opt {
+            background: transparent; border: 2px solid transparent;
+            border-radius: 8px; cursor: pointer; padding: 0.4vh 1vw;
+            font-size: 3vh; line-height: 1; transition: border-color 0.2s, background 0.2s;
+            opacity: 0.5;
+        }
+        .config-lang-opt.active {
+            border-color: var(--accent-blue); background: rgba(56, 189, 248, 0.12);
+            opacity: 1;
+        }
         .config-hint {
             font-size: 1.5vh; color: var(--text-dim); text-align: center;
             letter-spacing: 0.5px;
@@ -1551,7 +1571,7 @@
     padding: 0 2vw 0 4.5vw;
     gap: 2vw;
     flex-shrink: 0;
-    margin-bottom: -2.5vh;
+    margin-bottom: 0.8vh;
 }
 .ls-sets-header-spacer {
     flex: 0 0 37vw;
