@@ -25,7 +25,7 @@
 <input type="file" id="fi-logo-left"  accept="image/*" class="logo-file-input" data-side="left">
 
 <!-- ============================================================
-     LAYOUT PORTRAIT (9:16) TV MODE
+     LAYOUT PORTRAIT (9:16)
 ============================================================ -->
 <div id="splash-screen">
     <img id="splash-icon" src="" alt="Padel Coaching Pro">
@@ -346,22 +346,12 @@
             </div>
         </div>
         <div class="config-row">
-            <div class="config-row-label">SHOW GAME LOG AT CHANGE OF ENDS</div>
-            <div class="config-toggle" id="cfg-gamelog-toggle">
-                <div class="config-toggle-opt set-mode" id="cfg-gamelog-on" onclick="setGameLogMode(true)">On</div>
-                <div class="config-toggle-divider"></div>
-                <div class="config-toggle-opt set-mode" id="cfg-gamelog-off" onclick="setGameLogMode(false)">Off</div>
-            </div>
-            <div class="config-hint">Data is always recorded. This only controls the automatic popup shown at each change of ends — manual access from the menu and match history is never affected.</div>
-        </div>
-        <div class="config-row">
             <div class="config-row-label">AI ANALYSIS</div>
             <div class="config-toggle" id="cfg-ai-toggle">
                 <div class="config-toggle-opt set-mode" id="cfg-ai-on" onclick="setAiAnalysisMode(true)">On</div>
                 <div class="config-toggle-divider"></div>
                 <div class="config-toggle-opt set-mode" id="cfg-ai-off" onclick="setAiAnalysisMode(false)">Off</div>
             </div>
-            <div class="config-hint">Off by default. When on, an AI-generated scout analysis is added to Notes automatically at the end of each match. Requires internet connection.</div>
         </div>
         <div class="config-row">
             <div class="config-row-label">AI ANALYSIS LANGUAGE</div>
@@ -370,10 +360,9 @@
                 <button class="config-lang-opt" id="cfg-ai-lang-es" onclick="setAiAnalysisLanguage('es')" title="Español">🇪🇸</button>
                 <button class="config-lang-opt" id="cfg-ai-lang-pt" onclick="setAiAnalysisLanguage('pt')" title="Português">🇵🇹</button>
             </div>
-            <div class="config-hint">Language used for the AI-generated text added to Notes.</div>
         </div>
 
-        <div class="config-version" id="config-version-label">V 3.3.0</div>
+        <div class="config-version" id="config-version-label">V 3.3.1</div>
     </div>
 </div>
 

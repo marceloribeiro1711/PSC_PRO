@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.3.0';
+    const APP_VERSION   = '3.3.1';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -624,7 +624,8 @@
     let currentGameServingTeam = null; // 0 = dupla1, 1 = dupla2 (capturado no 1º ponto do game)
     let currentGameServingPlayer = null; // 0..3 = jogador específico que sacou (t1p1,t1p2,t2p1,t2p2)
     let currentGameBreakPoints = [0, 0]; // oportunidades de quebra no game em curso, por dupla
-    let gameLogEnabled = true;     // Config: Coach pode desligar o Game Log
+    let gameLogEnabled = false;    // Sempre Off — sem toggle na UI. Popup automático da troca de
+                                    // campo desligado; acesso manual (menu/histórico) não depende disto.
     let aiAnalysisEnabled = false; // Config: OFF por padrão — custo real por chamada, opt-in consciente
     let aiAnalysisLanguage = 'en'; // Config: idioma da Análise por IA — en (padrão), es, pt
 
@@ -1680,9 +1681,9 @@
         // Stats toggle
         document.getElementById('cfg-stats-on').classList.toggle('active', statsEnabled);
         document.getElementById('cfg-stats-off').classList.toggle('active', !statsEnabled);
-        // Match Log toggle
-        document.getElementById('cfg-gamelog-on').classList.toggle('active', gameLogEnabled);
-        document.getElementById('cfg-gamelog-off').classList.toggle('active', !gameLogEnabled);
+        // Match Log: sem toggle na UI — fica sempre Off (popup automático
+        // desligado). Acesso continua disponível a qualquer momento pelo
+        // menu hambúrguer e pelo histórico, que não dependem desta flag.
         // AI Analysis toggle
         document.getElementById('cfg-ai-on').classList.toggle('active', aiAnalysisEnabled);
         document.getElementById('cfg-ai-off').classList.toggle('active', !aiAnalysisEnabled);
@@ -1693,6 +1694,9 @@
         });
     }
 
+    // Não chamada por nenhum controlo da UI (removido o toggle do CONFIG —
+    // gameLogEnabled fica fixo em false). Mantida no código, não apagada,
+    // caso o toggle volte a fazer sentido no futuro.
     function setGameLogMode(val) {
         gameLogEnabled = val;
         updateConfig();
@@ -2512,7 +2516,7 @@
         prosetMode    = snap.prosetMode || false;
         pointMode     = snap.pointMode;
         statsEnabled  = snap.statsEnabled;
-        gameLogEnabled = (snap.gameLogEnabled !== undefined) ? snap.gameLogEnabled : true;
+        gameLogEnabled = false; // sempre Off — sem toggle na UI, ignora valor salvo em snapshots antigos
         aiAnalysisEnabled = (snap.aiAnalysisEnabled !== undefined) ? snap.aiAnalysisEnabled : false;
         aiAnalysisLanguage = (snap.aiAnalysisLanguage !== undefined) ? snap.aiAnalysisLanguage : 'en';
         matchGameLogs  = snap.matchGameLogs || [];
