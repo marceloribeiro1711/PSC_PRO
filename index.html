@@ -244,34 +244,10 @@
 <!-- ============================================================
      NOTES MODAL
 ============================================================ -->
-<div class="config-overlay" id="notes-overlay" onclick="closeNotesOnBg(event)">
-    <div class="config-modal" style="width:88vw;max-width:420px;">
-        <div class="config-modal-header">
-            <h2>Match Notes</h2>
-            <button class="config-close" onclick="closeNotes()">✕</button>
-        </div>
-        <div class="config-row">
-            <div class="config-row-label">Comments <span id="notes-counter" style="float:right;font-weight:400;letter-spacing:0">0 / 500</span></div>
-            <textarea id="notes-textarea"
-                maxlength="500"
-                placeholder="Add match notes, observations or comments..."
-                oninput="updateNotesCounter()"
-                style="
-                    width:100%; min-height:18dvh; max-height:30dvh;
-                    background:var(--card-bg); border:1.5px solid var(--border-card);
-                    border-radius:8px; color:#fff; font-size:1.8dvh; line-height:1.5;
-                    padding:1.2dvh 2vw; resize:vertical; font-family:inherit;
-                    outline:none; box-sizing:border-box;
-                "></textarea>
-        </div>
-        <button onclick="saveNotes()" style="
-            width:100%; padding:1dvh 0; background:var(--border-card);
-            border:1.5px solid var(--text-dim); border-radius:8px;
-            color:#fff; font-size:1.6dvh; font-weight:800;
-            letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;
-        ">Save Notes</button>
-    </div>
-</div>
+<!-- Antigo modal "Match Notes" removido — substituído pelo modal unificado
+     "AI Analysis & Personal Notes" (notes-fs-overlay), usado tanto ao vivo
+     quanto no histórico. openNotes()/saveNotes()/closeNotes() mantidas no
+     JS, não apagadas, mas sem elemento correspondente na UI. -->
 
 <!-- ============================================================
      POINT LOG POPUP — trajetória de pontos (pausa técnica / troca de lado)
@@ -362,26 +338,28 @@
             </div>
         </div>
 
-        <div class="config-version" id="config-version-label">V 3.3.1</div>
+        <div class="config-version" id="config-version-label">V 3.4.0</div>
     </div>
 </div>
 
 <!-- ============================================================
      FULLSCREEN NOTES EDITOR
 ============================================================ -->
-<div class="notes-fs-overlay" id="notes-fs-overlay">
-    <div class="notes-fs-header">
-        <span class="notes-fs-title">📝 Notes</span>
-        <div class="notes-fs-actions">
-            <button class="notes-fs-btn" onclick="closeNotesFs()">Cancel</button>
-            <button class="notes-fs-btn save" onclick="saveNotesFs()">Save ✓</button>
+<div class="notes-fs-overlay" id="notes-fs-overlay" onclick="closeNotesFsOnBg(event)">
+    <div class="notes-fs-modal">
+        <div class="notes-fs-header">
+            <span class="notes-fs-title">AI Analysis &amp; Personal Notes</span>
+            <div class="notes-fs-actions">
+                <button class="notes-fs-btn" onclick="closeNotesFs()">Cancel</button>
+                <button class="notes-fs-btn save" onclick="saveNotesFs()">Save ✓</button>
+            </div>
         </div>
+        <textarea class="notes-fs-textarea" id="notes-fs-textarea"
+            maxlength="2000"
+            placeholder="AI analysis (when enabled) and your personal notes appear here, fully editable..."
+            oninput="updateNotesFsCounter()"></textarea>
+        <div class="notes-fs-counter"><span id="notes-fs-counter">0 / 2000</span></div>
     </div>
-    <textarea class="notes-fs-textarea" id="notes-fs-textarea"
-        maxlength="2000"
-        placeholder="Add notes, observations or comments..."
-        oninput="updateNotesFsCounter()"></textarea>
-    <div class="notes-fs-counter"><span id="notes-fs-counter">0 / 2000</span></div>
 </div>
 
 <!-- ============================================================
@@ -393,7 +371,7 @@
         <button class="p-fab-item" onclick="askResetMatch()">New Game</button>
         <button class="p-fab-item" onclick="openHistory()">History</button>
         <button class="p-fab-item js-gamelog-menu-item" onclick="openGameLogMenu()">Match Log</button>
-        <button class="p-fab-item" onclick="openNotes()">Notes</button>
+        <button class="p-fab-item" onclick="openNotesFs(null)">Notes</button>
         <button class="p-fab-item" onclick="openConfig()">Config</button>
     </div>
     <button class="p-fab-btn" id="p-fab-btn" aria-label="Menu">
@@ -443,7 +421,7 @@
             <button class="ls-menu-item" onclick="askResetMatch()">New Game</button>
             <button class="ls-menu-item" onclick="openHistory()">History</button>
             <button class="ls-menu-item js-gamelog-menu-item" onclick="openGameLogMenu()">Match Log</button>
-            <button class="ls-menu-item" onclick="openNotes()">Notes</button>
+            <button class="ls-menu-item" onclick="openNotesFs(null)">Notes</button>
             <button class="ls-menu-item" onclick="openConfig()">Config</button>
         </div>
     </header>

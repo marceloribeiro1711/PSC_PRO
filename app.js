@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.3.1';
+    const APP_VERSION   = '3.4.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -2239,13 +2239,12 @@
         const hdr2 = `${n2a} | ${n2b}`;
         const COL = Math.max(hdr1.length, hdr2.length, 13) + 2;
 
-        // Adicionar Match Time ao início das notas
+        // Duração calculada aqui, guardada em campo próprio (entry.duration)
+        // pela saveMatchHistory — já não entra mais dentro do texto de notas
         const dur = formatDuration(timerSeconds);
-        const timeNote = dur ? `⏱ Match Time: ${dur}` : '';
 
-        // Montar nota final: apenas tempo + notas do utilizador (sem stats)
-        const userNotes = currentNotes.trim();
-        currentNotes = [timeNote, userNotes].filter(Boolean).join('\n\n');
+        // Notas ficam só com o que o Coach (ou a IA, depois) escrever
+        currentNotes = currentNotes.trim();
 
         // Guardar ANTES de alterar pts e currentSet
         saveMatchHistory();
@@ -2874,6 +2873,7 @@
             stats: Object.assign({}, statsState),
             setMode: prosetMode ? 'proset' : (superTieMode ? 'supertie' : '3sets'),
             pointMode: pointMode,
+            duration: formatDuration(timerSeconds),
             notes: currentNotes,
             pointLog: matchGameLogs
         };
@@ -3128,19 +3128,28 @@
     // ============================================================
     // FULLSCREEN NOTES EDITOR
     // ============================================================
-    let _notesFsIdx = null; // índice do jogo no histórico (-1 = jogo activo)
+    let _notesFsIdx = null; // null = partida ao vivo (currentNotes); número = índice no histórico
 
     function openNotesFs(idx) {
         _notesFsIdx = idx;
-        const history = loadHistory();
-        const entry = history[idx];
-        if (!entry) return;
-        const userTxt = getUserNotes(entry.notes || '');
         const ta = document.getElementById('notes-fs-textarea');
-        ta.value = userTxt;
+        if (idx === null) {
+            // Modo ao vivo — edita currentNotes directamente (ainda sem
+            // Análise por IA, que só existe depois do fim da partida)
+            ta.value = currentNotes || '';
+        } else {
+            const history = loadHistory();
+            const entry = history[idx];
+            if (!entry) return;
+            ta.value = getUserNotes(entry.notes || '');
+        }
         updateNotesFsCounter();
         document.getElementById('notes-fs-overlay').classList.add('show');
         setTimeout(() => ta.focus(), 120);
+    }
+
+    function closeNotesFsOnBg(event) {
+        if (event.target === document.getElementById('notes-fs-overlay')) closeNotesFs();
     }
 
     function closeNotesFs() {
@@ -3155,13 +3164,24 @@
 
     function saveNotesFs() {
         const newUserNotes = document.getElementById('notes-fs-textarea').value.trim();
+
+        if (_notesFsIdx === null) {
+            // Modo ao vivo — grava directo em currentNotes (persistido no
+            // histórico só quando a partida terminar, via saveMatchHistory)
+            currentNotes = newUserNotes;
+            saveGameState();
+            closeNotesFs();
+            return;
+        }
+
         const history = loadHistory();
-        if (_notesFsIdx === null || !history[_notesFsIdx]) { closeNotesFs(); return; }
+        if (!history[_notesFsIdx]) { closeNotesFs(); return; }
 
         const entry = history[_notesFsIdx];
         const existingNotes = entry.notes || '';
 
-        // Reconstruir: manter bloco ⏱ + 📊, substituir parte do utilizador
+        // Reconstruir: manter bloco ⏱ + 📊 (partidas antigas), substituir
+        // parte editável (Análise por IA + notas pessoais do Coach)
         let statsBlock = '';
         if (existingNotes.includes('📊')) {
             const lines = existingNotes.split('\n');
@@ -3190,10 +3210,6 @@
         history[_notesFsIdx].notes = newFull;
         try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
 
-        // Actualizar preview no carousel sem re-render completo
-        const preview = document.getElementById(`h-notes-${_notesFsIdx}`);
-        if (preview) preview.value = newUserNotes;
-
         closeNotesFs();
     }
 
@@ -3202,9 +3218,11 @@
             : entry.setMode === 'supertie' ? 'Supertie' : '3 Sets';
         const pMode = entry.pointMode === 'star' ? 'SP' : 'GP';
         const modeLabel = `${sMode} · ${pMode}`;
-        const notes = entry.notes || '';
-        const timeLine = notes.split('\n').find(l => l.startsWith('⏱'));
-        const duration = timeLine ? timeLine.replace('⏱ Match Time:', '').trim() : null;
+        // duration vem de um campo próprio (entry.duration) — partidas
+        // antigas (salvas antes desta mudança) ainda podem ter a duração
+        // embutida na 1ª linha das notas, mantido como fallback
+        const legacyTimeLine = (entry.notes || '').split('\n').find(l => l.startsWith('⏱'));
+        const duration = entry.duration || (legacyTimeLine ? legacyTimeLine.replace('⏱ Match Time:', '').trim() : null);
         return `
             <div class="h-game">
                 <div class="h-game-meta">
@@ -3225,19 +3243,11 @@
                 ${buildPairBlock(entry, 0, entry.winner === 0)}
                 ${buildPairBlock(entry, 1, entry.winner === 1)}
                 ${buildMatchStatsTable(entry)}
-                <div class="h-notes-box">
-                    <div class="h-notes-label">
-                        <span>Notes</span>
-                        <button class="h-notes-expand-btn" onclick="openNotesFs(${idx})">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-                                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-                            </svg>
-                            Edit
-                        </button>
-                    </div>
-                    <textarea class="h-notes-preview" readonly id="h-notes-${idx}">${escHtml(getUserNotes(entry.notes || ''))}</textarea>
-                </div>
+                <button class="h-notes-cta" onclick="openNotesFs(${idx})">
+                    <span class="h-notes-cta-icon">✨</span>
+                    <span>AI Analysis &amp; Personal Notes</span>
+                    <span class="h-notes-cta-arrow">→</span>
+                </button>
             </div>`;
     }
 
@@ -3550,6 +3560,11 @@
     // ============================================================
     let currentNotes = '';
 
+    // Bloco abaixo (openNotes/closeNotes/closeNotesOnBg/updateNotesCounter/
+    // saveNotes) não é mais chamado por nenhum controlo da UI — o modal
+    // "notes-overlay" foi removido do HTML e substituído pelo modal
+    // unificado "AI Analysis & Personal Notes" (openNotesFs/saveNotesFs,
+    // aceita idx=null pra modo ao vivo). Mantido no código, não apagado.
     function openNotes() {
         document.getElementById('notes-textarea').value = currentNotes;
         updateNotesCounter();
@@ -3751,7 +3766,7 @@
         activateVoucher, copyDeviceId, checkForUpdates,
         ngConfirm, ngCancel,
         closeConfig, closeConfigOnBg,
-        closeHistory, closeNotes, closeNotesFs, closeNotesOnBg,
+        closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes,
         saveNotes, saveNotesFs,
         setPointMode, setSetMode, setStatsMode, setProsetMode,

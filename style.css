@@ -813,13 +813,21 @@
            FULLSCREEN NOTES EDITOR
         ============================================================ */
         .notes-fs-overlay {
-            position: fixed; top:0; right:0; bottom:0; left:0;
-            background: var(--bg);
-            z-index: 900; display: flex; flex-direction: column;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 900; display: flex; align-items: center; justify-content: center;
             opacity: 0; pointer-events: none;
             transition: opacity 0.25s;
+            backdrop-filter: blur(3px);
         }
         .notes-fs-overlay.show { opacity: 1; pointer-events: all; }
+        .notes-fs-modal {
+            width: 80vw; height: 80vh; max-width: 640px;
+            background: var(--bg); border: 2px solid var(--border-card);
+            border-radius: 14px; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        }
         .notes-fs-header {
             display: flex; align-items: center; justify-content: space-between;
             padding: 1.4vh 4vw;
@@ -828,8 +836,8 @@
             flex-shrink: 0;
         }
         .notes-fs-title {
-            font-size: 1.8vh; font-weight: 900; letter-spacing: 2px;
-            text-transform: uppercase; color: var(--text-main);
+            font-size: 1.7vh; font-weight: 900; letter-spacing: 1px;
+            color: var(--text-main);
         }
         .notes-fs-actions { display: flex; gap: 2vw; align-items: center; }
         .notes-fs-btn {
@@ -846,7 +854,7 @@
             flex: 1; width: 100%;
             background: var(--bg); border: none;
             color: #ffffff; font-family: 'Courier New', Courier, monospace;
-            font-size: 1.7vh; line-height: 1.65;
+            font-size: 1.6vh; line-height: 1.6;
             padding: 2vh 4vw; resize: none;
             outline: none; box-sizing: border-box;
         }
@@ -857,6 +865,21 @@
             font-size: 1.1vh; color: var(--text-dim);
             text-align: right; flex-shrink: 0;
         }
+
+        /* Botão de destaque no histórico — a entrega de IA merece
+           visibilidade, não deve ficar "escondida" no fim das estatísticas */
+        .h-notes-cta {
+            width: 100%; display: flex; align-items: center; justify-content: center;
+            gap: 2vw; margin-top: 1.2vh; padding: 1.3vh 2vw;
+            background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(245,197,24,0.15));
+            border: 1.5px solid var(--accent-blue); border-radius: 10px;
+            color: var(--text-main); font-size: 1.5vh; font-weight: 800;
+            letter-spacing: 0.5px; cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .h-notes-cta:hover { border-color: var(--accent-yellow); }
+        .h-notes-cta-icon { font-size: 1.9vh; }
+        .h-notes-cta-arrow { color: var(--text-dim); font-weight: 900; }
 
         /* ============================================================
            MATCH STATS TABLE inside notes (monospace rendered)
