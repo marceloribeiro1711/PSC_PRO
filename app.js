@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.4.0';
+    const APP_VERSION   = '3.4.1';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -3431,7 +3431,7 @@
         window.location.href = mailtoUrl;
     }
 
-    function exportHistoryGameToExcel() {
+    async function exportHistoryGameToExcel() {
         // FREE TIER: exportação bloqueada
         if (IS_FREE_TIER && FREE_RESTRICTIONS.export) {
             showUpgradeSplash('export');
@@ -3443,27 +3443,100 @@
 
         const [p1, p2, p3, p4] = entry.players;
         const isProset = entry.setMode === 'proset';
-        const scoreRows = [
-            ['', isProset ? '—' : 'Set 1', isProset ? '—' : 'Set 2', isProset ? 'ProSet' : entry.setMode === 'supertie' ? 'Supertie' : 'Set 3'],
-            [p1 + ' / ' + p2, isProset ? '—' : entry.sets[0][0], isProset ? '—' : entry.sets[1][0], entry.sets[2][0]],
-            [p3 + ' / ' + p4, isProset ? '—' : entry.sets[0][1], isProset ? '—' : entry.sets[1][1], entry.sets[2][1]],
+
+        // Cores por dupla — mesmas do resto do app (azul dupla 1 / amarelo dupla 2)
+        const PAIR1_FILL = 'FFDCEEFB'; // azul bem claro
+        const PAIR2_FILL = 'FFFCF3D6'; // amarelo bem claro
+        const HEADER_FILL = 'FF1E3A6E';
+        const HEADER_FONT = 'FFFFFFFF';
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Match');
+        ws.columns = [
+            { width: 24 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }
         ];
-        const pair1Rows = [['Statistic', p1, p2]];
-        const pair2Rows = [['Statistic', p3, p4]];
+
+        function styleHeaderRow(row) {
+            row.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } };
+                cell.font = { bold: true, color: { argb: HEADER_FONT } };
+            });
+        }
+
+        // ---- 1. RESULTADO (igual ao que já existia) ----
+        const setHeaders = [
+            '',
+            isProset ? '—' : 'Set 1',
+            isProset ? '—' : 'Set 2',
+            isProset ? 'ProSet' : (entry.setMode === 'supertie' ? 'Supertie' : 'Set 3')
+        ];
+        const resultHeaderRow = ws.addRow(setHeaders);
+        styleHeaderRow(resultHeaderRow);
+        ws.addRow([
+            p1 + ' / ' + p2,
+            isProset ? '—' : entry.sets[0][0],
+            isProset ? '—' : entry.sets[1][0],
+            entry.sets[2][0]
+        ]);
+        ws.addRow([
+            p3 + ' / ' + p4,
+            isProset ? '—' : entry.sets[0][1],
+            isProset ? '—' : entry.sets[1][1],
+            entry.sets[2][1]
+        ]);
+
+        // ---- 2 linhas em branco ----
+        ws.addRow([]);
+        ws.addRow([]);
+
+        // ---- 2. SCOUT — Coluna A: estatística, B/C: dupla 1, D/E: dupla 2 ----
+        const scoutHeaderRow = ws.addRow(['SCOUT', p1, p2, p3, p4]);
+        styleHeaderRow(scoutHeaderRow);
         STAT_LABELS.forEach((label, i) => {
             const key = STAT_KEYS[i];
-            pair1Rows.push([label, (entry.stats ? entry.stats[`s_${key}_p1`] : undefined) || 0, (entry.stats ? entry.stats[`s_${key}_p2`] : undefined) || 0]);
-            pair2Rows.push([label, (entry.stats ? entry.stats[`s_${key}_p3`] : undefined) || 0, (entry.stats ? entry.stats[`s_${key}_p4`] : undefined) || 0]);
+            const v1 = (entry.stats ? entry.stats[`s_${key}_p1`] : undefined) || 0;
+            const v2 = (entry.stats ? entry.stats[`s_${key}_p2`] : undefined) || 0;
+            const v3 = (entry.stats ? entry.stats[`s_${key}_p3`] : undefined) || 0;
+            const v4 = (entry.stats ? entry.stats[`s_${key}_p4`] : undefined) || 0;
+            const row = ws.addRow([label, v1, v2, v3, v4]);
+            row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PAIR1_FILL } };
+            row.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PAIR1_FILL } };
+            row.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PAIR2_FILL } };
+            row.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PAIR2_FILL } };
         });
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(scoreRows), 'Result');
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pair1Rows), 'Pair 1');
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pair2Rows), 'Pair 2');
+        // ---- 2 linhas em branco ----
+        ws.addRow([]);
+        ws.addRow([]);
 
+        // ---- 3. ANÁLISE POR IA — texto simples ----
+        const aiHeaderRow = ws.addRow(['AI ANALYSIS & NOTES']);
+        styleHeaderRow(aiHeaderRow);
+        const notesText = getUserNotes(entry.notes || '') || '(no notes for this match)';
+        notesText.split('\n').forEach(line => {
+            ws.addRow([line]);
+        });
+        // Mesclar as células de texto pra não ficarem cortadas por A:E
+        const notesStartRow = aiHeaderRow.number + 1;
+        const notesEndRow = notesStartRow + notesText.split('\n').length - 1;
+        for (let r = notesStartRow; r <= notesEndRow; r++) {
+            ws.mergeCells(`A${r}:E${r}`);
+            ws.getRow(r).alignment = { wrapText: true, vertical: 'top' };
+        }
+
+        // ---- Download ----
         const d = new Date(entry.date);
         const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-        XLSX.writeFile(wb, `padel_${stamp}.xlsx`);
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `padel_${stamp}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function renderCarousel() {
