@@ -250,6 +250,29 @@
      JS, não apagadas, mas sem elemento correspondente na UI. -->
 
 <!-- ============================================================
+     AI ANALYSIS — overlay de espera (com timer) e popup de erro/retry
+============================================================ -->
+<div class="ai-wait-overlay" id="ai-wait-overlay">
+    <div class="ai-wait-box">
+        <div class="ai-wait-spinner"></div>
+        <div class="ai-wait-text">✨ Generating AI Analysis…</div>
+        <div class="ai-wait-sub">Please wait before leaving this screen</div>
+        <div class="ai-wait-countdown" id="ai-wait-countdown">10</div>
+    </div>
+</div>
+
+<div class="ai-error-overlay" id="ai-error-overlay">
+    <div class="ai-error-box">
+        <div class="ai-error-title">AI Analysis Failed</div>
+        <div class="ai-error-msg">Couldn't generate the analysis — no connection, or the server didn't respond in time.</div>
+        <div class="ai-error-actions">
+            <button class="ai-error-btn" onclick="dismissAiErrorPopup()">Exit</button>
+            <button class="ai-error-btn primary" onclick="retryAiAnalysis()">Try Again</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
      POINT LOG POPUP — trajetória de pontos (pausa técnica / troca de lado)
 ============================================================ -->
 <div class="config-overlay" id="pointlog-overlay">
@@ -338,7 +361,7 @@
             </div>
         </div>
 
-        <div class="config-version" id="config-version-label">V 3.4.1</div>
+        <div class="config-version" id="config-version-label">V 3.5.0</div>
     </div>
 </div>
 

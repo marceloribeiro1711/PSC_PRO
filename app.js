@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.4.1';
+    const APP_VERSION   = '3.5.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -2764,6 +2764,26 @@
         });
     }
 
+    // Variante para partidas já salvas no histórico (usada pelo botão
+    // manual "Generate AI Analysis" e pelo retry) — não depende do DOM
+    // ao vivo, lê tudo do próprio `entry`.
+    function buildPlayerStatsForAiFromEntry(entry) {
+        const suffixes = ['p1', 'p2', 'p3', 'p4'];
+        const teams = ['team1', 'team1', 'team2', 'team2'];
+        const stats = entry.stats || {};
+        return suffixes.map(function (suf, i) {
+            return {
+                name: entry.players[i] || ('Player ' + (i + 1)),
+                team: teams[i],
+                unforcedErrors: stats['s_ufe_' + suf] || 0,
+                forcedErrors: stats['s_fe_' + suf] || 0,
+                doubleFaults: stats['s_df_' + suf] || 0,
+                winners: stats['s_win_' + suf] || 0,
+                smashWinners: stats['s_smash_' + suf] || 0
+            };
+        });
+    }
+
     function buildMatchLogForAi() {
         return matchGameLogs.map(function (g) {
             const gamesInSet = matchGameLogs.filter(function (x) { return x.set === g.set; });
@@ -2774,6 +2794,36 @@
                 winner: g.winner,
                 servingTeam: g.servingTeam,
                 servingPlayer: pointLogServingPlayerName(g), // já resolvido pro nome
+                isTiebreakGame: !!g.isTiebreakGame,
+                isSuperTie: !!g.isSuperTie,
+                breakPoints: g.breakPoints || { team1: 0, team2: 0 },
+                points: g.points
+            };
+        });
+    }
+
+    // Variante para partidas já salvas — resolve servingPlayer contra
+    // entry.players em vez do DOM ao vivo (que pode já estar noutra partida)
+    function buildMatchLogForAiFromEntry(entry) {
+        const gameLogs = entry.pointLog || [];
+        const players = entry.players || [];
+        return gameLogs.map(function (g) {
+            const gamesInSet = gameLogs.filter(function (x) { return x.set === g.set; });
+            const gameNumber = gamesInSet.indexOf(g) + 1;
+            let servingPlayerName;
+            if (g.servingPlayer !== null && g.servingPlayer !== undefined && players[g.servingPlayer]) {
+                servingPlayerName = players[g.servingPlayer];
+            } else if (g.servingTeam === 'team1') {
+                servingPlayerName = (players[0] || '') + ' / ' + (players[1] || '');
+            } else {
+                servingPlayerName = (players[2] || '') + ' / ' + (players[3] || '');
+            }
+            return {
+                set: g.set,
+                gameNumber: gameNumber,
+                winner: g.winner,
+                servingTeam: g.servingTeam,
+                servingPlayer: servingPlayerName,
                 isTiebreakGame: !!g.isTiebreakGame,
                 isSuperTie: !!g.isSuperTie,
                 breakPoints: g.breakPoints || { team1: 0, team2: 0 },
@@ -2807,6 +2857,34 @@
         };
     }
 
+    // Variante para regenerar a análise de uma partida já salva (botão
+    // manual no histórico, ou retry após falha) — não depende de estado
+    // ao vivo nenhum, só do próprio `entry`.
+    function buildAiAnalysisPayloadFromEntry(entry) {
+        const setsArr = [];
+        (entry.sets || []).forEach(function (pair, i) {
+            if (pair[0] > 0 || pair[1] > 0) {
+                setsArr.push({ set: i + 1, score: pair[0] + '-' + pair[1] });
+            }
+        });
+        return {
+            deviceId: _deviceId || 'UNKNOWN',
+            matchId: entry.date,
+            setMode: entry.setMode,
+            pointMode: entry.pointMode,
+            language: aiAnalysisLanguage,
+            teams: {
+                team1: { players: [entry.players[0], entry.players[1]] },
+                team2: { players: [entry.players[2], entry.players[3]] }
+            },
+            playerStats: buildPlayerStatsForAiFromEntry(entry),
+            sets: setsArr,
+            winner: entry.winner === 0 ? 'team1' : 'team2',
+            matchDuration: entry.duration || '',
+            matchLog: buildMatchLogForAiFromEntry(entry)
+        };
+    }
+
     async function callAiWorker(payload) {
         if (!AI_WORKER_URL || AI_WORKER_URL.indexOf('REPLACE') !== -1) return null; // Worker ainda não configurado
         const controller = new AbortController();
@@ -2824,34 +2902,124 @@
             return (data && typeof data.analysis === 'string') ? data.analysis : null;
         } catch (e) {
             clearTimeout(timeoutId);
-            return null; // falha silenciosa — nunca bloqueia o fluxo de fim de partida
+            return null; // sem internet, timeout, Worker fora do ar, etc.
         }
     }
 
-    function appendAiAnalysisToHistory(entryDate, analysisText) {
+    // `replace`: quando true (regeneração manual/retry), substitui uma
+    // análise anterior em vez de recusar por já existir uma.
+    function appendAiAnalysisToHistory(entryDate, analysisText, replace) {
         try {
             let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
             const idx = history.findIndex(function (h) { return h.date === entryDate; });
             if (idx === -1) return;
             const marker = '\n\n✨ AI Analysis:\n';
-            const existing = history[idx].notes || '';
-            if (existing.indexOf(marker) !== -1) return; // já preenchido, nunca duplicar/sobrescrever
+            let existing = history[idx].notes || '';
+            const markerPos = existing.indexOf(marker);
+            if (markerPos !== -1) {
+                if (!replace) return; // já preenchido, não sobrescreve por padrão
+                existing = existing.slice(0, markerPos); // remove análise antiga antes de recolocar
+            }
             history[idx].notes = existing + marker + analysisText;
             localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
             if (idx === 0) currentNotes = history[idx].notes; // reflecte se ainda for a partida mais recente
         } catch (e) { /* falha silenciosa */ }
     }
 
-    // Ponto de entrada — só executa se o Coach ligou o toggle em Config.
-    // "Se estão zerados, não execute": sem toggle ligado ou sem games
-    // registados, nem monta o payload nem chama o Worker — zero custo.
+    // ---- UI de espera (timer) e de erro/retry ----
+    let _aiWaitTimer = null;
+    let _aiWaitSeconds = 10;
+    let _aiRetryEntryDate = null;
+
+    function showAiWaitOverlay() {
+        _aiWaitSeconds = 10;
+        const el = document.getElementById('ai-wait-overlay');
+        const countEl = document.getElementById('ai-wait-countdown');
+        if (!el) return;
+        if (countEl) countEl.textContent = String(_aiWaitSeconds);
+        el.classList.add('show');
+        if (_aiWaitTimer) clearInterval(_aiWaitTimer);
+        _aiWaitTimer = setInterval(function () {
+            _aiWaitSeconds--;
+            if (countEl) countEl.textContent = String(Math.max(_aiWaitSeconds, 0));
+            if (_aiWaitSeconds <= 0) {
+                // Passados 10s, libera a navegação — a chamada segue em
+                // background e, se completar depois, o histórico é
+                // actualizado normalmente (appendAiAnalysisToHistory).
+                clearInterval(_aiWaitTimer);
+                _aiWaitTimer = null;
+                el.classList.remove('show');
+            }
+        }, 1000);
+    }
+
+    function hideAiWaitOverlay() {
+        const el = document.getElementById('ai-wait-overlay');
+        if (_aiWaitTimer) { clearInterval(_aiWaitTimer); _aiWaitTimer = null; }
+        if (el) el.classList.remove('show');
+    }
+
+    function showAiRetryPopup(entryDate) {
+        _aiRetryEntryDate = entryDate;
+        const el = document.getElementById('ai-error-overlay');
+        if (el) el.classList.add('show');
+    }
+
+    function dismissAiErrorPopup() {
+        const el = document.getElementById('ai-error-overlay');
+        if (el) el.classList.remove('show');
+        _aiRetryEntryDate = null;
+    }
+
+    function retryAiAnalysis() {
+        const date = _aiRetryEntryDate;
+        dismissAiErrorPopup();
+        if (!date) return;
+        const history = loadHistory();
+        const idx = history.findIndex(function (h) { return h.date === date; });
+        if (idx === -1) return;
+        regenerateAiAnalysisForEntry(idx, true);
+    }
+
+    // Ponto de entrada automático — só executa se o Coach ligou o toggle
+    // em Config. "Se estão zerados, não execute": sem toggle ligado ou
+    // sem games registados, nem monta o payload nem chama o Worker.
     function maybeRunAiAnalysis(entry) {
         if (!aiAnalysisEnabled) return;
         if (!matchGameLogs || matchGameLogs.length === 0) return;
+        showAiWaitOverlay();
         const payload = buildAiAnalysisPayload(entry);
         callAiWorker(payload).then(function (analysis) {
-            if (analysis) appendAiAnalysisToHistory(entry.date, analysis);
+            hideAiWaitOverlay();
+            if (analysis) {
+                appendAiAnalysisToHistory(entry.date, analysis, false);
+            } else {
+                showAiRetryPopup(entry.date);
+            }
         });
+    }
+
+    // Entrada manual — botão "Generate AI Analysis" no histórico. Cobre
+    // três casos: (1) gerar quando não havia internet no fim da partida,
+    // (2) retry manual após falha, (3) regenerar uma análise já existente.
+    async function regenerateAiAnalysisForEntry(idx, manual) {
+        const history = loadHistory();
+        const entry = history[idx];
+        if (!entry) return;
+        if (!entry.pointLog || entry.pointLog.length === 0) {
+            showToast('No Match Log data available for AI analysis');
+            return;
+        }
+        showAiWaitOverlay();
+        const payload = buildAiAnalysisPayloadFromEntry(entry);
+        const analysis = await callAiWorker(payload);
+        hideAiWaitOverlay();
+        if (analysis) {
+            appendAiAnalysisToHistory(entry.date, analysis, true);
+            showToast('✨ AI analysis ready — check Notes');
+        } else {
+            showAiRetryPopup(entry.date);
+        }
     }
 
     function saveMatchHistory() {
@@ -3247,6 +3415,10 @@
                     <span class="h-notes-cta-icon">✨</span>
                     <span>AI Analysis &amp; Personal Notes</span>
                     <span class="h-notes-cta-arrow">→</span>
+                </button>
+                <button class="h-ai-regen-btn" onclick="regenerateAiAnalysisForEntry(${idx}, true)" title="Generate or refresh the AI analysis for this match — useful if there was no internet connection right after the match, or to try again">
+                    <span>🔄</span>
+                    <span>Generate AI Analysis</span>
                 </button>
             </div>`;
     }
@@ -3854,6 +4026,7 @@
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
         setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisMode, setAiAnalysisLanguage,
+        regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
     });
 
 })();
