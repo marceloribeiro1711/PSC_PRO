@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.5.0';
+    const APP_VERSION   = '3.6.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -2832,6 +2832,15 @@
         });
     }
 
+    // Nome de exibição da dupla para a IA (ex: "LEÃO/SALVADOR"), usado no
+    // payload em vez dos literais 'team1'/'team2' — evita que a análise
+    // se refira às duplas por esses rótulos técnicos.
+    function duplaName(p1, p2) {
+        const n1 = (p1 || '').trim() || 'Player 1';
+        const n2 = (p2 || '').trim() || 'Player 2';
+        return n1 + '/' + n2;
+    }
+
     function buildAiAnalysisPayload(entry) {
         const setsArr = [];
         (entry.sets || []).forEach(function (pair, i) {
@@ -2846,8 +2855,8 @@
             pointMode: entry.pointMode,
             language: aiAnalysisLanguage,
             teams: {
-                team1: { players: [entry.players[0], entry.players[1]] },
-                team2: { players: [entry.players[2], entry.players[3]] }
+                team1: { name: duplaName(entry.players[0], entry.players[1]), players: [entry.players[0], entry.players[1]] },
+                team2: { name: duplaName(entry.players[2], entry.players[3]), players: [entry.players[2], entry.players[3]] }
             },
             playerStats: buildPlayerStatsForAi(),
             sets: setsArr,
@@ -2874,8 +2883,8 @@
             pointMode: entry.pointMode,
             language: aiAnalysisLanguage,
             teams: {
-                team1: { players: [entry.players[0], entry.players[1]] },
-                team2: { players: [entry.players[2], entry.players[3]] }
+                team1: { name: duplaName(entry.players[0], entry.players[1]), players: [entry.players[0], entry.players[1]] },
+                team2: { name: duplaName(entry.players[2], entry.players[3]), players: [entry.players[2], entry.players[3]] }
             },
             playerStats: buildPlayerStatsForAiFromEntry(entry),
             sets: setsArr,
@@ -3327,7 +3336,7 @@
 
     function updateNotesFsCounter() {
         const len = document.getElementById('notes-fs-textarea').value.length;
-        document.getElementById('notes-fs-counter').textContent = `${len} / 2000`;
+        document.getElementById('notes-fs-counter').textContent = `${len} / 5120`;
     }
 
     function saveNotesFs() {
