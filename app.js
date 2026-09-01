@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.6.1';
+    const APP_VERSION   = '3.6.2';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -564,6 +564,14 @@
         tbFirst: null,
         t1FirstServer: null,
         t2FirstServer: null,
+        // "Turno-âncora" de cada dupla — em qual turno de saque daquela
+        // dupla (0-indexado) o t1FirstServer/t2FirstServer é válido como
+        // referência. 0 = referência é o 1º saque do set (caso normal).
+        // Uma correcção manual a meio de um game move este valor para o
+        // turno actual, em vez de reescrever a história do set inteiro
+        // (ver onServeBallTap e calcNextServer).
+        t1AnchorTurn: 0,
+        t2AnchorTurn: 0,
     };
 
     const SERVE_IDS = ['t1-p1', 't1-p2', 't2-p1', 't2-p2'];
@@ -1039,11 +1047,15 @@
         const timesServed = Math.floor((gamesAfterInSet - 1) / 2);
 
         if (team === 0) {
-            const first = SERVE.t1FirstServer !== null ? SERVE.t1FirstServer : 0;
-            return (timesServed % 2 === 0) ? first : (first === 0 ? 1 : 0);
+            const anchor = SERVE.t1FirstServer !== null ? SERVE.t1FirstServer : 0;
+            const anchorTurn = SERVE.t1AnchorTurn || 0;
+            const flips = timesServed - anchorTurn; // distância (em turnos) até o âncora
+            return (flips % 2 === 0) ? anchor : (anchor === 0 ? 1 : 0);
         } else {
-            const first = SERVE.t2FirstServer !== null ? SERVE.t2FirstServer : 0;
-            return (timesServed % 2 === 0) ? (2 + first) : (2 + (first === 0 ? 1 : 0));
+            const anchor = SERVE.t2FirstServer !== null ? SERVE.t2FirstServer : 0;
+            const anchorTurn = SERVE.t2AnchorTurn || 0;
+            const flips = timesServed - anchorTurn;
+            return (flips % 2 === 0) ? (2 + anchor) : (2 + (anchor === 0 ? 1 : 0));
         }
     }
 
@@ -1189,15 +1201,36 @@
 
         // 'auto' ou 'tb' — correcção manual
         SERVE.current = playerIdx;
-        if (state.isSuperTieBreak) {
-            // No supertie, correcção manual actualiza tbFirst
+        if (SERVE.phase === 'tb') {
+            // Tie-break (normal de set OU super tie-break) — reinicia a
+            // contagem de pontos a partir do ponto corrigido. Como a
+            // contagem toda reinicia (tbPoints=0), não há "história" do
+            // set a preservar aqui — ao contrário do game normal abaixo.
             SERVE.tbFirst = playerIdx;
-            SERVE.tbPoints = 0; // reiniciar sequência a partir do novo servidor
-        }
-        if (playerIdx < 2) {
-            SERVE.t1FirstServer = playerIdx;
+            SERVE.tbPoints = 0;
+            if (playerIdx < 2) {
+                SERVE.t1FirstServer = playerIdx;
+            } else {
+                SERVE.t2FirstServer = playerIdx - 2;
+            }
         } else {
-            SERVE.t2FirstServer = playerIdx - 2;
+            // Game normal em curso — a dupla do jogador corrigido já pode
+            // ter sacado antes neste set (games anteriores). Em vez de
+            // reescrever t1FirstServer/t2FirstServer como se este fosse o
+            // 1º saque do set (o que desalinhava toda a alternância dali
+            // pra frente — inclusive depois de virar de set), guardamos o
+            // jogador corrigido como novo âncora NO TURNO DE SAQUE ACTUAL
+            // da dupla. A alternância futura passa a contar a partir daqui,
+            // preservando os games já jogados e a dupla adversária intacta.
+            const gameNoInSet = SERVE.gamesThisSet + 1;         // game actual, 1-indexado no set
+            const timesServedNow = Math.floor((gameNoInSet - 1) / 2); // turno de saque desta dupla, agora
+            if (playerIdx < 2) {
+                SERVE.t1FirstServer = playerIdx;
+                SERVE.t1AnchorTurn = timesServedNow;
+            } else {
+                SERVE.t2FirstServer = playerIdx - 2;
+                SERVE.t2AnchorTurn = timesServedNow;
+            }
         }
         renderServeBalls();
     }
@@ -1213,6 +1246,8 @@
         SERVE.tbFirst = null;
         SERVE.t1FirstServer = null;
         SERVE.t2FirstServer = null;
+        SERVE.t1AnchorTurn = 0;
+        SERVE.t2AnchorTurn = 0;
         _serveStatCounted = false;
         renderServeBalls();
     }
@@ -1232,6 +1267,13 @@
         SERVE.tbFirst = null;
         SERVE.t1FirstServer = nextTeam === 0 ? null : SERVE.t1FirstServer;
         SERVE.t2FirstServer = nextTeam === 1 ? null : SERVE.t2FirstServer;
+        // Turnos-âncora sempre reiniciam a 0 num set novo — mesmo para a
+        // dupla que mantém o t1FirstServer/t2FirstServer do set anterior,
+        // porque gamesThisSet (e portanto timesServed) reinicia a 0 aqui.
+        // Sem isto, um âncora movido a meio do set anterior ficaria
+        // desalinhado com a contagem do set novo.
+        SERVE.t1AnchorTurn = 0;
+        SERVE.t2AnchorTurn = 0;
         _serveStatCounted = false;
         renderServeBalls();
     }
@@ -2490,6 +2532,8 @@
                 tbFirst:       SERVE.tbFirst,
                 t1FirstServer: SERVE.t1FirstServer,
                 t2FirstServer: SERVE.t2FirstServer,
+                t1AnchorTurn: SERVE.t1AnchorTurn,
+                t2AnchorTurn: SERVE.t2AnchorTurn,
             }
         };
         try { localStorage.setItem(GAME_STATE_KEY, JSON.stringify(snapshot)); } catch(e) {}
