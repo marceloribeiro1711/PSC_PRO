@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.6.0';
+    const APP_VERSION   = '3.6.1';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -626,8 +626,7 @@
     let currentGameBreakPoints = [0, 0]; // oportunidades de quebra no game em curso, por dupla
     let gameLogEnabled = false;    // Sempre Off — sem toggle na UI. Popup automático da troca de
                                     // campo desligado; acesso manual (menu/histórico) não depende disto.
-    let aiAnalysisEnabled = false; // Config: OFF por padrão — custo real por chamada, opt-in consciente
-    let aiAnalysisLanguage = 'en'; // Config: idioma da Análise por IA — en (padrão), es, pt
+    let aiAnalysisLanguage = 'en'; // Config: idioma da Análise por IA — en (padrão), es, pt, fr, it, de
 
     let currentGameBpPeak = 0;     // maior diferença (recebedora - sacadora) já atingida no game em curso
 
@@ -1684,11 +1683,10 @@
         // Match Log: sem toggle na UI — fica sempre Off (popup automático
         // desligado). Acesso continua disponível a qualquer momento pelo
         // menu hambúrguer e pelo histórico, que não dependem desta flag.
-        // AI Analysis toggle
-        document.getElementById('cfg-ai-on').classList.toggle('active', aiAnalysisEnabled);
-        document.getElementById('cfg-ai-off').classList.toggle('active', !aiAnalysisEnabled);
+        // AI Analysis: geração é 100% manual pelo Histórico (sem chamada
+        // automática ao fim de partida) — não há mais toggle On/Off aqui.
         // AI Analysis language
-        ['en', 'es', 'pt'].forEach(function (lang) {
+        ['en', 'es', 'pt', 'fr', 'it', 'de'].forEach(function (lang) {
             var el = document.getElementById('cfg-ai-lang-' + lang);
             if (el) el.classList.toggle('active', aiAnalysisLanguage === lang);
         });
@@ -1699,12 +1697,6 @@
     // caso o toggle volte a fazer sentido no futuro.
     function setGameLogMode(val) {
         gameLogEnabled = val;
-        updateConfig();
-        saveGameState();
-    }
-
-    function setAiAnalysisMode(val) {
-        aiAnalysisEnabled = val;
         updateConfig();
         saveGameState();
     }
@@ -2475,7 +2467,6 @@
             pointMode,
             statsEnabled,
             gameLogEnabled,
-            aiAnalysisEnabled,
             aiAnalysisLanguage,
             matchGameLogs,
             currentGamePoints,
@@ -2516,7 +2507,6 @@
         pointMode     = snap.pointMode;
         statsEnabled  = snap.statsEnabled;
         gameLogEnabled = false; // sempre Off — sem toggle na UI, ignora valor salvo em snapshots antigos
-        aiAnalysisEnabled = (snap.aiAnalysisEnabled !== undefined) ? snap.aiAnalysisEnabled : false;
         aiAnalysisLanguage = (snap.aiAnalysisLanguage !== undefined) ? snap.aiAnalysisLanguage : 'en';
         matchGameLogs  = snap.matchGameLogs || [];
         currentGamePoints = snap.currentGamePoints || [];
@@ -2743,7 +2733,8 @@
     // ver worker.js entregue junto com este pacote.
     // ============================================================
     const AI_WORKER_URL = 'https://psc-ai-analysis.marceloribeiro1711.workers.dev/analyze';
-    const AI_TIMEOUT_MS = 8000;
+    const AI_TIMEOUT_MS = 30000;  // 30s — recalibrado após MAX_OUTPUT_TOKENS subir de 900 p/ 1600 no worker (5 parágrafos podem levar bem mais que os 8s antigos para gerar)
+    const AI_ANALYSIS_MARKER = '\n\n✨ AI Analysis:\n';
 
     function buildPlayerStatsForAi() {
         const ids = ['t1-p1', 't1-p2', 't2-p1', 't2-p2'];
@@ -2841,31 +2832,6 @@
         return n1 + '/' + n2;
     }
 
-    function buildAiAnalysisPayload(entry) {
-        const setsArr = [];
-        (entry.sets || []).forEach(function (pair, i) {
-            if (pair[0] > 0 || pair[1] > 0) {
-                setsArr.push({ set: i + 1, score: pair[0] + '-' + pair[1] });
-            }
-        });
-        return {
-            deviceId: _deviceId || 'UNKNOWN',
-            matchId: entry.date,
-            setMode: entry.setMode,
-            pointMode: entry.pointMode,
-            language: aiAnalysisLanguage,
-            teams: {
-                team1: { name: duplaName(entry.players[0], entry.players[1]), players: [entry.players[0], entry.players[1]] },
-                team2: { name: duplaName(entry.players[2], entry.players[3]), players: [entry.players[2], entry.players[3]] }
-            },
-            playerStats: buildPlayerStatsForAi(),
-            sets: setsArr,
-            winner: entry.winner === 0 ? 'team1' : 'team2',
-            matchDuration: formatDuration(timerSeconds),
-            matchLog: buildMatchLogForAi()
-        };
-    }
-
     // Variante para regenerar a análise de uma partida já salva (botão
     // manual no histórico, ou retry após falha) — não depende de estado
     // ao vivo nenhum, só do próprio `entry`.
@@ -2922,14 +2888,17 @@
             let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
             const idx = history.findIndex(function (h) { return h.date === entryDate; });
             if (idx === -1) return;
-            const marker = '\n\n✨ AI Analysis:\n';
             let existing = history[idx].notes || '';
-            const markerPos = existing.indexOf(marker);
+            const markerPos = existing.indexOf(AI_ANALYSIS_MARKER);
             if (markerPos !== -1) {
                 if (!replace) return; // já preenchido, não sobrescreve por padrão
                 existing = existing.slice(0, markerPos); // remove análise antiga antes de recolocar
             }
-            history[idx].notes = existing + marker + analysisText;
+            history[idx].notes = existing + AI_ANALYSIS_MARKER + analysisText;
+            // Flag permanente: uma vez gerada, a partida fica marcada como já
+            // analisada para sempre — independe do texto continuar no Notes ou
+            // não (o Coach pode apagar/editar o texto livremente depois).
+            history[idx].aiAnalysisGenerated = true;
             localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
             if (idx === 0) currentNotes = history[idx].notes; // reflecte se ainda for a partida mais recente
         } catch (e) { /* falha silenciosa */ }
@@ -2937,11 +2906,11 @@
 
     // ---- UI de espera (timer) e de erro/retry ----
     let _aiWaitTimer = null;
-    let _aiWaitSeconds = 10;
+    let _aiWaitSeconds = 30;
     let _aiRetryEntryDate = null;
 
     function showAiWaitOverlay() {
-        _aiWaitSeconds = 10;
+        _aiWaitSeconds = 30;
         const el = document.getElementById('ai-wait-overlay');
         const countEl = document.getElementById('ai-wait-countdown');
         if (!el) return;
@@ -2952,9 +2921,9 @@
             _aiWaitSeconds--;
             if (countEl) countEl.textContent = String(Math.max(_aiWaitSeconds, 0));
             if (_aiWaitSeconds <= 0) {
-                // Passados 10s, libera a navegação — a chamada segue em
-                // background e, se completar depois, o histórico é
-                // actualizado normalmente (appendAiAnalysisToHistory).
+                // Passados 30s (== AI_TIMEOUT_MS), libera a navegação — a
+                // chamada segue em background e, se completar depois, o
+                // histórico é actualizado normalmente (appendAiAnalysisToHistory).
                 clearInterval(_aiWaitTimer);
                 _aiWaitTimer = null;
                 el.classList.remove('show');
@@ -2990,31 +2959,33 @@
         regenerateAiAnalysisForEntry(idx, true);
     }
 
-    // Ponto de entrada automático — só executa se o Coach ligou o toggle
-    // em Config. "Se estão zerados, não execute": sem toggle ligado ou
-    // sem games registados, nem monta o payload nem chama o Worker.
-    function maybeRunAiAnalysis(entry) {
-        if (!aiAnalysisEnabled) return;
-        if (!matchGameLogs || matchGameLogs.length === 0) return;
-        showAiWaitOverlay();
-        const payload = buildAiAnalysisPayload(entry);
-        callAiWorker(payload).then(function (analysis) {
-            hideAiWaitOverlay();
-            if (analysis) {
-                appendAiAnalysisToHistory(entry.date, analysis, false);
-            } else {
-                showAiRetryPopup(entry.date);
-            }
-        });
+    // Detecta se uma partida já teve análise de IA gerada com sucesso —
+    // pela flag (caso normal) ou, por compatibilidade, pelo marcador ainda
+    // presente no notes de partidas antigas geradas antes da flag existir.
+    function isAiAnalysisGenerated(entry) {
+        return !!(entry && (entry.aiAnalysisGenerated || (entry.notes || '').indexOf(AI_ANALYSIS_MARKER) !== -1));
     }
 
     // Entrada manual — botão "Generate AI Analysis" no histórico. Cobre
     // três casos: (1) gerar quando não havia internet no fim da partida,
-    // (2) retry manual após falha, (3) regenerar uma análise já existente.
+    // (2) retry manual após falha, (3) MAS nunca regenerar uma análise que
+    // já foi gerada com sucesso alguma vez — isso é bloqueado permanentemente
+    // pela flag aiAnalysisGenerated, mesmo que o texto tenha sido apagado do
+    // Notes depois (custo real por chamada — uma vez gerada, é definitiva).
     async function regenerateAiAnalysisForEntry(idx, manual) {
         const history = loadHistory();
         const entry = history[idx];
         if (!entry) return;
+        if (isAiAnalysisGenerated(entry)) {
+            if (!entry.aiAnalysisGenerated) {
+                // Fallback de compatibilidade: corrige a flag agora para
+                // partidas antigas geradas antes dela existir.
+                history[idx].aiAnalysisGenerated = true;
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            }
+            showToast('AI analysis was already generated for this match — it can only be generated once.');
+            return;
+        }
         if (!entry.pointLog || entry.pointLog.length === 0) {
             showToast('No Match Log data available for AI analysis');
             return;
@@ -3071,9 +3042,6 @@
             }
         }
 
-        // Análise por IA — só executa se o Coach ligou o toggle em Config
-        // (ver maybeRunAiAnalysis). Assíncrono: não bloqueia o fim de partida.
-        maybeRunAiAnalysis(entry);
     }
 
     function loadHistory() {
@@ -3425,10 +3393,15 @@
                     <span>AI Analysis &amp; Personal Notes</span>
                     <span class="h-notes-cta-arrow">→</span>
                 </button>
-                <button class="h-ai-regen-btn" onclick="regenerateAiAnalysisForEntry(${idx}, true)" title="Generate or refresh the AI analysis for this match — useful if there was no internet connection right after the match, or to try again">
+                ${isAiAnalysisGenerated(entry) ? `
+                <button class="h-ai-regen-btn done" onclick="regenerateAiAnalysisForEntry(${idx}, true)" title="AI analysis for this match was already generated and can only be generated once">
+                    <span>🔒</span>
+                    <span>AI Analysis Already Generated</span>
+                </button>` : `
+                <button class="h-ai-regen-btn" onclick="regenerateAiAnalysisForEntry(${idx}, true)" title="Generate the AI analysis for this match — useful if there was no internet connection right after the match, or to try again after a failure">
                     <span>🔄</span>
                     <span>Generate AI Analysis</span>
-                </button>
+                </button>`}
             </div>`;
     }
 
@@ -4034,7 +4007,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisMode, setAiAnalysisLanguage,
+        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
     });
 
