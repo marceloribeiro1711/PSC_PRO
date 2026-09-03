@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.7.0';
+    const APP_VERSION   = '3.7.1';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -2595,6 +2595,14 @@
         // Restaurar serve indicator
         if (snap.serve) {
             Object.assign(SERVE, snap.serve);
+        }
+
+        // O banner END OF MATCH não precisa voltar após um reload, mas o
+        // botão do Card do Jogo sim — a partida já está no Histórico e o
+        // Coach deve continuar conseguindo abrir o card mesmo depois de
+        // sair/reabrir o app sem querer.
+        if (state.matchOver) {
+            document.getElementById('gs-card-btn').classList.add('show');
         }
 
         return true;

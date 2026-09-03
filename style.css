@@ -484,14 +484,18 @@
         /* Botão "Mostrar Card do Jogo" — nasce logo abaixo do banner END OF
            MATCH, centralizado. O FAB hambúrguer (canto inferior direito)
            nunca é coberto por este botão, que fica centralizado na tela. */
+        /* Botão "Mostrar Card do Jogo" — fixo no rodapé, lado esquerdo,
+           no mesmo alinhamento vertical do FAB hambúrguer (lado direito).
+           Fica sempre abaixo de toda a área de placar/estatísticas —
+           nunca atrapalha o print do resultado — e nunca sobrepõe o FAB. */
         .gs-card-btn {
-            position: absolute; left: 50%; bottom: 0;
-            transform: translate(-50%, 220%);
+            position: fixed; left: 4vw;
+            bottom: calc(4vh + env(safe-area-inset-bottom, 16px));
             background: var(--accent-yellow); color: #1a1200;
-            font-size: 1.6vh; font-weight: 700; letter-spacing: 0.5px;
-            padding: 1vh 4vw; border: none; border-radius: 24px;
+            font-size: 1.5vh; font-weight: 700; letter-spacing: 0.3px;
+            padding: 1vh 3.5vw; border: none; border-radius: 24px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-            opacity: 0; pointer-events: none; z-index: 100;
+            opacity: 0; pointer-events: none; z-index: 300;
             transition: opacity 0.4s;
         }
         .gs-card-btn.show { opacity: 1; pointer-events: auto; }
@@ -852,7 +856,7 @@
             box-sizing: border-box;
         }
         .gs-card {
-            width: 90%; max-width: 480px;
+            width: 94%; max-width: 600px;
             background: var(--panel-bg); border: 1px solid var(--border-card);
             border-radius: 14px; padding: 0 0 2vh;
             box-sizing: border-box;
@@ -870,10 +874,10 @@
         }
         .gs-photo-placeholder { color: var(--text-dim); }
         .gs-photo-placeholder svg { width: 42%; height: 42%; }
-        .gs-photos-side .gs-photo:first-child { margin-right: -14%; z-index: 2; }
+        .gs-photos-side .gs-photo:first-child { margin-right: -5%; z-index: 2; }
         .gs-photos-side .gs-photo:last-child { z-index: 1; }
         .gs-photos-side.right .gs-photo:first-child { z-index: 1; }
-        .gs-photos-side.right .gs-photo:last-child { margin-right: 0; margin-left: -14%; z-index: 2; }
+        .gs-photos-side.right .gs-photo:last-child { margin-right: 0; margin-left: -5%; z-index: 2; }
 
         .gs-score-labels { display: flex; margin-bottom: 3px; padding: 0 3%; }
         .gs-score-labels div {
