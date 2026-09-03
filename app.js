@@ -102,7 +102,7 @@
     // ============================================================
     const LIC_KEY       = 'padel_license';
     const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.6.2';
+    const APP_VERSION   = '3.7.0';
 
     // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
     const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
@@ -2285,6 +2285,7 @@
         state.pts = [0, 0];
         state.currentSet = 3;
         document.getElementById('game-over-p').classList.add('show');
+        document.getElementById('gs-card-btn').classList.add('show');
         updateScreen();
     }
 
@@ -3027,7 +3028,7 @@
                 history[idx].aiAnalysisGenerated = true;
                 localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
             }
-            showToast('AI analysis was already generated for this match — it can only be generated once.');
+            showToast('Análise já realizada para este jogo');
             return;
         }
         if (!entry.pointLog || entry.pointLog.length === 0) {
@@ -3044,6 +3045,139 @@
         } else {
             showAiRetryPopup(entry.date);
         }
+    }
+
+    // Agregação por dupla pro Card do Jogo — soma jogador1+jogador2 vs
+    // jogador3+jogador4 nas 7 estatísticas já existentes, mais o total de
+    // pontos vencidos por dupla (contado direto do pointLog: cada ponto do
+    // jogo conta 1 pra quem venceu, independente de quem estava a servir).
+    function buildGrandSlamAggregates(entry) {
+        const pSuffix = ['p1', 'p2', 'p3', 'p4'];
+        const s = entry.stats || {};
+        function sum(key, off) {
+            return (s[`s_${key}_${pSuffix[off]}`] || 0) + (s[`s_${key}_${pSuffix[off + 1]}`] || 0);
+        }
+        const rows = STAT_LABELS.map(function (label, i) {
+            const key = STAT_KEYS[i];
+            return { label: label, v1: sum(key, 0), v2: sum(key, 2) };
+        });
+        let totalPts1 = 0, totalPts2 = 0;
+        (entry.pointLog || []).forEach(function (game) {
+            (game.points || []).forEach(function (pt) {
+                if (pt.wonBy === 'team1') totalPts1++;
+                else if (pt.wonBy === 'team2') totalPts2++;
+            });
+        });
+        rows.unshift({ label: 'Total Points Won', v1: totalPts1, v2: totalPts2 });
+        return rows;
+    }
+
+    // Ícone de silhueta genérica — usado quando não há foto retratada pra
+    // aquele jogador (nem no snapshot da partida, nem no slot ao vivo).
+    const GS_SILHOUETTE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
+
+    // Monta o HTML do Card do Jogo — assíncrono porque as 4 fotos vêm do
+    // IndexedDB (retrato próprio da partida, ver saveMatchHistory).
+    function buildGrandSlamCardHtml(entry) {
+        const n1 = escHtml(entry.players[0] || 'Player 1');
+        const n2 = escHtml(entry.players[1] || 'Player 2');
+        const n3 = escHtml(entry.players[2] || 'Player 3');
+        const n4 = escHtml(entry.players[3] || 'Player 4');
+        const teamName1 = n1 + ' / ' + n2;
+        const teamName2 = n3 + ' / ' + n4;
+
+        const photoKeys = DEFAULT_PHOTO_IDS.map(function (id) { return 'photo_hist_' + entry.date + '_' + id; });
+        return Promise.all(photoKeys.map(function (k) {
+            return idbGet(k).catch(function () { return null; });
+        })).then(function (photos) {
+            const rot = ['-7deg', '-2deg', '2deg', '7deg'];
+            const teamClass = ['t1', 't1', 't2', 't2'];
+            function photoTag(i) {
+                const border = teamClass[i] === 't1' ? 'var(--accent-blue)' : 'var(--accent-yellow)';
+                const style = 'border-color:' + border + ';transform:rotate(' + rot[i] + ')';
+                if (photos[i]) return '<img class="gs-photo" src="' + photos[i] + '" style="' + style + '">';
+                return '<div class="gs-photo gs-photo-placeholder" style="' + style + '">' + GS_SILHOUETTE_SVG + '</div>';
+            }
+
+            // Placar — Set1/Set2 sempre; 3ª coluna (Set3 ou Supertie) só se
+            // jogada; PROSET tem apenas uma coluna, igual ao formatScore().
+            const sets = entry.sets || [[0, 0], [0, 0], [0, 0]];
+            let scoreCols, t1Scores, t2Scores;
+            if (entry.setMode === 'proset') {
+                scoreCols = [{ label: 'PRO SET', red: false }];
+                t1Scores = [sets[2][0]]; t2Scores = [sets[2][1]];
+            } else {
+                scoreCols = [{ label: 'SET 1', red: false }, { label: 'SET 2', red: false }];
+                t1Scores = [sets[0][0], sets[1][0]]; t2Scores = [sets[0][1], sets[1][1]];
+                const played3rd = sets[2][0] > 0 || sets[2][1] > 0;
+                if (played3rd) {
+                    scoreCols.push({ label: entry.setMode === 'supertie' ? 'SUPERTIE' : 'SET 3', red: entry.setMode === 'supertie' });
+                    t1Scores.push(sets[2][0]); t2Scores.push(sets[2][1]);
+                }
+            }
+            const scoreLabelsHtml = scoreCols.map(function (c) {
+                return '<div class="' + (c.red ? 'gs-red' : '') + '">' + c.label + '</div>';
+            }).join('');
+            const scoreRow1Html = t1Scores.map(function (v) { return '<div>' + v + '</div>'; }).join('');
+            const scoreRow2Html = t2Scores.map(function (v) { return '<div>' + v + '</div>'; }).join('');
+
+            // Estatísticas — barras divergentes a partir do centro, cor fixa
+            // por dupla (não indica "quem jogou melhor" naquela linha).
+            const rows = buildGrandSlamAggregates(entry);
+            const statsHtml = rows.map(function (r) {
+                const total = r.v1 + r.v2;
+                const pct1 = total > 0 ? (r.v1 / total * 100) : 50;
+                const pct2 = total > 0 ? (r.v2 / total * 100) : 50;
+                return '<div>'
+                    + '<div class="gs-stat-label">' + escHtml(r.label) + '</div>'
+                    + '<div class="gs-stat-row">'
+                    + '<span class="gs-stat-num left">' + r.v1 + '</span>'
+                    + '<div class="gs-bar-half left"><div class="gs-bar-fill t1" style="width:' + pct1 + '%"></div></div>'
+                    + '<div class="gs-bar-half right"><div class="gs-bar-fill t2" style="width:' + pct2 + '%"></div></div>'
+                    + '<span class="gs-stat-num right">' + r.v2 + '</span>'
+                    + '</div></div>';
+            }).join('');
+
+            const trophy1 = entry.winner === 0 ? '<span class="gs-trophy">🏆</span>' : '';
+            const trophy2 = entry.winner === 1 ? '<span class="gs-trophy">🏆</span>' : '';
+
+            return '<div class="gs-photos-row">'
+                + '<div class="gs-photos-side">' + photoTag(0) + photoTag(1) + '</div>'
+                + '<div class="gs-photos-side right">' + photoTag(2) + photoTag(3) + '</div>'
+                + '</div>'
+                + '<div class="gs-score-box">'
+                + '<div class="gs-score-labels">' + scoreLabelsHtml + '</div>'
+                + '<div class="gs-score-row top">' + scoreRow1Html + '</div>'
+                + '<div class="gs-score-row bottom">' + scoreRow2Html + '</div>'
+                + '</div>'
+                + '<div class="gs-stats">' + statsHtml + '</div>'
+                + '<div class="gs-footer">'
+                + '<div class="gs-footer-side t1">' + trophy1 + teamName1 + '</div>'
+                + '<div class="gs-footer-side t2">' + trophy2 + teamName2 + '</div>'
+                + '</div>';
+        });
+    }
+
+    // idx omitido → partida mais recente (fluxo "Mostrar Card do Jogo" ao
+    // vivo). idx presente → aberto a partir do Histórico.
+    function openGrandSlamCard(idx) {
+        const history = loadHistory();
+        const entry = (idx === undefined || idx === null) ? history[0] : history[idx];
+        if (!entry) { showToast('No match found'); return; }
+        const container = document.getElementById('gs-card-content');
+        container.innerHTML = '<div style="text-align:center;padding:4vh;color:var(--text-dim)">Loading…</div>';
+        document.getElementById('gs-card-overlay').classList.add('show');
+        buildGrandSlamCardHtml(entry).then(function (html) {
+            container.innerHTML = html;
+        });
+    }
+
+    function closeGrandSlamCardOnBg(event) {
+        if (event.target === document.getElementById('gs-card-overlay')) closeGrandSlamCard();
+    }
+
+    function closeGrandSlamCard() {
+        document.getElementById('gs-card-overlay').classList.remove('show');
     }
 
     function saveMatchHistory() {
@@ -3069,6 +3203,18 @@
             notes: currentNotes,
             pointLog: matchGameLogs
         };
+
+        // Retrato das 4 fotos atuais, preso a esta partida específica — os
+        // slots t1-img1..t2-img2 são reaproveitados entre partidas, então
+        // sem isto o Card do Jogo (ao vivo ou visto depois no Histórico)
+        // podia mostrar fotos erradas de uma partida futura. Best-effort,
+        // não bloqueia o salvamento da partida (fotos são secundárias).
+        DEFAULT_PHOTO_IDS.forEach(function (slotId) {
+            idbGet('photo_' + slotId).then(function (dataUrl) {
+                if (!dataUrl) return; // sem foto neste slot — Card mostra silhueta
+                idbSet('photo_hist_' + entry.date + '_' + slotId, dataUrl).catch(function () {});
+            }).catch(function () {});
+        });
 
         let history = [];
         try { history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) {}
@@ -3432,6 +3578,11 @@
                 ${buildPairBlock(entry, 0, entry.winner === 0)}
                 ${buildPairBlock(entry, 1, entry.winner === 1)}
                 ${buildMatchStatsTable(entry)}
+                <button class="h-notes-cta" onclick="openGrandSlamCard(${idx})">
+                    <span class="h-notes-cta-icon">🏆</span>
+                    <span>Mostrar Card do Jogo</span>
+                    <span class="h-notes-cta-arrow">→</span>
+                </button>
                 <button class="h-notes-cta" onclick="openNotesFs(${idx})">
                     <span class="h-notes-cta-icon">✨</span>
                     <span>AI Analysis &amp; Personal Notes</span>
@@ -3909,6 +4060,7 @@
         resetSetStats();
         resetTimer();
         document.getElementById('game-over-p').classList.remove('show');
+        document.getElementById('gs-card-btn').classList.remove('show');
         document.getElementById('golden-point-p').classList.remove('show');
         document.getElementById('break-point-p').classList.remove('show');
         resetStats();
@@ -4053,6 +4205,7 @@
         closePointLogPopup, pointLogPrev, pointLogNext,
         setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
+        openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
     });
 
 })();

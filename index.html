@@ -118,6 +118,7 @@
             </div>
             <!-- Timer + Badges centrados na linha divisória -->
             <div class="game-over-banner" id="game-over-p">END OF MATCH</div>
+            <button class="gs-card-btn" id="gs-card-btn" onclick="openGrandSlamCard()">🏆 Mostrar Card do Jogo</button>
             <div class="whos-serve-badge" id="whos-serve-p">WHO IS SERVING FIRST?</div>
             <div class="bp-center-badge" id="break-point-p">BREAK POINT</div>
             <div class="gp-divider-wrap">
@@ -363,6 +364,13 @@
 <!-- ============================================================
      FULLSCREEN NOTES EDITOR
 ============================================================ -->
+<div class="gs-card-overlay" id="gs-card-overlay" onclick="closeGrandSlamCardOnBg(event)">
+    <button class="gs-card-close" onclick="closeGrandSlamCard()">✕</button>
+    <div class="gs-card-scroll">
+        <div class="gs-card" id="gs-card-content"></div>
+    </div>
+</div>
+
 <div class="notes-fs-overlay" id="notes-fs-overlay" onclick="closeNotesFsOnBg(event)">
     <div class="notes-fs-modal">
         <div class="notes-fs-header">
