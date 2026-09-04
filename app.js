@@ -15,174 +15,14 @@
     }
 
     // ============================================================
-    // FREE TIER — Feature flags centralizadas
-    // PSC PRO 3.0.0: IS_FREE_TIER = false → todas as features liberadas
+    // LICENSE SYSTEM — removido (3.8.0). PSC PRO é vendido diretamente
+    // nas lojas (Apple/Android) — sem voucher, trial ou tier gratuito
+    // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
+    // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    var IS_FREE_TIER = false;
+    const APP_VERSION = '3.8.0';
 
-    // ============================================================
-    // PSC PRO 3.0.0 — Licença vitalícia, sem voucher/trial
-    // Controla o bypass do sistema de voucher/licença (ver secção
-    // "LICENSE SYSTEM" abaixo). O código de voucher permanece no
-    // ficheiro (desabilitado), não foi removido.
-    // ============================================================
-    var IS_PRO_LIFETIME = true;
-
-    // ── Link para a versão PRO na loja ───────────────────────────
-    // Não aplicável nesta build (já é a própria versão PRO paga)
-    var PRO_STORE_URL = null; // null = ainda não disponível
-
-    var FREE_RESTRICTIONS = {
-        stats:      true,   // estatísticas sempre OFF, botão ON bloqueado
-        history:    true,   // histórico bloqueado
-        export:     true,   // exportação bloqueada
-        email:      true,   // email bloqueado
-        setMode:    true,   // apenas ProSet disponível
-        starPoint:  true,   // Star Point bloqueado
-        license:    true    // licença automática vitalícia
-    };
-
-    // Nomes amigáveis para o splash de upgrade
-    var FREE_FEATURE_NAMES = {
-        stats:     'Statistics',
-        history:   'Match History',
-        export:    'Export to Excel',
-        email:     'Email Stats',
-        setMode:   '3 Sets / 2 Sets + SuperTie',
-        starPoint: 'Star Point'
-    };
-
-    // Splash de upgrade — chamado por qualquer função bloqueada
-    // ============================================================
-    // UPGRADE SPLASH / "Coming Soon" — apenas para a build FREE.
-    // PSC PRO 3.0.0: todas as chamadas a showUpgradeSplash() estão
-    // atrás de `if (IS_FREE_TIER && ...)`, logo este bloco fica
-    // inalcançável nesta build. Mantido no código (não removido)
-    // para reutilização na próxima build FREE.
-    // ============================================================
-    function showUpgradeSplash(featureKey) {
-        var name = FREE_FEATURE_NAMES[featureKey] || featureKey;
-        var overlay = document.getElementById('upgrade-splash-overlay');
-        var featureEl = document.getElementById('upgrade-splash-feature');
-        if (featureEl) featureEl.textContent = name;
-        if (overlay) overlay.classList.add('show');
-    }
-    window.showUpgradeSplash = showUpgradeSplash;
-
-    function closeUpgradeSplash() {
-        var overlay = document.getElementById('upgrade-splash-overlay');
-        if (overlay) overlay.classList.remove('show');
-    }
-    window.closeUpgradeSplash = closeUpgradeSplash;
-
-    // Botão Upgrade Now:
-    // — se PRO_STORE_URL definido → abre loja
-    // — se null → mostra splash "Coming Soon"
-    function handleUpgradeNow() {
-        closeUpgradeSplash();
-        if (PRO_STORE_URL) {
-            window.open(PRO_STORE_URL, '_blank');
-        } else {
-            setTimeout(function() {
-                var cs = document.getElementById('coming-soon-overlay');
-                if (cs) cs.classList.add('show');
-            }, 200);
-        }
-    }
-    window.handleUpgradeNow = handleUpgradeNow;
-
-    function closeComingSoon() {
-        var cs = document.getElementById('coming-soon-overlay');
-        if (cs) cs.classList.remove('show');
-    }
-    window.closeComingSoon = closeComingSoon;
-
-    // ============================================================
-    // LICENSE SYSTEM — Voucher-based activation
-    // ============================================================
-    const LIC_KEY       = 'padel_license';
-    const LIC_USED_KEY  = 'padel_used_vouchers';
-    const APP_VERSION   = '3.7.1';
-
-    // ---- Algoritmo HMAC — idêntico ao Vouchers.html ----
-    const SECRET_KEY   = 'PadelCoaching-Voucher-Secret-2026-ChangeThisInProd';
-    const B32_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const EPOCH        = new Date('2026-01-01T00:00:00Z').getTime();
-    const TRIAL_HOURS  = 24;
-
-    async function hmacSha256(keyStr, dataBytes) {
-        if (!window.crypto || !window.crypto.subtle) {
-            throw new Error('Web Crypto API not available. Please use Chrome on HTTPS.');
-        }
-        try {
-            const enc = new TextEncoder();
-            const key = await crypto.subtle.importKey(
-                'raw', enc.encode(keyStr), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-            );
-            const sig = await crypto.subtle.sign('HMAC', key, dataBytes);
-            return new Uint8Array(sig);
-        } catch(e) {
-            throw new Error('Crypto error: ' + e.message);
-        }
-    }
-
-    function base32ToBytes(str) {
-        let bits = '';
-        for (const c of str) {
-            const idx = B32_ALPHABET.indexOf(c);
-            if (idx < 0) throw new Error('bad char');
-            bits += idx.toString(2).padStart(5, '0');
-        }
-        const bytes = [];
-        for (let i = 0; i + 8 <= bits.length; i += 8)
-            bytes.push(parseInt(bits.slice(i, i + 8), 2));
-        return new Uint8Array(bytes);
-    }
-
-    function readUintBE(bytes, off, len) {
-        let v = 0;
-        for (let i = 0; i < len; i++) v = v * 256 + bytes[off + i];
-        return v;
-    }
-
-    function concatU8(...arrays) {
-        const total = arrays.reduce((s, a) => s + a.length, 0);
-        const out = new Uint8Array(total);
-        let off = 0;
-        for (const a of arrays) { out.set(a, off); off += a.length; }
-        return out;
-    }
-
-    function hexToU8(hex) {
-        const b = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < hex.length; i += 2) b[i/2] = parseInt(hex.substr(i, 2), 16);
-        return b;
-    }
-
-    async function parseVoucher(voucherStr) {
-        const clean = voucherStr.replace(/-/g, '').toUpperCase();
-        let bytes;
-        try { bytes = base32ToBytes(clean); } catch(e) { return null; }
-        if (bytes.length < 13) return null;
-
-        const deviceIdBytes = bytes.slice(0, 5);
-        const durationByte  = bytes.slice(5, 6);
-        const issuedAtBytes = bytes.slice(6, 9);
-        const sig           = bytes.slice(9, 13);
-
-        const payload = concatU8(deviceIdBytes, durationByte, issuedAtBytes);
-        const hmac    = await hmacSha256(SECRET_KEY, payload);
-        const expSig  = hmac.slice(0, 4);
-
-        if (!sig.every((b, i) => b === expSig[i])) return null; // assinatura inválida
-
-        const deviceId     = Array.from(deviceIdBytes).map(b => b.toString(16).padStart(2,'0')).join('');
-        const durationHours = durationByte[0];
-        const issuedAt     = EPOCH + readUintBE(issuedAtBytes, 0, 3) * 60000;
-        return { deviceId, durationHours, issuedAt };
-    }
-
-    // ---- Device fingerprint ----
+    // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
         if (window.crypto && window.crypto.subtle) {
             try {
@@ -250,304 +90,17 @@
         }
     }
 
-    // ---- License storage ----
-    function saveLicenseCookie(obj) {
-        try {
-            const val = encodeURIComponent(JSON.stringify(obj));
-            // Cookie com duração de 2 anos — por vezes sobrevive a desinstalação no Android
-            const expires = new Date(Date.now() + 2 * 365 * 24 * 3600 * 1000).toUTCString();
-            document.cookie = `padel_lic=${val}; expires=${expires}; path=/; SameSite=Strict`;
-        } catch(e) {}
-    }
-
-    function loadLicenseCookie() {
-        try {
-            const match = document.cookie.match(/(?:^|;\s*)padel_lic=([^;]*)/);
-            if (match) return JSON.parse(decodeURIComponent(match[1]));
-        } catch(e) {}
-        return null;
-    }
-
-    function loadLicense() {
-        // Tentar localStorage primeiro
-        try {
-            const ls = JSON.parse(localStorage.getItem(LIC_KEY));
-            if (ls) return ls;
-        } catch(e) {}
-        // Fallback: cookie (sobrevive a reinstalações)
-        const cookie = loadLicenseCookie();
-        if (cookie) {
-            // Migrar para localStorage
-            try { localStorage.setItem(LIC_KEY, JSON.stringify(cookie)); } catch(e) {}
-            return cookie;
-        }
-        return {};
-    }
-
-    function saveLicense(obj) {
-        try { localStorage.setItem(LIC_KEY, JSON.stringify(obj)); } catch(e) {}
-        saveLicenseCookie(obj); // guardar também em cookie
-    }
-    function loadUsedVouchers() {
-        try { return JSON.parse(localStorage.getItem(LIC_USED_KEY)) || []; } catch(e) { return []; }
-    }
-    function markVoucherUsed(voucherClean) {
-        const list = loadUsedVouchers();
-        if (!list.includes(voucherClean)) {
-            list.push(voucherClean);
-            try { localStorage.setItem(LIC_USED_KEY, JSON.stringify(list.slice(-100))); } catch(e) {}
-        }
-    }
-
-    // ---- Anti-clock-rollback: record max timestamp seen ----
-    function updateMaxTimestamp() {
-        const lic = loadLicense();
-        const now = Date.now();
-        if (!lic.maxTs || now > lic.maxTs) {
-            lic.maxTs = now;
-            saveLicense(lic);
-        }
-        return Math.max(now, lic.maxTs || now);
-    }
-
-    function trustedNow() {
-        const lic = loadLicense();
-        const now = Date.now();
-        return Math.max(now, lic.maxTs || now);
-    }
-
-    // ---- License bar update ----
-    function updateLicenseBar() {
-        const bar = document.getElementById('license-bar');
-        const textEl = document.getElementById('license-bar-text');
-        const verEl  = document.getElementById('license-bar-version');
-        if (!bar || !textEl) return;
-        const lic = loadLicense();
-        const now = trustedNow();
-
-        if (verEl) verEl.textContent = `V ${APP_VERSION}`;
-        var cfgVerEl = document.getElementById('config-version-label');
-        if (cfgVerEl) cfgVerEl.textContent = `V ${APP_VERSION}`;
-
-        // PSC PRO 3.0.0: licença vitalícia — sem contagem/expiração
-        if (IS_PRO_LIFETIME) {
-            textEl.textContent = 'PRO — Lifetime license';
-            bar.className = 'license-bar active';
-            return;
-        }
-
-        if (!lic.activationTs) {
-            const durLabel = lic.durationHours
-                ? `${lic.durationHours}h available`
-                : `${TRIAL_HOURS}h trial available`;
-            textEl.textContent = `${durLabel} — starts on first game`;
-            bar.className = 'license-bar pending';
-        } else {
-            const expiresAt = lic.activationTs + (lic.durationHours || TRIAL_HOURS) * 3600000;
-            if (now >= expiresAt) {
-                textEl.textContent = 'License expired — new game blocked';
-                bar.className = 'license-bar expired';
-            } else {
-                const d = new Date(expiresAt);
-                const pad = n => String(n).padStart(2, '0');
-                textEl.textContent = `Active until ${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                bar.className = 'license-bar active';
-            }
-        }
-    }
-
-    // ---- License overlay ----
+    // Device ID — usado só como chave de rate-limit da Análise por IA
+    // (ver worker.js). Sem UI própria: o Coach nunca precisa de o ver.
     let _deviceId = null;
+    computeDeviceId().then(function (id) { _deviceId = id; })
+        .catch(function () { _deviceId = 'FALLBACK001'; });
 
-    function showLicenseOverlay(message, showVoucherField) {
-        const el = document.getElementById('license-overlay');
-        el.classList.add('show');
-        document.getElementById('license-version').textContent = `V ${APP_VERSION}`;
-        document.getElementById('license-device-id').textContent = _deviceId || '…';
-        document.getElementById('license-message').textContent = message;
-        document.getElementById('license-voucher-area').style.display = showVoucherField ? 'flex' : 'none';
-        document.getElementById('license-error').textContent = '';
-        document.getElementById('license-voucher-input').value = '';
+    function updateVersionLabels() {
+        var cfgVerEl = document.getElementById('config-version-label');
+        if (cfgVerEl) cfgVerEl.textContent = 'V ' + APP_VERSION;
     }
-
-    function copyDeviceId() {
-        if (!_deviceId) return;
-        const fallback = () => {
-            const ta = document.createElement('textarea');
-            ta.value = _deviceId;
-            ta.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
-            document.body.appendChild(ta);
-            ta.focus(); ta.select();
-            try { document.execCommand('copy'); showToast('📋 Device ID copied'); }
-            catch(e) { showToast('Select the ID manually'); }
-            document.body.removeChild(ta);
-        };
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(_deviceId).then(() => showToast('📋 Device ID copied')).catch(fallback);
-        } else { fallback(); }
-    }
-
-    function hideLicenseOverlay() {
-        document.getElementById('license-overlay').classList.remove('show');
-    }
-
-    async function activateVoucher() {
-        const raw = document.getElementById('license-voucher-input').value.trim();
-        const errorEl = document.getElementById('license-error');
-        errorEl.textContent = '';
-
-        if (!raw) { errorEl.textContent = 'Enter a voucher code.'; return; }
-
-        const clean = raw.replace(/-/g, '').toUpperCase();
-
-        // Verificar se já foi usado neste dispositivo
-        if (loadUsedVouchers().includes(clean)) {
-            errorEl.textContent = 'This voucher has already been used.';
-            return;
-        }
-
-        const parsed = await parseVoucher(raw);
-        if (!parsed) {
-            errorEl.textContent = 'Invalid voucher — signature does not match.';
-            return;
-        }
-        if (parsed.deviceId !== _deviceId.toLowerCase()) {
-            errorEl.textContent = `This voucher is for a different device. This device ID: ${(_deviceId || '?').toUpperCase()}`;
-            return;
-        }
-
-        // Válido — gravar licença (activationTs a null até ao primeiro jogo)
-        const lic = loadLicense();
-        lic.durationHours = parsed.durationHours;
-        lic.activationTs  = null; // começa no primeiro askResetMatch
-        lic.issuedAt      = parsed.issuedAt;
-        lic.voucherClean  = clean;
-        saveLicense(lic);
-        markVoucherUsed(clean);
-
-        hideLicenseOverlay();
-        updateLicenseBar();
-        showToast(`✅ Voucher activated — ${parsed.durationHours}h licence`);
-    }
-
-    // Formatar input do voucher
-    document.addEventListener('DOMContentLoaded', () => {});
-    const vInput = document.getElementById('license-voucher-input');
-    if (vInput) {
-        vInput.addEventListener('input', function() {
-            this.value = this.value.toUpperCase().replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ-]/g, '');
-        });
-    }
-
-    // ---- Verificação de licença (chamada por askResetMatch) ----
-    function checkLicenseForNewGame() {
-        // PSC PRO 3.0.0: licença vitalícia, sem trial/voucher — sempre permitido
-        if (IS_PRO_LIFETIME) return true;
-
-        const lic   = loadLicense();
-        const now   = trustedNow();
-
-        // Sem nenhuma concessão — mostrar tela de trial/voucher
-        if (!lic.durationHours && !lic.trialGranted) {
-            // Primeira vez absoluta — conceder trial
-            lic.trialGranted  = true;
-            lic.durationHours = TRIAL_HOURS;
-            lic.activationTs  = null;
-            saveLicense(lic);
-        }
-
-        // activationTs ainda não definido — primeiro jogo desta concessão
-        if (!lic.activationTs) {
-            lic.activationTs = now;
-            lic.maxTs = now;
-            saveLicense(lic);
-            updateLicenseBar();
-            return true; // permitir o jogo
-        }
-
-        // Verificar expiração
-        const expiresAt = lic.activationTs + (lic.durationHours || TRIAL_HOURS) * 3600000;
-        updateMaxTimestamp();
-
-        if (now < expiresAt) {
-            return true; // dentro do prazo
-        }
-
-        // Expirado — bloquear e mostrar overlay
-        const msg = lic.trialGranted && !lic.voucherClean
-            ? `Your ${TRIAL_HOURS}h free trial has expired. Enter a voucher to continue.`
-            : 'Your licence has expired. Enter a voucher to continue.';
-        showLicenseOverlay(msg, true);
-        return false;
-    }
-
-    // ---- Init: calcular device ID e verificar licença ao arrancar ----
-    // FREE TIER: activar licença vitalícia automática (com selo "grátis")
-    if (IS_FREE_TIER && FREE_RESTRICTIONS.license) {
-        try {
-            var existingLic = JSON.parse(localStorage.getItem(LIC_KEY));
-            if (!existingLic || existingLic.type !== 'FREE_LIFETIME') {
-                localStorage.setItem(LIC_KEY, JSON.stringify({
-                    type:         'FREE_LIFETIME',
-                    activationTs: Date.now(),
-                    durationHours: 876000, // 100 anos
-                    trialGranted:  false,
-                    voucherClean:  true,
-                    deviceId:      'FREE'
-                }));
-            }
-        } catch(e) {}
-    }
-
-    // PSC PRO 3.0.0: activar licença vitalícia automática (versão paga)
-    if (IS_PRO_LIFETIME) {
-        try {
-            var existingProLic = JSON.parse(localStorage.getItem(LIC_KEY));
-            if (!existingProLic || existingProLic.type !== 'PRO_LIFETIME') {
-                localStorage.setItem(LIC_KEY, JSON.stringify({
-                    type:          'PRO_LIFETIME',
-                    activationTs:  Date.now(),
-                    durationHours: 876000, // 100 anos
-                    trialGranted:  false,
-                    voucherClean:  true,
-                    deviceId:      'PRO'
-                }));
-            }
-        } catch(e) {}
-    }
-
-    computeDeviceId().then(id => {
-        _deviceId = id;
-        const el = document.getElementById('license-device-id');
-        if (el) el.textContent = id;
-        updateMaxTimestamp();
-
-        // PSC PRO 3.0.0: nunca verificar expiração nem mostrar overlay de licença
-        if (IS_PRO_LIFETIME) {
-            updateLicenseBar();
-            return;
-        }
-
-        // Verificar licença ao arrancar — se expirada, mostrar overlay imediatamente
-        const lic = loadLicense();
-        const now = trustedNow();
-        if (lic.activationTs) {
-            const expiresAt = lic.activationTs + (lic.durationHours || TRIAL_HOURS) * 3600000;
-            if (now >= expiresAt) {
-                const msg = lic.trialGranted && !lic.voucherClean
-                    ? 'Your ' + TRIAL_HOURS + 'h free trial has expired. Enter a voucher to continue.'
-                    : 'Your licence has expired. Enter a voucher to continue.';
-                showLicenseOverlay(msg, true);
-                return;
-            }
-        }
-        updateLicenseBar();
-    }).catch(function(e) {
-        // Garantir que a app nunca fica bloqueada por falha no fingerprint
-        _deviceId = 'ERRORID001';
-        console.warn('[License] Device ID failed:', e);
-        updateLicenseBar();
-    });
+    updateVersionLabels();
 
     // ============================================================
     // SERVE INDICATOR SYSTEM
@@ -1594,10 +1147,9 @@
     // ============================================================
     // superTieMode = true → 3º set é Super Tie-Break
     // superTieMode = false → 3º set normal até 6 com tie-break em 6x6
-    let superTieMode = IS_FREE_TIER ? false : true;
+    let superTieMode = true;
     // prosetMode = true → jogo único até 9, sem sets 1 e 2
-    // FREE TIER: ProSet por defeito
-    let prosetMode = IS_FREE_TIER ? true : false;
+    let prosetMode = false;
 
     // pointMode: 'golden' | 'star'
     // FREE TIER: sempre Golden Point
@@ -1638,15 +1190,9 @@
 
     function updateModeButton() { updateConfig(); }
 
-    // FREE TIER: estatísticas sempre OFF
-    let statsEnabled = IS_FREE_TIER ? false : true;
+    let statsEnabled = true;
 
     function setStatsMode(val) {
-        // FREE TIER: bloquear activação de estatísticas
-        if (IS_FREE_TIER && FREE_RESTRICTIONS.stats && val === true) {
-            showUpgradeSplash('stats');
-            return;
-        }
         statsEnabled = val;
         applyStatsVisibility();
         updateConfig();
@@ -1670,11 +1216,6 @@
     }
 
     function setSetMode(val) {
-        // FREE TIER: apenas ProSet disponível
-        if (IS_FREE_TIER && FREE_RESTRICTIONS.setMode) {
-            showUpgradeSplash('setMode');
-            return;
-        }
         if (state.currentSet >= 1 || state.matchOver) return;
         prosetMode = false;
         superTieMode = val;
@@ -1691,11 +1232,6 @@
     }
 
     function setPointMode(val) {
-        // FREE TIER: bloquear Star Point
-        if (IS_FREE_TIER && FREE_RESTRICTIONS.starPoint && val === 'star') {
-            showUpgradeSplash('starPoint');
-            return;
-        }
         if (state.matchOver) return;
         pointMode = val;
         state.deuceCount = 0;
@@ -3036,7 +2572,7 @@
                 history[idx].aiAnalysisGenerated = true;
                 localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
             }
-            showToast('Análise já realizada para este jogo');
+            showToast('Analysis already done for this match');
             return;
         }
         if (!entry.pointLog || entry.pointLog.length === 0) {
@@ -3086,7 +2622,7 @@
 
     // Monta o HTML do Card do Jogo — assíncrono porque as 4 fotos vêm do
     // IndexedDB (retrato próprio da partida, ver saveMatchHistory).
-    function buildGrandSlamCardHtml(entry) {
+    function buildGrandSlamCardHtml(entry, showBackBtn) {
         const n1 = escHtml(entry.players[0] || 'Player 1');
         const n2 = escHtml(entry.players[1] || 'Player 2');
         const n3 = escHtml(entry.players[2] || 'Player 3');
@@ -3107,27 +2643,35 @@
                 return '<div class="gs-photo gs-photo-placeholder" style="' + style + '">' + GS_SILHOUETTE_SVG + '</div>';
             }
 
-            // Placar — Set1/Set2 sempre; 3ª coluna (Set3 ou Supertie) só se
-            // jogada; PROSET tem apenas uma coluna, igual ao formatScore().
+            // Placar — Set1/Set2/Supertie viram LINHAS da tabela (não mais
+            // colunas como na tela de jogo ao vivo), pra bater com o resto
+            // do card, onde a Dupla 1 é sempre a coluna esquerda e a Dupla
+            // 2 a direita. PROSET tem apenas uma linha, igual ao formatScore().
             const sets = entry.sets || [[0, 0], [0, 0], [0, 0]];
-            let scoreCols, t1Scores, t2Scores;
+            let scoreRows;
             if (entry.setMode === 'proset') {
-                scoreCols = [{ label: 'PRO SET', red: false }];
-                t1Scores = [sets[2][0]]; t2Scores = [sets[2][1]];
+                scoreRows = [{ label: 'PRO SET', red: false, v1: sets[2][0], v2: sets[2][1] }];
             } else {
-                scoreCols = [{ label: 'SET 1', red: false }, { label: 'SET 2', red: false }];
-                t1Scores = [sets[0][0], sets[1][0]]; t2Scores = [sets[0][1], sets[1][1]];
+                scoreRows = [
+                    { label: 'SET 1', red: false, v1: sets[0][0], v2: sets[0][1] },
+                    { label: 'SET 2', red: false, v1: sets[1][0], v2: sets[1][1] }
+                ];
                 const played3rd = sets[2][0] > 0 || sets[2][1] > 0;
                 if (played3rd) {
-                    scoreCols.push({ label: entry.setMode === 'supertie' ? 'SUPERTIE' : 'SET 3', red: entry.setMode === 'supertie' });
-                    t1Scores.push(sets[2][0]); t2Scores.push(sets[2][1]);
+                    scoreRows.push({
+                        label: entry.setMode === 'supertie' ? 'SUPERTIE' : 'SET 3',
+                        red: entry.setMode === 'supertie',
+                        v1: sets[2][0], v2: sets[2][1]
+                    });
                 }
             }
-            const scoreLabelsHtml = scoreCols.map(function (c) {
-                return '<div class="' + (c.red ? 'gs-red' : '') + '">' + c.label + '</div>';
+            const scoreRowsHtml = scoreRows.map(function (r) {
+                return '<div class="gs-sets-row">'
+                    + '<div class="gs-sets-label' + (r.red ? ' gs-red' : '') + '">' + r.label + '</div>'
+                    + '<div class="gs-sets-val">' + r.v1 + '</div>'
+                    + '<div class="gs-sets-val">' + r.v2 + '</div>'
+                    + '</div>';
             }).join('');
-            const scoreRow1Html = t1Scores.map(function (v) { return '<div>' + v + '</div>'; }).join('');
-            const scoreRow2Html = t2Scores.map(function (v) { return '<div>' + v + '</div>'; }).join('');
 
             // Estatísticas — barras divergentes a partir do centro, cor fixa
             // por dupla (não indica "quem jogou melhor" naquela linha).
@@ -3148,21 +2692,21 @@
 
             const trophy1 = entry.winner === 0 ? '<span class="gs-trophy">🏆</span>' : '';
             const trophy2 = entry.winner === 1 ? '<span class="gs-trophy">🏆</span>' : '';
+            const backBtnHtml = showBackBtn
+                ? '<div class="gs-card-footer-nav"><button class="config-back-btn" onclick="closeGrandSlamCard()">BACK</button></div>'
+                : '';
 
             return '<div class="gs-photos-row">'
                 + '<div class="gs-photos-side">' + photoTag(0) + photoTag(1) + '</div>'
                 + '<div class="gs-photos-side right">' + photoTag(2) + photoTag(3) + '</div>'
                 + '</div>'
-                + '<div class="gs-score-box">'
-                + '<div class="gs-score-labels">' + scoreLabelsHtml + '</div>'
-                + '<div class="gs-score-row top">' + scoreRow1Html + '</div>'
-                + '<div class="gs-score-row bottom">' + scoreRow2Html + '</div>'
-                + '</div>'
+                + '<div class="gs-sets-table">' + scoreRowsHtml + '</div>'
                 + '<div class="gs-stats">' + statsHtml + '</div>'
                 + '<div class="gs-footer">'
                 + '<div class="gs-footer-side t1">' + trophy1 + teamName1 + '</div>'
                 + '<div class="gs-footer-side t2">' + trophy2 + teamName2 + '</div>'
-                + '</div>';
+                + '</div>'
+                + backBtnHtml;
         });
     }
 
@@ -3175,7 +2719,7 @@
         const container = document.getElementById('gs-card-content');
         container.innerHTML = '<div style="text-align:center;padding:4vh;color:var(--text-dim)">Loading…</div>';
         document.getElementById('gs-card-overlay').classList.add('show');
-        buildGrandSlamCardHtml(entry).then(function (html) {
+        buildGrandSlamCardHtml(entry, true).then(function (html) {
             container.innerHTML = html;
         });
     }
@@ -3556,6 +3100,26 @@
         closeNotesFs();
     }
 
+    // Botão único de IA no Histórico — se a análise já existe, abre as
+    // Notes pra ler; se não existe, chama o Worker pra gerar. Substitui os
+    // dois botões separados que existiam antes.
+    function handleAiButtonForEntry(idx) {
+        const history = loadHistory();
+        const entry = history[idx];
+        if (!entry) return;
+        if (isAiAnalysisGenerated(entry)) {
+            openNotesFs(idx);
+        } else {
+            regenerateAiAnalysisForEntry(idx, true);
+        }
+    }
+
+    function toggleIndividualDetails(idx) {
+        const el = document.getElementById('h-individual-' + idx);
+        if (!el) return;
+        el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    }
+
     function buildGameSlide(entry, idx) {
         const sMode = entry.setMode === 'proset' ? 'ProSet'
             : entry.setMode === 'supertie' ? 'Supertie' : '3 Sets';
@@ -3583,28 +3147,32 @@
                         </svg>
                     </button>
                 </div>
-                ${buildPairBlock(entry, 0, entry.winner === 0)}
-                ${buildPairBlock(entry, 1, entry.winner === 1)}
-                ${buildMatchStatsTable(entry)}
-                <button class="h-notes-cta" onclick="openGrandSlamCard(${idx})">
-                    <span class="h-notes-cta-icon">🏆</span>
-                    <span>Mostrar Card do Jogo</span>
-                    <span class="h-notes-cta-arrow">→</span>
-                </button>
-                <button class="h-notes-cta" onclick="openNotesFs(${idx})">
-                    <span class="h-notes-cta-icon">✨</span>
-                    <span>AI Analysis &amp; Personal Notes</span>
-                    <span class="h-notes-cta-arrow">→</span>
-                </button>
-                ${isAiAnalysisGenerated(entry) ? `
-                <button class="h-ai-regen-btn done" onclick="regenerateAiAnalysisForEntry(${idx}, true)" title="AI analysis for this match was already generated and can only be generated once">
-                    <span>🔒</span>
-                    <span>AI Analysis Already Generated</span>
-                </button>` : `
-                <button class="h-ai-regen-btn" onclick="regenerateAiAnalysisForEntry(${idx}, true)" title="Generate the AI analysis for this match — useful if there was no internet connection right after the match, or to try again after a failure">
-                    <span>🔄</span>
-                    <span>Generate AI Analysis</span>
-                </button>`}
+                <div class="gs-embed" id="gs-embed-${idx}">
+                    <div class="gs-embed-loading">Loading…</div>
+                </div>
+                <div class="h-action-row">
+                    <button class="h-action-btn" onclick="handleAiButtonForEntry(${idx})" title="${isAiAnalysisGenerated(entry) ? 'View the AI analysis for this match' : 'Generate the AI analysis for this match'}">
+                        <span>${isAiAnalysisGenerated(entry) ? '✨' : '🔄'}</span>
+                        <span>AI Analysis</span>
+                    </button>
+                    <button class="h-action-btn" onclick="toggleIndividualDetails(${idx})" title="Show per-player stats for this match">
+                        <span>📊</span>
+                        <span>Individual Details</span>
+                    </button>
+                    <button class="h-action-btn" onclick="openPointLogFromHistory(${idx})" title="Point-by-point log for this match">
+                        <span>📋</span>
+                        <span>Match Log</span>
+                    </button>
+                    <button class="h-action-btn" onclick="openNotesFs(${idx})" title="Personal notes for this match">
+                        <span>📝</span>
+                        <span>Notes</span>
+                    </button>
+                </div>
+                <div class="h-individual-details" id="h-individual-${idx}" style="display:none">
+                    ${buildPairBlock(entry, 0, entry.winner === 0)}
+                    ${buildPairBlock(entry, 1, entry.winner === 1)}
+                    ${buildMatchStatsTable(entry)}
+                </div>
             </div>`;
     }
 
@@ -3749,11 +3317,6 @@
     }
 
     function sendGameByEmail() {
-        // FREE TIER: email bloqueado
-        if (IS_FREE_TIER && FREE_RESTRICTIONS.email) {
-            showUpgradeSplash('email');
-            return;
-        }
         const input = document.getElementById('email-recipient-input');
         let lastEmail = '';
         try { lastEmail = localStorage.getItem(EMAIL_LAST_KEY) || ''; } catch(e) {}
@@ -3789,11 +3352,6 @@
     }
 
     async function exportHistoryGameToExcel() {
-        // FREE TIER: exportação bloqueada
-        if (IS_FREE_TIER && FREE_RESTRICTIONS.export) {
-            showUpgradeSplash('export');
-            return;
-        }
         const history = loadHistory();
         const entry = history[carouselIdx];
         if (!entry) return;
@@ -3924,6 +3482,14 @@
                 dots.appendChild(dot);
             });
             counter.textContent = `${carouselIdx + 1} / ${carouselTotal}`;
+            // Preenche o Card embutido de cada slide — assíncrono (fotos
+            // vêm do IndexedDB), não bloqueia a renderização do carrossel.
+            history.forEach((entry, idx) => {
+                buildGrandSlamCardHtml(entry).then(function (html) {
+                    const c = document.getElementById('gs-embed-' + idx);
+                    if (c) c.innerHTML = html;
+                });
+            });
         }
         updateCarouselPos(false);
         updateNavBtns();
@@ -3954,11 +3520,6 @@
     function carouselNav(dir) { goToSlide(carouselIdx + dir); }
 
     function openHistory() {
-        // FREE TIER: histórico bloqueado
-        if (IS_FREE_TIER && FREE_RESTRICTIONS.history) {
-            showUpgradeSplash('history');
-            return;
-        }
         carouselIdx = 0;
         renderCarousel();
         document.getElementById('history-overlay').classList.add('show');
@@ -4108,7 +3669,6 @@
     }
 
     function askResetMatch() {
-        if (!checkLicenseForNewGame()) return;
         document.getElementById('ng-overlay').classList.add('show');
     }
 
@@ -4194,7 +3754,7 @@
     Object.assign(window, {
         addPoint, removePoint,
         askResetMatch, carouselNav,
-        activateVoucher, copyDeviceId, checkForUpdates,
+        checkForUpdates,
         ngConfirm, ngCancel,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
@@ -4214,6 +3774,7 @@
         setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
+        handleAiButtonForEntry, toggleIndividualDetails,
     });
 
 })();

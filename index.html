@@ -118,7 +118,7 @@
             </div>
             <!-- Timer + Badges centrados na linha divisória -->
             <div class="game-over-banner" id="game-over-p">END OF MATCH</div>
-            <button class="gs-card-btn" id="gs-card-btn" onclick="openGrandSlamCard()">🏆 Mostrar Card do Jogo</button>
+            <button class="gs-card-btn" id="gs-card-btn" onclick="openGrandSlamCard()">🏆 Show Match Card</button>
             <div class="whos-serve-badge" id="whos-serve-p">WHO IS SERVING FIRST?</div>
             <div class="bp-center-badge" id="break-point-p">BREAK POINT</div>
             <div class="gp-divider-wrap">
@@ -191,8 +191,6 @@
             </div>
         </div>
     </div>
-    <!-- Linha de licença e versão — base do painel de scores -->
-    <div class="license-bar" id="license-bar"><span id="license-bar-text"></span><span class="license-bar-version" id="license-bar-version"></span></div>
 </div>
 
 <!-- ============================================================
@@ -280,7 +278,6 @@
     <div class="config-modal pointlog-modal">
         <div class="config-modal-header">
             <h2 id="pointlog-title">GAME</h2>
-            <button class="config-close" onclick="closePointLogPopup()">✕</button>
         </div>
         <div class="pointlog-set-tabs" id="pointlog-set-tabs"></div>
 
@@ -306,6 +303,9 @@
             <div class="pointlog-trail" id="pointlog-trail-team2"></div>
             <div class="pointlog-empty-msg" id="pointlog-empty-msg" style="display:none;"></div>
         </div>
+        <div class="config-modal-footer">
+            <button class="config-back-btn" onclick="closePointLogPopup()">BACK</button>
+        </div>
     </div>
 </div>
 
@@ -316,7 +316,6 @@
     <div class="config-modal">
         <div class="config-modal-header">
             <h2>Game Config</h2>
-            <button class="config-close" onclick="closeConfig()">✕</button>
         </div>
         <div class="config-row">
             <div class="config-row-label">Set Mode</div>
@@ -358,6 +357,9 @@
         </div>
 
         <div class="config-version" id="config-version-label">V 3.5.0</div>
+        <div class="config-modal-footer">
+            <button class="config-back-btn" onclick="closeConfig()">BACK</button>
+        </div>
     </div>
 </div>
 
@@ -365,7 +367,6 @@
      FULLSCREEN NOTES EDITOR
 ============================================================ -->
 <div class="gs-card-overlay" id="gs-card-overlay" onclick="closeGrandSlamCardOnBg(event)">
-    <button class="gs-card-close" onclick="closeGrandSlamCard()">✕</button>
     <div class="gs-card-scroll">
         <div class="gs-card" id="gs-card-content"></div>
     </div>
@@ -598,59 +599,5 @@
     }).catch(function(err) { console.warn('[PWA] SW falhou:', err); });
   }
 </script>
-
-<!-- ============================================================
-     LICENSE OVERLAY — tela de bloqueio / voucher
-============================================================ -->
-<div class="license-overlay" id="license-overlay">
-    <div class="license-modal">
-        <img src="icons/icon-192x192.png" class="license-logo" alt="Padel Coaching Pro">
-        <h1 class="license-app-name">Padel Coaching Pro</h1>
-        <div class="license-version" id="license-version"></div>
-        <div class="license-device-row">
-            <div class="license-device-label">Device ID</div>
-            <div class="license-device-id" id="license-device-id">—</div>
-            <button class="license-copy-btn" onclick="copyDeviceId()">📋 Copiar ID</button>
-        </div>
-        <div class="license-message" id="license-message"></div>
-        <div class="license-voucher-area" id="license-voucher-area">
-            <input type="text" id="license-voucher-input"
-                class="license-voucher-input"
-                placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-X"
-                autocomplete="off" spellcheck="false">
-            <button class="license-activate-btn" onclick="activateVoucher()">Activate</button>
-            <div class="license-error" id="license-error"></div>
-        </div>
-    </div>
-</div>
-<!-- UPGRADE SPLASH — versão PRO -->
-<div class="upgrade-splash-overlay" id="upgrade-splash-overlay">
-    <div class="upgrade-splash-modal">
-        <div class="upgrade-splash-icon">⭐</div>
-        <div class="upgrade-splash-title">PRO Feature</div>
-        <div class="upgrade-splash-feature" id="upgrade-splash-feature"></div>
-        <div class="upgrade-splash-msg">This feature is available in the <strong>PRO version</strong> of Padel Coaching Pro.</div>
-        <button class="upgrade-splash-pro-btn" id="upgrade-splash-get-pro" onclick="handleUpgradeNow()">Upgrade Now</button>
-        <button class="upgrade-splash-later-btn" onclick="closeUpgradeSplash()">Maybe Later</button>
-        <button class="upgrade-splash-close" onclick="closeUpgradeSplash()">✕</button>
-    </div>
-</div>
-
-<!-- COMING SOON SPLASH -->
-<div class="upgrade-splash-overlay" id="coming-soon-overlay">
-    <div class="upgrade-splash-modal">
-        <div class="upgrade-splash-icon">🎾</div>
-        <div class="upgrade-splash-title">Coming Soon!</div>
-        <div class="upgrade-splash-msg" style="font-size:2vh; color:#e8f0fe;">
-            <strong style="color:#f5c518; font-size:2.4vh;">Padel Coaching PRO</strong><br><br>
-            The full PRO experience is on its way!<br>
-            Statistics, full history, export and much more.<br><br>
-            <span style="color:#7a9cc8;">Stay tuned — launching very soon on the Play Store.</span>
-        </div>
-        <button class="upgrade-splash-pro-btn" onclick="closeComingSoon()">Got It!</button>
-        <button class="upgrade-splash-close" onclick="closeComingSoon()">✕</button>
-    </div>
-</div>
-
 </body>
 </html>

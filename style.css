@@ -169,19 +169,6 @@
         .header-logo-placeholder svg { width: 3vh; height: 3vh; opacity: 0.5; }
         .header-divider { width: 1px; height: 4vh; background: var(--divider); flex-shrink: 0; }
 
-        /* License bar — base do painel de scores */
-        .license-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0.4vh 4vw; flex-shrink: 0;
-            font-size: 1.2vh; font-weight: 700; letter-spacing: 0.5px;
-            background: var(--panel-bg);
-            border-top: 1px solid var(--divider);
-        }
-        .license-bar.active  { color: #5cc78f; }
-        .license-bar.pending { color: #8fa0c0; font-style: italic; }
-        .license-bar.expired { color: #e85c5c; }
-        .license-bar-version { color: #8fa0c0; font-size: 1.1vh; font-weight: 600; letter-spacing: 1px; }
-
         /* ============================================================
            PORTRAIT — equipas
         ============================================================ */
@@ -489,7 +476,7 @@
            Fica sempre abaixo de toda a área de placar/estatísticas —
            nunca atrapalha o print do resultado — e nunca sobrepõe o FAB. */
         .gs-card-btn {
-            position: fixed; left: 4vw;
+            position: fixed; left: 50%; transform: translateX(-50%);
             bottom: calc(4vh + env(safe-area-inset-bottom, 16px));
             background: var(--accent-yellow); color: #1a1200;
             font-size: 1.5vh; font-weight: 700; letter-spacing: 0.3px;
@@ -843,12 +830,6 @@
             backdrop-filter: blur(3px);
         }
         .gs-card-overlay.show { opacity: 1; pointer-events: all; }
-        .gs-card-close {
-            position: absolute; top: 2vh; right: 4vw; z-index: 2;
-            background: var(--card-bg); border: 1.5px solid var(--border-card);
-            color: var(--text-main); width: 36px; height: 36px; border-radius: 50%;
-            font-size: 16px; line-height: 1; cursor: pointer;
-        }
         .gs-card-scroll {
             width: 100%; height: 100%; overflow-y: auto;
             display: flex; align-items: center; justify-content: center;
@@ -879,24 +860,23 @@
         .gs-photos-side.right .gs-photo:first-child { z-index: 1; }
         .gs-photos-side.right .gs-photo:last-child { margin-right: 0; margin-left: -5%; z-index: 2; }
 
-        .gs-score-labels { display: flex; margin-bottom: 3px; padding: 0 3%; }
-        .gs-score-labels div {
-            flex: 1; text-align: center; font-size: 1.6vh; font-weight: 700;
-            letter-spacing: 0.5px; color: var(--text-main); text-transform: uppercase;
+        .gs-sets-table {
+            margin: 0 3% 2vh; background: var(--card-bg);
+            border: 1.5px solid var(--border-card); border-radius: 8px; overflow: hidden;
         }
-        .gs-score-labels div.gs-red { color: var(--accent-red); }
-        .gs-score-row {
-            display: flex; background: var(--card-bg); border: 1.5px solid var(--border-card);
-            overflow: hidden; margin: 0 3%;
+        .gs-sets-row { display: flex; }
+        .gs-sets-row + .gs-sets-row { border-top: 1.5px solid var(--border-card); }
+        .gs-sets-label {
+            flex: 1.4; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5vh; font-weight: 700; letter-spacing: 0.5px; color: var(--text-main);
+            text-transform: uppercase; padding: 1vh 0; border-right: 1.5px solid var(--border-card);
         }
-        .gs-score-row.top { border-radius: 8px 8px 0 0; }
-        .gs-score-row.bottom { border-radius: 0 0 8px 8px; border-top: none; }
-        .gs-score-row div {
-            flex: 1; text-align: center; padding: 0.8vh 0; font-size: 2.4vh;
-            font-weight: 900; color: var(--text-main); border-right: 1.5px solid var(--border-card);
+        .gs-sets-label.gs-red { color: var(--accent-red); }
+        .gs-sets-val {
+            flex: 1; text-align: center; font-size: 2.2vh; font-weight: 900;
+            color: var(--text-main); padding: 1vh 0;
         }
-        .gs-score-row div:last-child { border-right: none; }
-        .gs-score-box { margin-bottom: 2vh; }
+        .gs-sets-val + .gs-sets-val { border-left: 1.5px solid var(--border-card); }
 
         .gs-stats { display: flex; flex-direction: column; gap: 1vh; padding: 0 3%; }
         .gs-stat-label {
@@ -926,6 +906,7 @@
             position: absolute; top: -2.6vh; left: 50%; transform: translateX(-50%);
             font-size: 2vh;
         }
+        .gs-card-footer-nav { display: flex; justify-content: flex-end; margin-top: 2vh; padding: 0 3%; }
 
         .notes-fs-overlay {
             position: fixed; inset: 0;
@@ -1008,6 +989,26 @@
             opacity: 0.55; cursor: not-allowed; color: var(--text-dim);
         }
         .h-ai-regen-btn.done:hover { border-color: var(--border-card); color: var(--text-dim); }
+
+        /* Card embutido por padrão no Histórico */
+        .gs-embed { margin-top: 1vh; }
+        .gs-embed-loading {
+            text-align: center; padding: 4vh 0; color: var(--text-dim); font-size: 1.5vh;
+        }
+
+        /* Linha de ação — 4 posições reservadas, 3 em uso por enquanto */
+        .h-action-row { display: flex; gap: 2vw; margin-top: 1.5vh; }
+        .h-action-btn {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            gap: 0.4vh; padding: 1.2vh 1vw; background: var(--card-bg);
+            border: 1.5px solid var(--border-card); border-radius: 10px;
+            color: var(--text-main); font-size: 1.15vh; font-weight: 700;
+            letter-spacing: 0.2px; cursor: pointer; transition: border-color 0.2s;
+        }
+        .h-action-btn:hover { border-color: var(--accent-blue); }
+        .h-action-btn span:first-child { font-size: 2.2vh; }
+
+        .h-individual-details { margin-top: 1.5vh; }
 
         /* ============================================================
            MATCH STATS TABLE inside notes (monospace rendered)
@@ -1203,11 +1204,16 @@
             font-size: 2.4vh; font-weight: 900; letter-spacing: 2px;
             text-transform: uppercase; color: var(--text-main);
         }
-        .config-close {
-            background: none; border: none; cursor: pointer;
-            color: var(--text-dim); font-size: 3vh; line-height: 1;
+        .config-modal-footer {
+            display: flex; justify-content: flex-end;
+            margin-top: 0.5vh;
         }
-        .config-close:hover { color: var(--text-main); }
+        .config-back-btn {
+            background: var(--bg); border: none; cursor: pointer;
+            color: #fff; font-size: 2vh; font-weight: 700;
+            letter-spacing: 2px; padding: 1vh 2vw;
+        }
+        .config-back-btn:active { opacity: 0.6; }
 
         /* ============================================================
            POINT LOG POPUP
@@ -1433,85 +1439,6 @@
 
         /* ícone do modo de ponto junto ao label Points */
         .pts-mode-icon { font-size: 1.4vh; font-weight: 900; color: #f5c518; vertical-align: middle; letter-spacing: 0.5px; }
-
-        /* ============================================================
-           LICENSE OVERLAY — tela de bloqueio / voucher
-        ============================================================ */
-        .license-overlay {
-            display: none; position: fixed; top:0; right:0; bottom:0; left:0; z-index: 2000;
-            background: #0b1a35;
-            flex-direction: column; align-items: center; justify-content: center;
-            padding: 6vw;
-        }
-        .license-overlay.show { display: flex; }
-        .license-modal {
-            width: 100%; max-width: 380px;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 1.6vh; text-align: center;
-        }
-        .license-logo {
-            width: 18vh; height: 18vh;
-            object-fit: contain; border-radius: 20%;
-            margin-bottom: 0.5vh;
-        }
-        .license-app-name {
-            font-size: 2.4vh; font-weight: 800; letter-spacing: 1px;
-            color: #f4f6fb; margin: 0;
-        }
-        .license-version {
-            font-size: 1.2vh; color: #8fa0c0;
-            letter-spacing: 1px; font-weight: 600;
-        }
-        .license-device-row {
-            display: flex; flex-direction: column; gap: 1vh;
-            background: #122142; border: 1px solid #24365e;
-            border-radius: 8px; padding: 1.5vh 3vw;
-            width: 100%; box-sizing: border-box;
-        }
-        .license-device-label {
-            font-size: 1vh; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 1.5px; color: #8fa0c0;
-        }
-        .license-device-id {
-            font-family: 'Courier New', monospace; font-size: 2.2vh;
-            font-weight: 700; color: #c8e030; letter-spacing: 3px;
-            text-align: center; word-break: break-all;
-            user-select: text; -webkit-user-select: text;
-        }
-        .license-copy-btn {
-            background: none; border: 1px solid #24365e; border-radius: 6px;
-            color: #8fa0c0; font-size: 1vh; font-weight: 700;
-            letter-spacing: 1px; text-transform: uppercase;
-            padding: 0.6vh 2vw; cursor: pointer; align-self: center;
-            transition: color 0.2s, border-color 0.2s;
-        }
-        .license-copy-btn:active { color: #c8e030; border-color: #c8e030; }
-        .license-message {
-            font-size: 1.3vh; color: #8fa0c0; line-height: 1.6;
-            padding: 0 2vw;
-        }
-        .license-voucher-area {
-            width: 100%; display: flex; flex-direction: column; gap: 1.2vh;
-        }
-        .license-voucher-input {
-            width: 100%; background: #122142; border: 1.5px solid #24365e;
-            border-radius: 8px; color: #f4f6fb; font-size: 1.3vh;
-            font-family: 'Courier New', monospace; letter-spacing: 1px;
-            padding: 1.4vh 3vw; outline: none; text-align: center;
-            text-transform: uppercase; box-sizing: border-box;
-        }
-        .license-voucher-input:focus { border-color: #c8e030; }
-        .license-activate-btn {
-            width: 100%; background: #c8e030; color: #0b1a35;
-            border: none; border-radius: 8px; padding: 1.4vh;
-            font-size: 1.5vh; font-weight: 800; letter-spacing: 1px;
-            text-transform: uppercase; cursor: pointer;
-        }
-        .license-activate-btn:active { opacity: 0.75; }
-        .license-error {
-            font-size: 1.1vh; color: #e85c5c; font-weight: 600;
-            min-height: 1.6vh; text-align: center;
-        }
 
         /* ============================================================
            SERVE BALL INDICATOR
@@ -2068,8 +1995,8 @@
         font-size: 4vh;
         letter-spacing: 3px;
     }
-    .config-close {
-        font-size: 5vh;
+    .config-back-btn {
+        font-size: 2.6vh;
     }
     .config-row-label {
         font-size: 3vh;
@@ -2096,118 +2023,3 @@
     }
 }
 
-/* ── UPGRADE SPLASH — Free → PRO ── */
-.upgrade-splash-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
-}
-.upgrade-splash-overlay.show {
-    display: flex;
-}
-.upgrade-splash-modal {
-    background: #0e2040;
-    border: 2px solid #2e5faa;
-    border-radius: 16px;
-    padding: 4vh 6vw;
-    max-width: 85vw;
-    text-align: center;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.8vh;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-}
-.upgrade-splash-icon {
-    font-size: 5vh;
-}
-.upgrade-splash-title {
-    font-size: 3vh;
-    font-weight: 900;
-    color: #f5c518;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-.upgrade-splash-feature {
-    font-size: 2vh;
-    font-weight: 700;
-    color: #e8f0fe;
-    background: #112248;
-    border: 1px solid #2e5faa;
-    border-radius: 8px;
-    padding: 0.8vh 3vw;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-.upgrade-splash-msg {
-    font-size: 1.8vh;
-    color: #7a9cc8;
-    line-height: 1.5;
-}
-.upgrade-splash-msg strong {
-    color: #f5c518;
-}
-.upgrade-splash-pro-btn {
-    background: #f5c518;
-    color: #0b1a35;
-    border: none;
-    border-radius: 10px;
-    padding: 1.2vh 6vw;
-    font-size: 2vh;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    cursor: pointer;
-    width: 100%;
-}
-.upgrade-splash-close {
-    position: absolute;
-    top: 1.5vh;
-    right: 3vw;
-    background: none;
-    border: none;
-    color: #7a9cc8;
-    font-size: 2.5vh;
-    cursor: pointer;
-}
-
-/* Botões bloqueados na Free tier — visual de disabled */
-.free-locked {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-.upgrade-splash-later-btn {
-    background: transparent;
-    color: #7a9cc8;
-    border: 1px solid #2e5faa;
-    border-radius: 10px;
-    padding: 1vh 6vw;
-    font-size: 1.6vh;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-}
-
-/* Upgrade Now — efeito activo */
-.upgrade-splash-pro-btn:active {
-    background: #d4a900;
-    transform: scale(0.97);
-}
-.upgrade-splash-pro-btn:hover {
-    background: #ffe033;
-}
-
-/* Coming Soon overlay — reutiliza o mesmo estilo do upgrade splash */
-#coming-soon-overlay .upgrade-splash-modal {
-    border-color: #f5c518;
-}
-#coming-soon-overlay .upgrade-splash-title {
-    color: #f5c518;
-    font-size: 3.5vh;
-}
