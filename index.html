@@ -205,9 +205,24 @@
             <div class="history-carousel-track" id="h-track"></div>
         </div>
         <div class="history-nav">
-            <div class="h-dots" id="h-dots"></div>
+            <span class="h-nav-arrow" id="h-nav-arrow-left">‹</span>
             <span class="h-counter" id="h-counter"></span>
+            <span class="h-nav-arrow" id="h-nav-arrow-right">›</span>
         </div>
+    </div>
+    <div class="h-action-row" id="h-action-row">
+        <button class="h-action-btn" id="h-ai-footer-btn" onclick="handleAiButtonForEntryCurrent()" title="Generate the AI analysis for this match">
+            <span class="h-ai-footer-icon">🔄</span>
+            <span>AI Analysis</span>
+        </button>
+        <button class="h-action-btn" onclick="toggleIndividualDetailsCurrent()" title="Show per-player stats for this match">
+            <span>📊</span>
+            <span>Individual Details</span>
+        </button>
+        <button class="h-action-btn" onclick="openNotesFsCurrent()" title="Personal notes for this match">
+            <span>📝</span>
+            <span>Notes</span>
+        </button>
     </div>
     <div class="history-footer">
         <div class="history-footer-actions">
@@ -370,22 +385,25 @@
     <div class="gs-card-scroll">
         <div class="gs-card" id="gs-card-content"></div>
     </div>
+    <div class="gs-card-fixed-footer">
+        <button class="config-back-btn" onclick="closeGrandSlamCard()">BACK</button>
+    </div>
 </div>
 
 <div class="notes-fs-overlay" id="notes-fs-overlay" onclick="closeNotesFsOnBg(event)">
     <div class="notes-fs-modal">
         <div class="notes-fs-header">
             <span class="notes-fs-title">AI Analysis &amp; Personal Notes</span>
-            <div class="notes-fs-actions">
-                <button class="notes-fs-btn" onclick="closeNotesFs()">Cancel</button>
-                <button class="notes-fs-btn save" onclick="saveNotesFs()">Save ✓</button>
-            </div>
         </div>
         <textarea class="notes-fs-textarea" id="notes-fs-textarea"
             maxlength="5120"
             placeholder="AI analysis (when enabled) and your personal notes appear here, fully editable..."
             oninput="updateNotesFsCounter()"></textarea>
         <div class="notes-fs-counter"><span id="notes-fs-counter">0 / 5120</span></div>
+        <div class="notes-fs-footer">
+            <button class="notes-fs-btn" onclick="closeNotesFs()">Cancel</button>
+            <button class="notes-fs-btn save" onclick="saveNotesFs()">Save ✓</button>
+        </div>
     </div>
 </div>
 

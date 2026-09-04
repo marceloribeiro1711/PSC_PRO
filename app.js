@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.8.0';
+    const APP_VERSION = '3.8.1';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2622,7 +2622,7 @@
 
     // Monta o HTML do Card do Jogo — assíncrono porque as 4 fotos vêm do
     // IndexedDB (retrato próprio da partida, ver saveMatchHistory).
-    function buildGrandSlamCardHtml(entry, showBackBtn) {
+    function buildGrandSlamCardHtml(entry) {
         const n1 = escHtml(entry.players[0] || 'Player 1');
         const n2 = escHtml(entry.players[1] || 'Player 2');
         const n3 = escHtml(entry.players[2] || 'Player 3');
@@ -2692,9 +2692,6 @@
 
             const trophy1 = entry.winner === 0 ? '<span class="gs-trophy">🏆</span>' : '';
             const trophy2 = entry.winner === 1 ? '<span class="gs-trophy">🏆</span>' : '';
-            const backBtnHtml = showBackBtn
-                ? '<div class="gs-card-footer-nav"><button class="config-back-btn" onclick="closeGrandSlamCard()">BACK</button></div>'
-                : '';
 
             return '<div class="gs-photos-row">'
                 + '<div class="gs-photos-side">' + photoTag(0) + photoTag(1) + '</div>'
@@ -2705,8 +2702,7 @@
                 + '<div class="gs-footer">'
                 + '<div class="gs-footer-side t1">' + trophy1 + teamName1 + '</div>'
                 + '<div class="gs-footer-side t2">' + trophy2 + teamName2 + '</div>'
-                + '</div>'
-                + backBtnHtml;
+                + '</div>';
         });
     }
 
@@ -2719,7 +2715,7 @@
         const container = document.getElementById('gs-card-content');
         container.innerHTML = '<div style="text-align:center;padding:4vh;color:var(--text-dim)">Loading…</div>';
         document.getElementById('gs-card-overlay').classList.add('show');
-        buildGrandSlamCardHtml(entry, true).then(function (html) {
+        buildGrandSlamCardHtml(entry).then(function (html) {
             container.innerHTML = html;
         });
     }
@@ -3114,6 +3110,13 @@
         }
     }
 
+    // Wrappers "Current" — os botões fixos do rodapé agem sempre sobre a
+    // partida actualmente visível no carrossel (carouselIdx), mesmo padrão
+    // já usado por openPointLogFromHistoryCurrent().
+    function handleAiButtonForEntryCurrent() { handleAiButtonForEntry(carouselIdx); }
+    function toggleIndividualDetailsCurrent() { toggleIndividualDetails(carouselIdx); }
+    function openNotesFsCurrent() { openNotesFs(carouselIdx); }
+
     function toggleIndividualDetails(idx) {
         const el = document.getElementById('h-individual-' + idx);
         if (!el) return;
@@ -3149,24 +3152,6 @@
                 </div>
                 <div class="gs-embed" id="gs-embed-${idx}">
                     <div class="gs-embed-loading">Loading…</div>
-                </div>
-                <div class="h-action-row">
-                    <button class="h-action-btn" onclick="handleAiButtonForEntry(${idx})" title="${isAiAnalysisGenerated(entry) ? 'View the AI analysis for this match' : 'Generate the AI analysis for this match'}">
-                        <span>${isAiAnalysisGenerated(entry) ? '✨' : '🔄'}</span>
-                        <span>AI Analysis</span>
-                    </button>
-                    <button class="h-action-btn" onclick="toggleIndividualDetails(${idx})" title="Show per-player stats for this match">
-                        <span>📊</span>
-                        <span>Individual Details</span>
-                    </button>
-                    <button class="h-action-btn" onclick="openPointLogFromHistory(${idx})" title="Point-by-point log for this match">
-                        <span>📋</span>
-                        <span>Match Log</span>
-                    </button>
-                    <button class="h-action-btn" onclick="openNotesFs(${idx})" title="Personal notes for this match">
-                        <span>📝</span>
-                        <span>Notes</span>
-                    </button>
                 </div>
                 <div class="h-individual-details" id="h-individual-${idx}" style="display:none">
                     ${buildPairBlock(entry, 0, entry.winner === 0)}
@@ -3457,10 +3442,8 @@
     function renderCarousel() {
         const history = loadHistory();
         const track = document.getElementById('h-track');
-        const dots = document.getElementById('h-dots');
         const counter = document.getElementById('h-counter');
         track.innerHTML = '';
-        dots.innerHTML = '';
         carouselTotal = history.length;
 
         if (carouselTotal === 0) {
@@ -3469,19 +3452,16 @@
             slide.innerHTML = '<div class="history-empty">No games recorded yet.</div>';
             track.appendChild(slide);
             counter.textContent = '';
-            dots.innerHTML = '';
+            updateNavBtns();
         } else {
             history.forEach((entry, idx) => {
                 const slide = document.createElement('div');
                 slide.className = 'history-carousel-slide';
                 slide.innerHTML = buildGameSlide(entry, idx);
                 track.appendChild(slide);
-                const dot = document.createElement('div');
-                dot.className = 'h-dot' + (idx === carouselIdx ? ' active' : '');
-                dot.onclick = () => goToSlide(idx);
-                dots.appendChild(dot);
             });
             counter.textContent = `${carouselIdx + 1} / ${carouselTotal}`;
+            updateNavBtns();
             // Preenche o Card embutido de cada slide — assíncrono (fotos
             // vêm do IndexedDB), não bloqueia a renderização do carrossel.
             history.forEach((entry, idx) => {
@@ -3504,11 +3484,23 @@
     }
 
     function updateNavBtns() {
-        // Navegação por swipe mantida; botões Prev/Next removidos
-        // update dots
-        document.querySelectorAll('.h-dot').forEach((d, i) => d.classList.toggle('active', i === carouselIdx));
+        // Navegação por swipe mantida; setas são só indicador visual (sem
+        // acção de navegação), acesas conforme houver mais jogos pro lado.
+        const leftArrow = document.getElementById('h-nav-arrow-left');
+        const rightArrow = document.getElementById('h-nav-arrow-right');
+        if (leftArrow) leftArrow.classList.toggle('lit', carouselIdx > 0);
+        if (rightArrow) rightArrow.classList.toggle('lit', carouselIdx < carouselTotal - 1);
         const counter = document.getElementById('h-counter');
         if (carouselTotal > 0) counter.textContent = `${carouselIdx + 1} / ${carouselTotal}`;
+        // Botão de IA no rodapé fixo — reflecte a partida actualmente visível
+        const history = loadHistory();
+        const entry = history[carouselIdx];
+        const aiBtn = document.getElementById('h-ai-footer-btn');
+        if (aiBtn && entry) {
+            const done = isAiAnalysisGenerated(entry);
+            aiBtn.querySelector('.h-ai-footer-icon').textContent = done ? '✨' : '🔄';
+            aiBtn.title = done ? 'View the AI analysis for this match' : 'Generate the AI analysis for this match';
+        }
     }
 
     function goToSlide(idx) {
@@ -3775,6 +3767,7 @@
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
         handleAiButtonForEntry, toggleIndividualDetails,
+        handleAiButtonForEntryCurrent, toggleIndividualDetailsCurrent, openNotesFsCurrent,
     });
 
 })();
