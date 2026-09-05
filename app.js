@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.8.1';
+    const APP_VERSION = '3.8.2';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1491,6 +1491,9 @@
             lsGP.classList.toggle('star', gpLabel === 'STAR POINT');
         }
         if (lsEO && pEO) lsEO.classList.toggle('show', pEO.classList.contains('show'));
+        var lsCardBtn = document.getElementById('ls-card-btn');
+        var pCardBtn = document.getElementById('gs-card-btn');
+        if (lsCardBtn && pCardBtn) lsCardBtn.classList.toggle('show', pCardBtn.classList.contains('show'));
 
         // Timer
         var pTimerDisp = document.getElementById('timer-display-p');
@@ -1592,28 +1595,10 @@
     }
     _startLsHeaderSync();
 
-    // Menu hambúrguer landscape: abre/fecha dropdown, fecha ao clicar fora ou ao escolher item
+    // Menu hambúrguer — um único menu (FAB, canto inferior direito) serve
+    // tanto o modo retrato como o TV Mode. O antigo menu do topo do TV Mode
+    // (ls-menu-btn) foi removido — tinha exactamente os mesmos itens.
     (function initLsMenu() {
-        // Menu hambúrguer landscape
-        var btn = document.getElementById('ls-menu-btn');
-        var dropdown = document.getElementById('ls-menu-dropdown');
-        if (btn && dropdown) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdown.classList.toggle('show');
-            });
-            dropdown.addEventListener('click', function(e) {
-                if (e.target.classList.contains('ls-menu-item')) {
-                    dropdown.classList.remove('show');
-                }
-            });
-            document.addEventListener('click', function(e) {
-                if (!dropdown.classList.contains('show')) return;
-                if (dropdown.contains(e.target) || btn.contains(e.target)) return;
-                dropdown.classList.remove('show');
-            });
-        }
-
         // Menu hambúrguer portrait (FAB canto inferior direito)
         var pBtn = document.getElementById('p-fab-btn');
         var pDropdown = document.getElementById('p-fab-dropdown');

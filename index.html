@@ -459,16 +459,6 @@
             <div class="ls-timer-label">Match Time</div>
             <div class="ls-timer-display" id="ls-timer-display">00:00</div>
         </div>
-        <button class="ls-menu-btn" id="ls-menu-btn" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-        <div class="ls-menu-dropdown" id="ls-menu-dropdown">
-            <button class="ls-menu-item" onclick="askResetMatch()">New Game</button>
-            <button class="ls-menu-item" onclick="openHistory()">History</button>
-            <button class="ls-menu-item js-gamelog-menu-item" onclick="openGameLogMenu()">Match Log</button>
-            <button class="ls-menu-item" onclick="openNotesFs(null)">Notes</button>
-            <button class="ls-menu-item" onclick="openConfig()">Config</button>
-        </div>
     </header>
 
     <!-- BODY: 2 linhas de equipa + linha divisória -->
@@ -526,6 +516,7 @@
             <div class="ls-divider-line"></div>
             <span class="ls-badge ls-badge-bp" id="ls-break-point">BREAK POINT</span>
             <span class="ls-badge ls-badge-eo" id="ls-end-of-match">END OF MATCH</span>
+            <button class="ls-card-btn" id="ls-card-btn" onclick="openGrandSlamCard()">🏆</button>
             <span class="ls-badge ls-badge-ws" id="ls-whos-serve">WHO IS SERVING FIRST?</span>
             <div class="ls-divider-line"></div>
             <div class="ls-gp-overlay">

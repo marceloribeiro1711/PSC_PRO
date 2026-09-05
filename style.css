@@ -858,10 +858,10 @@
         }
         .gs-photo-placeholder { color: var(--text-dim); }
         .gs-photo-placeholder svg { width: 42%; height: 42%; }
-        .gs-photos-side .gs-photo:first-child { margin-right: -5%; z-index: 2; }
+        .gs-photos-side .gs-photo:first-child { margin-right: -2%; z-index: 2; }
         .gs-photos-side .gs-photo:last-child { z-index: 1; }
         .gs-photos-side.right .gs-photo:first-child { z-index: 1; }
-        .gs-photos-side.right .gs-photo:last-child { margin-right: 0; margin-left: -5%; z-index: 2; }
+        .gs-photos-side.right .gs-photo:last-child { margin-right: 0; margin-left: -2%; z-index: 2; }
 
         .gs-sets-table {
             margin: 0 3% 1.3vh; background: var(--card-bg);
@@ -1620,64 +1620,6 @@
     display: none;
 }
 
-.ls-menu-btn {
-    width: 5vh;
-    height: 5vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6vh;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
-}
-.ls-menu-btn span {
-    display: block;
-    width: 3vh;
-    height: 2px;
-    background: #7a9cc8;
-    border-radius: 1px;
-}
-
-.ls-menu-dropdown {
-    display: none;
-    flex-direction: column;
-    position: absolute;
-    top: 9vh;
-    right: 1.5vw;
-    background: #0d2145;
-    border: 1px solid #1e3a6e;
-    border-radius: 8px;
-    overflow: hidden;
-    z-index: 50;
-    min-width: 16vw;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-}
-.ls-menu-dropdown.show {
-    display: flex;
-}
-.ls-menu-item {
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid #1e3a6e;
-    color: #e8f0fe;
-    font-size: 1.8vh;
-    font-weight: 600;
-    text-align: left;
-    padding: 1.4vh 1.5vw;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-}
-.ls-menu-item:last-child {
-    border-bottom: none;
-}
-.ls-menu-item:active {
-    background: #1a3060;
-}
-
 /* ── BODY ── */
 .ls-body {
     display: flex;
@@ -1916,6 +1858,14 @@
     color: #fff;
 }
 .ls-badge-eo.show { display: inline-block; }
+.ls-card-btn {
+    display: none;
+    width: 4vh; height: 4vh; border-radius: 50%;
+    background: var(--accent-yellow); color: #1a1200;
+    border: none; font-size: 2vh; line-height: 1;
+    cursor: pointer;
+}
+.ls-card-btn.show { display: inline-flex; align-items: center; justify-content: center; }
 .ls-badge-ws {
     display: none;
     padding: 0.6vh 1.4vw;
@@ -1984,15 +1934,24 @@
 .ls-badge-gp.show { display: inline-block; }
 .ls-badge-gp.star { background: #f5c518; color: #0b1a35; }
 
-/* ── LANDSCAPE: menu hambúrguer e config com fontes muito maiores (TV a distância) ── */
+/* ── LANDSCAPE: menu hambúrguer (FAB) e config com fontes muito maiores (TV a distância) ── */
 @media (orientation: landscape) {
-    .ls-menu-item {
+    .p-fab-item {
         font-size: 3vh;
         padding: 2vh 2vw;
     }
-    .ls-menu-dropdown {
+    .p-fab-dropdown {
         min-width: 22vw;
         border-radius: 12px;
+    }
+    .p-fab-btn {
+        width: 6vh;
+        height: 6vh;
+    }
+    /* Card do Jogo — mais largo em paisagem (TV), pra ficar mais quadrado
+       em vez de esticado/estreito como no retrato */
+    .gs-card {
+        max-width: 900px;
     }
     .config-overlay {
         backdrop-filter: blur(4px);
