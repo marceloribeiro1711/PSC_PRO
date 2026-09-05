@@ -844,13 +844,18 @@
             background: var(--panel-bg); border: 1px solid var(--border-card);
             border-radius: 14px; padding: 0 0 2vh;
             box-sizing: border-box;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas:
+                "photo1 photo2"
+                "sets   sets"
+                "stats  stats"
+                "footer footer";
         }
-        .gs-photos-row {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            margin-bottom: 1.3vh;
-        }
-        .gs-photos-side { display: flex; align-items: flex-start; flex: 1; }
-        .gs-photos-side.right { justify-content: flex-end; }
+        .gs-photo-block.t1 { grid-area: photo1; margin-bottom: 1.3vh; }
+        .gs-photo-block.t2 { grid-area: photo2; margin-bottom: 1.3vh; }
+        .gs-photo-pair { display: flex; align-items: flex-start; }
+        .gs-photo-block.t2 .gs-photo-pair { justify-content: flex-end; }
         .gs-photo {
             width: 30%; aspect-ratio: 3/4; object-fit: cover;
             background: var(--card-bg); border: 2px solid; border-radius: 0 0 10px 10px;
@@ -858,12 +863,16 @@
         }
         .gs-photo-placeholder { color: var(--text-dim); }
         .gs-photo-placeholder svg { width: 42%; height: 42%; }
-        .gs-photos-side .gs-photo:first-child { margin-right: -2%; z-index: 2; }
-        .gs-photos-side .gs-photo:last-child { z-index: 1; }
-        .gs-photos-side.right .gs-photo:first-child { z-index: 1; }
-        .gs-photos-side.right .gs-photo:last-child { margin-right: 0; margin-left: -2%; z-index: 2; }
+        .gs-photo-block.t1 .gs-photo-pair .gs-photo:first-child { margin-right: -2%; z-index: 2; }
+        .gs-photo-block.t1 .gs-photo-pair .gs-photo:last-child { z-index: 1; }
+        .gs-photo-block.t2 .gs-photo-pair .gs-photo:first-child { z-index: 1; }
+        .gs-photo-block.t2 .gs-photo-pair .gs-photo:last-child { margin-right: 0; margin-left: -2%; z-index: 2; }
+        /* Nomes sob as fotos — só usados no TV Mode (paisagem); no
+           retrato o nome da dupla já aparece no rodapé (.gs-footer). */
+        .gs-photo-names { display: none; }
 
         .gs-sets-table {
+            grid-area: sets;
             margin: 0 3% 1.3vh; background: var(--card-bg);
             border: 1.5px solid var(--border-card); border-radius: 8px; overflow: hidden;
         }
@@ -881,7 +890,7 @@
         }
         .gs-sets-val + .gs-sets-val { border-left: 1.5px solid var(--border-card); }
 
-        .gs-stats { display: flex; flex-direction: column; gap: 0.7vh; padding: 0 3%; }
+        .gs-stats { grid-area: stats; display: flex; flex-direction: column; gap: 0.7vh; padding: 0 3%; }
         .gs-stat-label {
             text-align: center; font-size: 1.35vh; color: var(--text-main); font-weight: 500;
             text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;
@@ -898,6 +907,7 @@
         .gs-bar-fill.t2 { background: var(--accent-yellow); border-radius: 0 3px 3px 0; }
 
         .gs-footer {
+            grid-area: footer;
             display: flex; border-top: 1px solid var(--border-card);
             margin: 1.3vh 3% 0; padding-top: 1vh;
         }
@@ -1948,11 +1958,34 @@
         width: 6vh;
         height: 6vh;
     }
-    /* Card do Jogo — mais largo em paisagem (TV), pra ficar mais quadrado
-       em vez de esticado/estreito como no retrato */
+    /* Card do Jogo — layout próprio pro TV Mode: o placar de sets ocupa o
+       espaço vazio entre as duas fotos (em vez de ficar embaixo), nomes
+       das duplas passam pra baixo das fotos (fonte branca, maior, pra ler
+       de longe), e o card fica mais estreito/compacto — o espaço que
+       sobra vai pra fontes maiores, não pra esticar o card. */
     .gs-card {
-        max-width: 900px;
+        max-width: 620px;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-areas: "photo1 sets photo2" "stats stats stats";
+        align-items: start;
+        column-gap: 2vw;
     }
+    .gs-photo-block.t1, .gs-photo-block.t2 { margin-bottom: 0; }
+    .gs-sets-table { grid-area: sets; align-self: center; margin: 0; width: 20vw; max-width: 190px; }
+    .gs-footer { display: none; }
+    .gs-photo-names {
+        display: flex; align-items: center; justify-content: center; gap: 0.6vw;
+        margin-top: 1vh; color: #fff; font-weight: 900;
+        font-size: 2.1vh; letter-spacing: 0.3px;
+    }
+    .gs-photo-names .gs-trophy {
+        position: static; transform: none; font-size: 2vh;
+    }
+    /* Fontes maiores em todo o card, pra leitura à distância na TV */
+    .gs-sets-label { font-size: 1.7vh; }
+    .gs-sets-val { font-size: 2.6vh; }
+    .gs-stat-label { font-size: 1.7vh; }
+    .gs-stat-row { font-size: 2.2vh; }
     .config-overlay {
         backdrop-filter: blur(4px);
     }
