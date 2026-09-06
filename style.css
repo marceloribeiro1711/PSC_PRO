@@ -891,11 +891,12 @@
         .gs-sets-val + .gs-sets-val { border-left: 1.5px solid var(--border-card); }
 
         .gs-stats { grid-area: stats; display: flex; flex-direction: column; gap: 0.7vh; padding: 0 3%; }
+        .gs-stat-row { display: flex; flex-wrap: wrap; align-items: center; font-size: 1.7vh; }
         .gs-stat-label {
+            order: -1; flex-basis: 100%;
             text-align: center; font-size: 1.35vh; color: var(--text-main); font-weight: 500;
             text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;
         }
-        .gs-stat-row { display: flex; align-items: center; font-size: 1.7vh; }
         .gs-stat-num { width: 8%; color: var(--text-main); font-weight: 700; }
         .gs-stat-num.left { text-align: right; margin-right: 2%; }
         .gs-stat-num.right { text-align: left; margin-left: 2%; }
@@ -903,8 +904,8 @@
         .gs-bar-half.left { justify-content: flex-end; }
         .gs-bar-half.right { justify-content: flex-start; }
         .gs-bar-fill { height: 0.8vh; }
-        .gs-bar-fill.t1 { background: var(--accent-blue); border-radius: 3px 0 0 3px; }
-        .gs-bar-fill.t2 { background: var(--accent-yellow); border-radius: 0 3px 3px 0; }
+        .gs-bar-fill.t1 { background: linear-gradient(to left, var(--accent-blue), rgba(56,189,248,0.35)); border-radius: 3px 0 0 3px; }
+        .gs-bar-fill.t2 { background: linear-gradient(to right, var(--accent-yellow), rgba(245,197,24,0.35)); border-radius: 0 3px 3px 0; }
 
         .gs-footer {
             grid-area: footer;
@@ -1963,7 +1964,7 @@
        das duplas passam pra baixo das fotos (fonte branca, maior, pra ler
        de longe). Card centralizado verticalmente — o layout compacto do
        TV Mode não corre o risco de cortar conteúdo como no retrato. */
-    .gs-card-scroll { align-items: center; }
+    .gs-card-scroll { align-items: safe center; }
     .gs-card {
         max-width: 960px;
         padding: 3vh 0 3vh;
@@ -1988,10 +1989,16 @@
     /* Fontes maiores em todo o card, pra leitura à distância na TV */
     .gs-sets-label { font-size: 2.4vh; }
     .gs-sets-val { font-size: 4.5vh; }
-    .gs-stat-label { font-size: 2vh; }
-    .gs-stat-row { font-size: 2.8vh; }
-    .gs-bar-fill { height: 1.4vh; }
-    .gs-stats { gap: 1vh; }
+    /* Rótulo da estatística passa a ficar na mesma linha da barra (em vez
+       de linha própria em cima) — economiza uma linha inteira por
+       estatística; o espaço ganho vira fonte maior nos números. */
+    .gs-stat-row { flex-wrap: nowrap; font-size: 3.4vh; }
+    .gs-stat-label {
+        order: 0; flex-basis: auto; flex: 0 1 auto;
+        margin: 0 1.2vw; white-space: nowrap; font-size: 2.2vh;
+    }
+    .gs-bar-fill { height: 1.8vh; }
+    .gs-stats { gap: 1.6vh; }
     .config-overlay {
         backdrop-filter: blur(4px);
     }

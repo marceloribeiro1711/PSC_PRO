@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.8.7';
+    const APP_VERSION = '3.8.8';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2665,14 +2665,13 @@
                 const total = r.v1 + r.v2;
                 const pct1 = total > 0 ? (r.v1 / total * 100) : 0;
                 const pct2 = total > 0 ? (r.v2 / total * 100) : 0;
-                return '<div>'
-                    + '<div class="gs-stat-label">' + escHtml(r.label) + '</div>'
-                    + '<div class="gs-stat-row">'
+                return '<div class="gs-stat-row">'
                     + '<span class="gs-stat-num left">' + r.v1 + '</span>'
                     + '<div class="gs-bar-half left"><div class="gs-bar-fill t1" style="width:' + pct1 + '%"></div></div>'
+                    + '<div class="gs-stat-label">' + escHtml(r.label) + '</div>'
                     + '<div class="gs-bar-half right"><div class="gs-bar-fill t2" style="width:' + pct2 + '%"></div></div>'
                     + '<span class="gs-stat-num right">' + r.v2 + '</span>'
-                    + '</div></div>';
+                    + '</div>';
             }).join('');
 
             const trophy1 = entry.winner === 0 ? '<span class="gs-trophy">🏆</span>' : '';
