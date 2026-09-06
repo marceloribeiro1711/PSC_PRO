@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.8.6';
+    const APP_VERSION = '3.8.7';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3139,7 +3139,7 @@
                         </svg>
                     </button>
                 </div>
-                <div class="gs-embed" id="gs-embed-${idx}">
+                <div class="gs-embed gs-card" id="gs-embed-${idx}">
                     <div class="gs-embed-loading">Loading…</div>
                 </div>
                 <div class="h-individual-details" id="h-individual-${idx}" style="display:none">
