@@ -1975,7 +1975,7 @@
         row-gap: 1.3vh;
     }
     .gs-photo-block.t1, .gs-photo-block.t2 { margin-bottom: 0; }
-    .gs-photo { width: 40%; }
+    .gs-photo { width: 32%; }
     .gs-sets-table { grid-area: sets; align-self: center; margin: 0; width: 20vw; max-width: 230px; }
     .gs-footer { display: none; }
     .gs-photo-names {
