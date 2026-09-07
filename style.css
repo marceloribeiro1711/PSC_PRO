@@ -904,8 +904,8 @@
         .gs-bar-half.left { justify-content: flex-end; }
         .gs-bar-half.right { justify-content: flex-start; }
         .gs-bar-fill { height: 0.8vh; }
-        .gs-bar-fill.t1 { background: linear-gradient(to left, var(--accent-blue), rgba(56,189,248,0.35)); border-radius: 3px 0 0 3px; }
-        .gs-bar-fill.t2 { background: linear-gradient(to right, var(--accent-yellow), rgba(245,197,24,0.35)); border-radius: 0 3px 3px 0; }
+        .gs-bar-fill.t1 { background: linear-gradient(to left, rgba(56,189,248,0.35), var(--accent-blue)); border-radius: 3px 0 0 3px; }
+        .gs-bar-fill.t2 { background: linear-gradient(to right, rgba(245,197,24,0.35), var(--accent-yellow)); border-radius: 0 3px 3px 0; }
 
         .gs-footer {
             grid-area: footer;
@@ -1964,15 +1964,15 @@
        das duplas passam pra baixo das fotos (fonte branca, maior, pra ler
        de longe). Card centralizado verticalmente — o layout compacto do
        TV Mode não corre o risco de cortar conteúdo como no retrato. */
-    .gs-card-scroll { align-items: safe center; }
+    .gs-card-scroll { align-items: safe center; padding: 1vh 0; }
     .gs-card {
         max-width: 960px;
-        padding: 3vh 0 3vh;
+        padding: 1.5vh 0 1.5vh;
         grid-template-columns: 1fr auto 1fr;
         grid-template-areas: "photo1 sets photo2" "stats stats stats";
         align-items: center;
         column-gap: 3vw;
-        row-gap: 2.5vh;
+        row-gap: 1.3vh;
     }
     .gs-photo-block.t1, .gs-photo-block.t2 { margin-bottom: 0; }
     .gs-photo { width: 40%; }
@@ -1980,7 +1980,7 @@
     .gs-footer { display: none; }
     .gs-photo-names {
         display: flex; align-items: center; justify-content: center; gap: 0.6vw;
-        margin: 2vh 0; color: #fff; font-weight: 900;
+        margin: 1vh 0; color: #fff; font-weight: 900;
         font-size: 3vh; letter-spacing: 0.3px;
     }
     .gs-photo-names .gs-trophy {
@@ -1992,13 +1992,14 @@
     /* Rótulo da estatística passa a ficar na mesma linha da barra (em vez
        de linha própria em cima) — economiza uma linha inteira por
        estatística; o espaço ganho vira fonte maior nos números. */
-    .gs-stat-row { flex-wrap: nowrap; font-size: 3.4vh; }
+    .gs-stat-row { flex-wrap: nowrap; font-size: 4.2vh; }
     .gs-stat-label {
-        order: 0; flex-basis: auto; flex: 0 1 auto;
-        margin: 0 1.2vw; white-space: nowrap; font-size: 2.2vh;
+        order: 0; flex: 0 0 24vw; text-align: center;
+        margin: 0 1vw; white-space: normal; line-height: 1.1;
+        font-size: 2vh;
     }
-    .gs-bar-fill { height: 1.8vh; }
-    .gs-stats { gap: 1.6vh; }
+    .gs-bar-fill { height: 2vh; }
+    .gs-stats { gap: 1.1vh; }
     .config-overlay {
         backdrop-filter: blur(4px);
     }
