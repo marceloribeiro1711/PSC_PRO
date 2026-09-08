@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.8.10';
+    const APP_VERSION = '3.9.0';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1762,6 +1762,7 @@
             if (s1won === 1) {
                 state.isSuperTieBreak = superTieMode;
                 initServeNewSet(lastServer);
+                showSetIntervalCardBtn();
             } else {
                 endMatch();
             }
@@ -1769,7 +1770,19 @@
             endMatch();
         } else {
             initServeNewSet(lastServer);
+            showSetIntervalCardBtn();
         }
+    }
+
+    // Intervalo entre sets (partida ainda em curso) — mostra o botão
+    // dourado "Show Match Card" pra consultar o Card parcial, sem troféu.
+    // Continua visível durante o set seguinte também (não é obrigatório
+    // fechar só porque o próximo set começou a ser jogado).
+    function showSetIntervalCardBtn() {
+        var pBtn = document.getElementById('gs-card-btn');
+        if (pBtn) pBtn.classList.add('show');
+        var lsBtn = document.getElementById('ls-card-btn');
+        if (lsBtn) lsBtn.classList.add('show');
     }
 
     function endMatch() {
@@ -2607,7 +2620,7 @@
 
     // Monta o HTML do Card do Jogo — assíncrono porque as 4 fotos vêm do
     // IndexedDB (retrato próprio da partida, ver saveMatchHistory).
-    function buildGrandSlamCardHtml(entry) {
+    function buildGrandSlamCardHtml(entry, isLive) {
         const n1 = escHtml(entry.players[0] || 'Player 1');
         const n2 = escHtml(entry.players[1] || 'Player 2');
         const n3 = escHtml(entry.players[2] || 'Player 3');
@@ -2615,7 +2628,12 @@
         const teamName1 = n1 + ' / ' + n2;
         const teamName2 = n3 + ' / ' + n4;
 
-        const photoKeys = DEFAULT_PHOTO_IDS.map(function (id) { return 'photo_hist_' + entry.date + '_' + id; });
+        // Partida ainda em curso (Card parcial) — fotos vêm direto dos
+        // slots ao vivo (ainda não existe retrato salvo, a partida só é
+        // gravada no Histórico quando termina de verdade).
+        const photoKeys = isLive
+            ? DEFAULT_PHOTO_IDS.map(function (id) { return 'photo_' + id; })
+            : DEFAULT_PHOTO_IDS.map(function (id) { return 'photo_hist_' + entry.date + '_' + id; });
         return Promise.all(photoKeys.map(function (k) {
             return idbGet(k).catch(function () { return null; });
         })).then(function (photos) {
@@ -2696,7 +2714,40 @@
 
     // idx omitido → partida mais recente (fluxo "Mostrar Card do Jogo" ao
     // vivo). idx presente → aberto a partir do Histórico.
+    // Card PARCIAL — usado só na tela de jogo, nunca no Histórico. Monta um
+    // "entry" a partir do estado ao vivo (sets, stats, pointLog), sem
+    // vencedor (a partida ainda não terminou) e sem gravar nada em lado
+    // nenhum. Mesmos dados que saveMatchHistory() usaria no final — só que
+    // lidos ao vivo, antes do jogo acabar.
+    function buildLiveEntrySnapshot() {
+        const p1 = (function(){var _e=document.getElementById('t1-p1');return _e&&_e.innerText?_e.innerText.trim():'Player 1'})();
+        const p2 = (function(){var _e=document.getElementById('t1-p2');return _e&&_e.innerText?_e.innerText.trim():'Player 2'})();
+        const p3 = (function(){var _e=document.getElementById('t2-p1');return _e&&_e.innerText?_e.innerText.trim():'Player 3'})();
+        const p4 = (function(){var _e=document.getElementById('t2-p2');return _e&&_e.innerText?_e.innerText.trim():'Player 4'})();
+        return {
+            date: 'live', // sentinela — nunca usado pra ler fotos (ver isLive)
+            players: [p1, p2, p3, p4],
+            winner: null, // partida em curso — sem troféu
+            sets: JSON.parse(JSON.stringify(state.sets)),
+            stats: Object.assign({}, statsState),
+            setMode: prosetMode ? 'proset' : (superTieMode ? 'supertie' : '3sets'),
+            pointLog: matchGameLogs
+        };
+    }
+
     function openGrandSlamCard(idx) {
+        // Partida ainda em curso — Card parcial ao vivo, nunca lê/grava no
+        // Histórico. Só entra no fluxo de Histórico depois de terminada.
+        if (!state.matchOver && (idx === undefined || idx === null)) {
+            const liveEntry = buildLiveEntrySnapshot();
+            const container = document.getElementById('gs-card-content');
+            container.innerHTML = '<div style="text-align:center;padding:4vh;color:var(--text-dim)">Loading…</div>';
+            document.getElementById('gs-card-overlay').classList.add('show');
+            buildGrandSlamCardHtml(liveEntry, true).then(function (html) {
+                container.innerHTML = html;
+            });
+            return;
+        }
         const history = loadHistory();
         const entry = (idx === undefined || idx === null) ? history[0] : history[idx];
         if (!entry) { showToast('No match found'); return; }
