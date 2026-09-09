@@ -1947,6 +1947,9 @@
 
 /* ── LANDSCAPE: menu hambúrguer (FAB) e config com fontes muito maiores (TV a distância) ── */
 @media (orientation: landscape) {
+    /* Histórico foi desenhado só pra leitura vertical (celular/tablet) —
+       não faz sentido em TV Mode. */
+    .portrait-only-item { display: none !important; }
     .p-fab-item {
         font-size: 3vh;
         padding: 2vh 2vw;

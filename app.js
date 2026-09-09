@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.9.0';
+    const APP_VERSION = '3.9.1';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -734,6 +734,7 @@
             } else {
                 SERVE.phase = 'auto';
             }
+            hideSetIntervalCardBtn();
             renderServeBalls();
             return;
         }
@@ -748,6 +749,7 @@
             } else {
                 SERVE.phase = 'auto';
             }
+            hideSetIntervalCardBtn();
             renderServeBalls();
             return;
         }
@@ -1785,6 +1787,15 @@
         if (lsBtn) lsBtn.classList.add('show');
     }
 
+    // Fim do intervalo — Coach escolheu quem saca no set seguinte, o jogo
+    // está prestes a recomeçar. Não faz sentido o botão continuar ali.
+    function hideSetIntervalCardBtn() {
+        var pBtn = document.getElementById('gs-card-btn');
+        if (pBtn) pBtn.classList.remove('show');
+        var lsBtn = document.getElementById('ls-card-btn');
+        if (lsBtn) lsBtn.classList.remove('show');
+    }
+
     function endMatch() {
         state.matchOver = true;
         state.isSuperTieBreak = false;
@@ -1969,7 +1980,7 @@
     }
 
     function addSetPoint(teamIndex, setIndex) {
-        if (setIndex >= state.currentSet) return;
+        if (setIndex > state.currentSet) return;
         if (state.matchOver) return;
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
@@ -2000,8 +2011,9 @@
         el.addEventListener('touchend', () => {
             clearTimeout(timer);
             if (!isLong) {
-                // Toque curto: só incrementa em sets FECHADOS; set em andamento não faz nada
-                if (setIndex < state.currentSet) addSetPoint(teamIndex, setIndex);
+                // Toque curto: incrementa em qualquer set já jogado, incluindo
+                // o que está aberto agora (correcção mesmo com o set em curso)
+                if (setIndex <= state.currentSet) addSetPoint(teamIndex, setIndex);
             }
             // Reset após um frame para não bloquear o click sintético do browser
             setTimeout(() => { hasTouched = false; }, 300);
@@ -2012,8 +2024,9 @@
         // ── Mouse / desktop (ignorar se veio de touch) ───────────────────
         el.addEventListener('click', e => {
             if (hasTouched) return;
-            // Toque curto: só incrementa em sets FECHADOS
-            if (setIndex < state.currentSet) addSetPoint(teamIndex, setIndex);
+            // Toque curto: incrementa em qualquer set já jogado, incluindo
+            // o que está aberto agora
+            if (setIndex <= state.currentSet) addSetPoint(teamIndex, setIndex);
         });
         el.addEventListener('contextmenu', e => {
             e.preventDefault();
@@ -2025,6 +2038,9 @@
     // Portrait
     setupSetLongPress('t1-s1-cell', 1, 0); setupSetLongPress('t1-s2-cell', 1, 1); setupSetLongPress('t1-s3-cell', 1, 2);
     setupSetLongPress('t2-s1-cell', 2, 0); setupSetLongPress('t2-s2-cell', 2, 1); setupSetLongPress('t2-s3-cell', 2, 2);
+    // TV Mode (landscape) — nunca tinha sido ligado
+    setupSetLongPress('ls-t1-s1-cell', 1, 0); setupSetLongPress('ls-t1-s2-cell', 1, 1); setupSetLongPress('ls-t1-s3-cell', 1, 2);
+    setupSetLongPress('ls-t2-s1-cell', 2, 0); setupSetLongPress('ls-t2-s2-cell', 2, 1); setupSetLongPress('ls-t2-s3-cell', 2, 2);
 
     // ============================================================
     // PERSISTÊNCIA DO ESTADO DO JOGO EM CURSO
@@ -3551,6 +3567,11 @@
     function carouselNav(dir) { goToSlide(carouselIdx + dir); }
 
     function openHistory() {
+        // Histórico é só pra leitura vertical — nunca abre em TV Mode.
+        if (window.matchMedia('(orientation: landscape)').matches) {
+            showToast('History is only available in portrait mode');
+            return;
+        }
         carouselIdx = 0;
         renderCarousel();
         document.getElementById('history-overlay').classList.add('show');
