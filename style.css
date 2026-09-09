@@ -575,6 +575,29 @@
         }
         .history-overlay.show { opacity: 1; pointer-events: all; }
 
+        /* Rotate message — Histórico é só pra leitura vertical; se o utilizador
+           rodar o ecrã para paisagem (TV Mode) enquanto o histórico está aberto,
+           escondemos o carrossel/footer e mostramos só este aviso. */
+        .h-rotate-message { display: none; }
+        @media (orientation: landscape) {
+            .history-overlay.show > *:not(.h-rotate-message) { display: none !important; }
+            .history-overlay.show .h-rotate-message {
+                display: flex; flex-direction: column; align-items: center;
+                justify-content: center; gap: 3vh; height: 100%; width: 100%;
+                box-sizing: border-box; padding: 4vh; text-align: center;
+            }
+            .h-rotate-message p {
+                font-size: 2.2vh; font-weight: 700; color: var(--text-main);
+                line-height: 1.5; margin: 0;
+            }
+            .h-rotate-close-btn {
+                background: var(--panel-bg); border: 1.5px solid var(--divider);
+                cursor: pointer; color: #fff; font-size: 2vh; font-weight: 700;
+                letter-spacing: 2px; padding: 1.2vh 4vw; border-radius: 999px;
+            }
+            .h-rotate-close-btn:active { opacity: 0.6; }
+        }
+
         /* Header */
         .history-modal-header {
             display: flex; align-items: center; justify-content: space-between;
