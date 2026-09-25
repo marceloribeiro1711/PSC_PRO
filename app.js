@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.9.3';
+    const APP_VERSION = '3.9.4';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3786,6 +3786,144 @@
         }, 600);
     }
 
+    // ============================================================
+    // TUTORIAL — onboarding guiado (balões sequenciais)
+    // ============================================================
+    const TUTORIAL_DONE_KEY = 'padel_tutorial_done';
+    let tutActive = false;
+    let tutIdx = 0;
+    let tutActionHandlers = [];
+
+    // Cada passo: text, anchor (seletor|null, null = centralizado),
+    // tip (true = estilo "tip solta", sem seta/indicador),
+    // advance: 'next' (botão Next) | 'action' (aguarda ação real do usuário),
+    // actionTargets/actionEvent: usados quando advance === 'action'
+    const TUTORIAL_STEPS = [
+        { text: "Padel Score and Coaching helps your athlete's development — turning match data into insights that support your coaching.", anchor: null, advance: 'next' },
+        { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
+        { text: "Plus insights on mental performance and game strategy to improve.", anchor: null, advance: 'next' },
+        { text: "Tap here to pick a tournament or federation logo from your gallery.", anchor: '#logo-left-slot', advance: 'action', actionTargets: ['#fi-logo-left'], actionEvent: 'change' },
+        { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: 'change' },
+        { text: "Standing behind the baseline, place each player on their real side — left or right.", anchor: null, tip: true, advance: 'next' },
+        { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: 'blur' },
+    ];
+
+    function tutMaybeStart() {
+        try {
+            if (localStorage.getItem(TUTORIAL_DONE_KEY)) return;
+        } catch(e) { return; }
+        tutStart();
+    }
+
+    function tutStart() {
+        tutActive = true;
+        tutIdx = 0;
+        tutShowStep();
+    }
+
+    function tutEnd() {
+        tutActive = false;
+        tutClearActionListeners();
+        const ov = document.getElementById('tut-overlay');
+        if (ov) ov.remove();
+        try { localStorage.setItem(TUTORIAL_DONE_KEY, '1'); } catch(e) {}
+    }
+
+    function tutRenderShell() {
+        if (document.getElementById('tut-overlay')) return;
+        const ov = document.createElement('div');
+        ov.id = 'tut-overlay';
+        ov.innerHTML =
+            '<div class="tut-highlight" id="tut-highlight"></div>' +
+            '<div class="tut-bubble" id="tut-bubble">' +
+                '<div class="tut-bubble-label">💡 Tip</div>' +
+                '<div class="tut-bubble-text" id="tut-bubble-text"></div>' +
+                '<div class="tut-bubble-footer">' +
+                    '<span class="tut-progress" id="tut-progress"></span>' +
+                    '<button class="tut-next-btn" id="tut-next-btn">Next</button>' +
+                '</div>' +
+            '</div>' +
+            '<button class="tut-skip" id="tut-skip">Skip tutorial</button>';
+        document.body.appendChild(ov);
+        document.getElementById('tut-next-btn').addEventListener('click', tutNext);
+        document.getElementById('tut-skip').addEventListener('click', tutEnd);
+        window.addEventListener('resize', tutReposition);
+    }
+
+    function tutReposition() {
+        if (tutActive) tutShowStep(/* reposition */ true);
+    }
+
+    function tutNext() {
+        tutIdx++;
+        if (tutIdx >= TUTORIAL_STEPS.length) { tutEnd(); return; }
+        tutShowStep();
+    }
+
+    function tutClearActionListeners() {
+        tutActionHandlers.forEach(function(h) { h.el.removeEventListener(h.event, h.fn); });
+        tutActionHandlers = [];
+    }
+
+    function tutAttachActionListeners(step) {
+        (step.actionTargets || []).forEach(function(sel) {
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const fn = function() { tutClearActionListeners(); tutNext(); };
+            el.addEventListener(step.actionEvent, fn, { once: true });
+            tutActionHandlers.push({ el: el, event: step.actionEvent, fn: fn });
+        });
+    }
+
+    function tutPositionBubble(bubble, r) {
+        bubble.style.transform = 'none';
+        bubble.style.left = Math.max(12, Math.min(r.left, window.innerWidth - 12 - bubble.offsetWidth)) + 'px';
+        const spaceBelow = window.innerHeight - r.bottom;
+        if (spaceBelow > 140) {
+            bubble.style.top = (r.bottom + 14) + 'px';
+        } else {
+            bubble.style.top = Math.max(12, r.top - 14 - bubble.offsetHeight) + 'px';
+        }
+    }
+
+    function tutPositionBubbleCenter(bubble) {
+        bubble.style.transform = 'translate(-50%, -50%)';
+        bubble.style.left = '50%';
+        bubble.style.top = '50%';
+    }
+
+    function tutShowStep() {
+        tutRenderShell();
+        const step = TUTORIAL_STEPS[tutIdx];
+        const bubble = document.getElementById('tut-bubble');
+        const highlight = document.getElementById('tut-highlight');
+
+        document.getElementById('tut-bubble-text').textContent = step.text;
+        document.getElementById('tut-progress').textContent = (tutIdx + 1) + ' / ' + TUTORIAL_STEPS.length;
+        bubble.classList.toggle('tut-tip', !!step.tip);
+        document.getElementById('tut-next-btn').style.display = (step.advance === 'next') ? 'inline-block' : 'none';
+
+        tutClearActionListeners();
+
+        const anchorEl = step.anchor ? document.querySelector(step.anchor) : null;
+        if (anchorEl) {
+            const r = anchorEl.getBoundingClientRect();
+            highlight.style.display = 'block';
+            highlight.style.top = (r.top - 6) + 'px';
+            highlight.style.left = (r.left - 6) + 'px';
+            highlight.style.width = (r.width + 12) + 'px';
+            highlight.style.height = (r.height + 12) + 'px';
+            tutPositionBubble(bubble, r);
+        } else {
+            highlight.style.display = 'none';
+            tutPositionBubbleCenter(bubble);
+        }
+
+        if (step.advance === 'action') {
+            tutAttachActionListeners(step);
+        }
+    }
+
     updateSet3Labels();
     updateConfig();
 
@@ -3801,6 +3939,7 @@
     else renderServeBalls();
     initSplash();
     initSponsorCarousel();
+    if (!hadSavedGame) setTimeout(tutMaybeStart, 2600);
 
     // ── Expor funções públicas no window (chamadas por onclick no HTML) ──────
     Object.assign(window, {

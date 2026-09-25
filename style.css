@@ -2068,3 +2068,48 @@
     }
 }
 
+/* ============================================================
+   TUTORIAL — onboarding guiado (balões sequenciais)
+   ============================================================ */
+#tut-overlay { position: fixed; inset: 0; z-index: 5000; pointer-events: none; }
+
+.tut-highlight {
+    position: fixed; display: none; pointer-events: none;
+    border-radius: 10px;
+    box-shadow: 0 0 0 9999px rgba(4, 10, 25, 0.72);
+    transition: top 0.25s, left 0.25s, width 0.25s, height 0.25s;
+}
+
+.tut-bubble {
+    position: fixed; pointer-events: auto;
+    max-width: 78vw; min-width: 200px;
+    background: var(--card-bg); border: 1px solid var(--divider);
+    border-radius: 10px; padding: 10px 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    z-index: 5001;
+}
+.tut-bubble.tut-tip { border-color: var(--accent-yellow); }
+.tut-bubble-label {
+    display: flex; align-items: center; gap: 5px; margin-bottom: 4px;
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--accent-yellow); display: none;
+}
+.tut-bubble.tut-tip .tut-bubble-label { display: flex; }
+.tut-bubble-text { font-size: 13px; color: var(--text-main); line-height: 1.4; }
+.tut-bubble-footer {
+    margin-top: 8px; display: flex; align-items: center; justify-content: space-between;
+}
+.tut-progress { font-size: 11px; color: var(--text-dim); }
+.tut-next-btn {
+    background: var(--accent-blue); border: none; border-radius: 999px;
+    color: #05263f; font-size: 12px; font-weight: 700;
+    padding: 5px 14px; cursor: pointer;
+}
+.tut-next-btn:active { opacity: 0.7; }
+.tut-skip {
+    position: fixed; top: calc(1.2vh + env(safe-area-inset-top, 0px)); right: 1.5vh;
+    pointer-events: auto; background: none; border: none;
+    color: var(--text-dim); font-size: 11px; text-decoration: underline;
+    z-index: 5001; padding: 6px;
+}
+
