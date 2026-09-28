@@ -2082,34 +2082,36 @@
 
 .tut-bubble {
     position: fixed; pointer-events: auto;
-    max-width: 78vw; min-width: 200px;
-    background: var(--card-bg); border: 1px solid var(--divider);
-    border-radius: 10px; padding: 10px 12px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    max-width: 82vw; min-width: 210px;
+    background: #ffffff; border: 2px solid var(--accent-blue);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
     z-index: 5001;
 }
-.tut-bubble.tut-tip { border-color: var(--accent-yellow); }
+.tut-bubble.tut-tip { border-color: #d99a00; }
 .tut-bubble-label {
     display: flex; align-items: center; gap: 5px; margin-bottom: 4px;
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--accent-yellow); display: none;
+    color: #9a6a00; font-weight: 700; display: none;
 }
 .tut-bubble.tut-tip .tut-bubble-label { display: flex; }
-.tut-bubble-text { font-size: 13px; color: var(--text-main); line-height: 1.4; }
+.tut-bubble-title { font-size: 15px; font-weight: 800; color: #0b1a35; line-height: 1.25; }
+.tut-bubble-subtitle { font-size: 12px; color: #40566f; margin: 2px 0 8px; line-height: 1.3; }
+.tut-bubble-text { font-size: 14px; color: #0b1a35; line-height: 1.4; }
 .tut-bubble-footer {
     margin-top: 8px; display: flex; align-items: center; justify-content: space-between;
 }
-.tut-progress { font-size: 11px; color: var(--text-dim); }
+.tut-progress { font-size: 11px; color: #40566f; }
 .tut-next-btn {
-    background: var(--accent-blue); border: none; border-radius: 999px;
-    color: #05263f; font-size: 12px; font-weight: 700;
+    background: #0b1a35; border: none; border-radius: 999px;
+    color: #ffffff; font-size: 12px; font-weight: 700;
     padding: 5px 14px; cursor: pointer;
 }
 .tut-next-btn:active { opacity: 0.7; }
 .tut-skip {
     position: fixed; top: calc(1.2vh + env(safe-area-inset-top, 0px)); right: 1.5vh;
     pointer-events: auto; background: none; border: none;
-    color: var(--text-dim); font-size: 11px; text-decoration: underline;
+    color: #cfe3f5; font-size: 11px; text-decoration: underline;
     z-index: 5001; padding: 6px;
 }
 

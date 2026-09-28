@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.9.5';
+    const APP_VERSION = '3.9.7';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3793,19 +3793,25 @@
     let tutActive = false;
     let tutIdx = 0;
     let tutActionHandlers = [];
+    let tutOpenedConfig = false; // true enquanto o tutorial mantém o CONFIG aberto
 
     // Cada passo: text, anchor (seletor|null, null = centralizado),
     // tip (true = estilo "tip solta", sem seta/indicador),
     // advance: 'next' (botão Next) | 'action' (aguarda ação real do usuário),
     // actionTargets/actionEvent: usados quando advance === 'action'
     const TUTORIAL_STEPS = [
-        { text: "Padel Score and Coaching helps your athlete's development — turning match data into insights that support your coaching.", anchor: null, advance: 'next' },
+        { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching helps your athlete's development — turning match data into insights that support your coaching.", anchor: null, advance: 'next' },
         { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
         { text: "Plus insights on mental performance and game strategy to improve.", anchor: null, advance: 'next' },
         { text: "Tap here to pick a tournament or federation logo from your gallery.", anchor: '#logo-left-slot', advance: 'action', actionTargets: ['#fi-logo-left'], actionEvent: 'change' },
         { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: 'change' },
         { text: "Standing behind the baseline, place each player on their real side — left or right.", anchor: null, tip: true, advance: 'next' },
         { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: 'blur' },
+        { text: "Menu → CONFIG sets up the match. Tap Next and we'll open it for you.", anchor: '#p-fab-btn', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
+        { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
+        { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
+        { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
+        { text: "Choose the language for the AI Analysis. Tap Next to go back to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
     ];
 
     // Replay manual (botão no CONFIG): ignora a flag e o estado salvo
@@ -3831,6 +3837,7 @@
     function tutEnd() {
         tutActive = false;
         tutClearActionListeners();
+        if (tutOpenedConfig) { tutOpenedConfig = false; closeConfig(); }
         const ov = document.getElementById('tut-overlay');
         if (ov) ov.remove();
         try { localStorage.setItem(TUTORIAL_DONE_KEY, '1'); } catch(e) {}
@@ -3844,6 +3851,8 @@
             '<div class="tut-highlight" id="tut-highlight"></div>' +
             '<div class="tut-bubble" id="tut-bubble">' +
                 '<div class="tut-bubble-label">💡 Tip</div>' +
+                '<div class="tut-bubble-title" id="tut-bubble-title"></div>' +
+                '<div class="tut-bubble-subtitle" id="tut-bubble-subtitle"></div>' +
                 '<div class="tut-bubble-text" id="tut-bubble-text"></div>' +
                 '<div class="tut-bubble-footer">' +
                     '<span class="tut-progress" id="tut-progress"></span>' +
@@ -3862,9 +3871,13 @@
     }
 
     function tutNext() {
+        const cur = TUTORIAL_STEPS[tutIdx];
+        const hadHook = !!(cur && cur.onLeave);
+        if (hadHook) cur.onLeave();
         tutIdx++;
         if (tutIdx >= TUTORIAL_STEPS.length) { tutEnd(); return; }
-        tutShowStep();
+        // Se o passo anterior abriu/fechou uma tela, dar um instante para o layout assentar
+        if (hadHook) setTimeout(tutShowStep, 80); else tutShowStep();
     }
 
     function tutClearActionListeners() {
@@ -3900,11 +3913,18 @@
     }
 
     function tutShowStep() {
+        if (!tutActive) return;
         tutRenderShell();
         const step = TUTORIAL_STEPS[tutIdx];
         const bubble = document.getElementById('tut-bubble');
         const highlight = document.getElementById('tut-highlight');
 
+        const titleEl = document.getElementById('tut-bubble-title');
+        const subEl = document.getElementById('tut-bubble-subtitle');
+        titleEl.textContent = step.title || '';
+        subEl.textContent = step.subtitle || '';
+        titleEl.style.display = step.title ? 'block' : 'none';
+        subEl.style.display = step.subtitle ? 'block' : 'none';
         document.getElementById('tut-bubble-text').textContent = step.text;
         document.getElementById('tut-progress').textContent = (tutIdx + 1) + ' / ' + TUTORIAL_STEPS.length;
         bubble.classList.toggle('tut-tip', !!step.tip);
