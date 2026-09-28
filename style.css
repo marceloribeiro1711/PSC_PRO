@@ -2122,3 +2122,11 @@
     padding: 1vh 4vw; border-radius: 999px; cursor: pointer;
 }
 .config-tut-btn:active { opacity: 0.6; }
+
+.tut-highlight.tut-ring {
+    box-shadow: 0 0 0 3px var(--accent-blue), 0 0 16px 3px rgba(56, 189, 248, 0.75);
+}
+.tut-next-btn.tut-skip-step {
+    background: none; color: #40566f; font-weight: 600;
+    text-decoration: underline; padding: 5px 4px;
+}

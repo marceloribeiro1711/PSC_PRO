@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.9.7';
+    const APP_VERSION = '3.9.8';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1781,6 +1781,7 @@
     // Continua visível durante o set seguinte também (não é obrigatório
     // fechar só porque o próximo set começou a ser jogado).
     function showSetIntervalCardBtn() {
+        setTimeout(function() { tutContextual(TUT_CARD_STEPS, TUT_CARD_KEY); }, 450);
         var pBtn = document.getElementById('gs-card-btn');
         if (pBtn) pBtn.classList.add('show');
         var lsBtn = document.getElementById('ls-card-btn');
@@ -3575,6 +3576,7 @@
         carouselIdx = 0;
         renderCarousel();
         document.getElementById('history-overlay').classList.add('show');
+        setTimeout(function() { tutContextual(TUT_HIST_STEPS, TUT_HIST_KEY); }, 500);
 
         // Swipe support
         const wrap = document.getElementById('h-track-wrap');
@@ -3790,45 +3792,83 @@
     // TUTORIAL — onboarding guiado (balões sequenciais)
     // ============================================================
     const TUTORIAL_DONE_KEY = 'padel_tutorial_done';
+    const TUT_CARD_KEY = 'padel_tutorial_card_done';
+    const TUT_HIST_KEY = 'padel_tutorial_history_done';
     let tutActive = false;
     let tutIdx = 0;
+    let tutSteps = null;
+    let tutDoneKey = TUTORIAL_DONE_KEY;
     let tutActionHandlers = [];
     let tutOpenedConfig = false; // true enquanto o tutorial mantém o CONFIG aberto
+    let tutBusy = false; // trava novos cliques enquanto uma transição (com delay) está pendente
 
     // Cada passo: text, anchor (seletor|null, null = centralizado),
-    // tip (true = estilo "tip solta", sem seta/indicador),
+    // title/subtitle (opcionais, só na 1ª caixa), tip (true = "tip solta"),
+    // ring (true = só um anel em volta do alvo, sem escurecer o resto da tela),
     // advance: 'next' (botão Next) | 'action' (aguarda ação real do usuário),
-    // actionTargets/actionEvent: usados quando advance === 'action'
+    // actionTargets (seletores, todos os elementos que casam) / actionEvent (lista de eventos),
+    // onLeave: função opcional executada ao sair do passo (ex: abrir/fechar o CONFIG)
     const TUTORIAL_STEPS = [
         { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching helps your athlete's development — turning match data into insights that support your coaching.", anchor: null, advance: 'next' },
         { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
         { text: "Plus insights on mental performance and game strategy to improve.", anchor: null, advance: 'next' },
-        { text: "Tap here to pick a tournament or federation logo from your gallery.", anchor: '#logo-left-slot', advance: 'action', actionTargets: ['#fi-logo-left'], actionEvent: 'change' },
-        { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: 'change' },
+        { text: "Tap here to pick a tournament or federation logo from your gallery.", anchor: '#logo-left-slot', advance: 'action', actionTargets: ['#fi-logo-left'], actionEvent: ['change'] },
+        { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: ['change'] },
         { text: "Standing behind the baseline, place each player on their real side — left or right.", anchor: null, tip: true, advance: 'next' },
-        { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: 'blur' },
+        { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: ['blur'] },
         { text: "Menu → CONFIG sets up the match. Tap Next and we'll open it for you.", anchor: '#p-fab-btn', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
         { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
         { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
         { text: "Choose the language for the AI Analysis. Tap Next to go back to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
+        { text: "Open the menu, tap NEW GAME and confirm to start the match.", anchor: '#p-fab-btn', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'] },
+        { text: "Tap the ball of the player who serves first. Do the same for the other pair's first serve and at the start of every set.", anchor: '#whos-serve-p', ring: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
+        { text: "The match is on! Tap the Points box to add each point to the team that won it.", anchor: '.pts-box', advance: 'action', actionTargets: ['.pts-box'], actionEvent: ['click'] },
+        { text: "Follow every rally and give the point to the right team. Only after marking a point, tag its shot stat (optional).", anchor: null, tip: true, advance: 'next' },
+        { text: "Play on until the end. More hints will pop up along the way — like when Show Match Card appears.", anchor: null, advance: 'next' },
+    ];
+
+    // Dicas contextuais: aparecem uma única vez, na primeira vez que o recurso surge de verdade
+    const TUT_CARD_STEPS = [
+        { text: "Show Match Card: tap it to see how the match stands so far.", anchor: '#gs-card-btn', advance: 'action', actionTargets: ['#gs-card-btn'], actionEvent: ['click'] },
+    ];
+    const TUT_HIST_STEPS = [
+        { text: "Tap AI Analysis for a detailed review of the match: each player's strengths, weak points and what to improve — in the language you chose.", anchor: '#h-ai-footer-btn', advance: 'next' },
     ];
 
     // Replay manual (botão no CONFIG): ignora a flag e o estado salvo
     function startTutorialFromConfig() {
         closeConfig();
         if (tutActive) tutEnd();
-        setTimeout(tutStart, 350);
+        try { localStorage.removeItem(TUT_CARD_KEY); localStorage.removeItem(TUT_HIST_KEY); } catch(e) {}
+        setTimeout(function() { tutStart(TUTORIAL_STEPS, TUTORIAL_DONE_KEY); }, 350);
     }
 
     function tutMaybeStart() {
         try {
             if (localStorage.getItem(TUTORIAL_DONE_KEY)) return;
         } catch(e) { return; }
-        tutStart();
+        tutStart(TUTORIAL_STEPS, TUTORIAL_DONE_KEY);
     }
 
-    function tutStart() {
+    // Dica contextual: só depois de o tutorial principal ter sido concluído,
+    // só uma vez, e só se o alvo estiver realmente visível na tela
+    function tutContextual(steps, key) {
+        if (tutActive) return;
+        try {
+            if (!localStorage.getItem(TUTORIAL_DONE_KEY)) return;
+            if (localStorage.getItem(key)) return;
+        } catch(e) { return; }
+        const a = document.querySelector(steps[0].anchor);
+        if (!a) return;
+        const r = a.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        tutStart(steps, key);
+    }
+
+    function tutStart(steps, key) {
+        tutSteps = steps;
+        tutDoneKey = key;
         tutActive = true;
         tutIdx = 0;
         tutShowStep();
@@ -3840,6 +3880,16 @@
         if (tutOpenedConfig) { tutOpenedConfig = false; closeConfig(); }
         const ov = document.getElementById('tut-overlay');
         if (ov) ov.remove();
+        try { localStorage.setItem(tutDoneKey, '1'); } catch(e) {}
+    }
+
+    // "Skip tutorial": encerra e também dispensa as dicas contextuais
+    function tutSkip() {
+        try {
+            localStorage.setItem(TUT_CARD_KEY, '1');
+            localStorage.setItem(TUT_HIST_KEY, '1');
+        } catch(e) {}
+        tutEnd();
         try { localStorage.setItem(TUTORIAL_DONE_KEY, '1'); } catch(e) {}
     }
 
@@ -3862,22 +3912,32 @@
             '<button class="tut-skip" id="tut-skip">Skip tutorial</button>';
         document.body.appendChild(ov);
         document.getElementById('tut-next-btn').addEventListener('click', tutNext);
-        document.getElementById('tut-skip').addEventListener('click', tutEnd);
+        document.getElementById('tut-skip').addEventListener('click', tutSkip);
         window.addEventListener('resize', tutReposition);
     }
 
     function tutReposition() {
-        if (tutActive) tutShowStep(/* reposition */ true);
+        if (tutActive) tutShowStep();
     }
 
     function tutNext() {
-        const cur = TUTORIAL_STEPS[tutIdx];
+        if (tutBusy) return;
+        const cur = tutSteps[tutIdx];
         const hadHook = !!(cur && cur.onLeave);
+        const needsDelay = hadHook || (cur && cur.advance === 'action');
         if (hadHook) cur.onLeave();
         tutIdx++;
-        if (tutIdx >= TUTORIAL_STEPS.length) { tutEnd(); return; }
-        // Se o passo anterior abriu/fechou uma tela, dar um instante para o layout assentar
-        if (hadHook) setTimeout(tutShowStep, 80); else tutShowStep();
+        if (tutIdx >= tutSteps.length) { tutEnd(); return; }
+        // Depois de uma ação real ou de abrir/fechar uma tela, dar um instante para o layout assentar.
+        // tutBusy trava novos avanços (clique duplo, 2º toque real) até o balão ser redesenhado.
+        if (needsDelay) {
+            tutBusy = true;
+            const btn = document.getElementById('tut-next-btn');
+            if (btn) btn.disabled = true;
+            setTimeout(function() { tutBusy = false; tutShowStep(); }, 250);
+        } else {
+            tutShowStep();
+        }
     }
 
     function tutClearActionListeners() {
@@ -3886,12 +3946,14 @@
     }
 
     function tutAttachActionListeners(step) {
+        const fn = function() { tutClearActionListeners(); tutNext(); };
         (step.actionTargets || []).forEach(function(sel) {
-            const el = document.querySelector(sel);
-            if (!el) return;
-            const fn = function() { tutClearActionListeners(); tutNext(); };
-            el.addEventListener(step.actionEvent, fn, { once: true });
-            tutActionHandlers.push({ el: el, event: step.actionEvent, fn: fn });
+            document.querySelectorAll(sel).forEach(function(el) {
+                (step.actionEvent || ['click']).forEach(function(ev) {
+                    el.addEventListener(ev, fn);
+                    tutActionHandlers.push({ el: el, event: ev, fn: fn });
+                });
+            });
         });
     }
 
@@ -3915,7 +3977,8 @@
     function tutShowStep() {
         if (!tutActive) return;
         tutRenderShell();
-        const step = TUTORIAL_STEPS[tutIdx];
+        const step = tutSteps[tutIdx];
+        const isLast = tutIdx === tutSteps.length - 1;
         const bubble = document.getElementById('tut-bubble');
         const highlight = document.getElementById('tut-highlight');
 
@@ -3926,16 +3989,26 @@
         titleEl.style.display = step.title ? 'block' : 'none';
         subEl.style.display = step.subtitle ? 'block' : 'none';
         document.getElementById('tut-bubble-text').textContent = step.text;
-        document.getElementById('tut-progress').textContent = (tutIdx + 1) + ' / ' + TUTORIAL_STEPS.length;
+        document.getElementById('tut-progress').textContent = tutSteps.length > 1 ? ((tutIdx + 1) + ' / ' + tutSteps.length) : '';
         bubble.classList.toggle('tut-tip', !!step.tip);
-        document.getElementById('tut-next-btn').style.display = (step.advance === 'next') ? 'inline-block' : 'none';
+
+        // Passos de ação real têm "Skip step" (nunca deixa o usuário preso); os demais têm Next
+        const btn = document.getElementById('tut-next-btn');
+        if (step.advance === 'action') {
+            btn.textContent = 'Skip step';
+            btn.classList.add('tut-skip-step');
+        } else {
+            btn.textContent = isLast ? 'Got it' : 'Next';
+            btn.classList.remove('tut-skip-step');
+        }
 
         tutClearActionListeners();
 
         const anchorEl = step.anchor ? document.querySelector(step.anchor) : null;
-        if (anchorEl) {
-            const r = anchorEl.getBoundingClientRect();
+        const r = anchorEl ? anchorEl.getBoundingClientRect() : null;
+        if (r && r.width > 0 && r.height > 0) {
             highlight.style.display = 'block';
+            highlight.classList.toggle('tut-ring', !!step.ring);
             highlight.style.top = (r.top - 6) + 'px';
             highlight.style.left = (r.left - 6) + 'px';
             highlight.style.width = (r.width + 12) + 'px';
@@ -3945,6 +4018,9 @@
             highlight.style.display = 'none';
             tutPositionBubbleCenter(bubble);
         }
+
+        const nb = document.getElementById('tut-next-btn');
+        if (nb) nb.disabled = false;
 
         if (step.advance === 'action') {
             tutAttachActionListeners(step);
