@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.9.4';
+    const APP_VERSION = '3.9.5';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3808,6 +3808,13 @@
         { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: 'blur' },
     ];
 
+    // Replay manual (botão no CONFIG): ignora a flag e o estado salvo
+    function startTutorialFromConfig() {
+        closeConfig();
+        if (tutActive) tutEnd();
+        setTimeout(tutStart, 350);
+    }
+
     function tutMaybeStart() {
         try {
             if (localStorage.getItem(TUTORIAL_DONE_KEY)) return;
@@ -3949,7 +3956,7 @@
         ngConfirm, ngCancel,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
-        openConfig, openHistory, openNotes,
+        openConfig, openHistory, openNotes, startTutorialFromConfig,
         saveNotes, saveNotesFs,
         setPointMode, setSetMode, setStatsMode, setProsetMode,
         toggleTimer,

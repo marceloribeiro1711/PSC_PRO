@@ -2113,3 +2113,10 @@
     z-index: 5001; padding: 6px;
 }
 
+
+.config-tut-btn {
+    background: var(--panel-bg); border: 1.5px solid var(--divider);
+    color: #fff; font-size: 1.7vh; font-weight: 700; letter-spacing: 1px;
+    padding: 1vh 4vw; border-radius: 999px; cursor: pointer;
+}
+.config-tut-btn:active { opacity: 0.6; }
