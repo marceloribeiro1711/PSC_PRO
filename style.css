@@ -194,7 +194,7 @@
         /* No retrato o menu hambúrguer (FAB) dá lugar à barra inferior; o FAB continua só no TV Mode */
         @media (orientation: portrait) {
             .p-fab-menu { display: none !important; }
-            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + env(safe-area-inset-bottom, 0px) + 1.5vh); }
+            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + env(safe-area-inset-bottom, 0px) + 1vh); }
         }
 
         /* ============================================================
@@ -483,14 +483,19 @@
         .tiebreak-badge.show { opacity: 1; }
 
         /* END OF MATCH banner */
+        /* Faixa de avisos no rodapé (retrato): END OF MATCH e o aviso do saque inicial
+           ficam logo acima do espaço reservado ao botão Show Match Card, no mesmo
+           formato arredondado. --mcard-slot = altura reservada ao botão + folga. */
+        :root { --mcard-slot: 4.6vh; }
         .game-over-banner {
-            position: absolute; left: 50%; bottom: 0;
-            transform: translate(-50%, 50%);
+            position: fixed; left: 50%;
+            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
+            transform: translateX(-50%);
             background: #e03030; color: #fff;
-            font-size: 2vh; font-weight: 900; letter-spacing: 3px;
-            text-transform: uppercase; padding: 0.7vh 4vw;
-            border-radius: 8px; white-space: nowrap;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+            font-size: 1.6vh; font-weight: 800; letter-spacing: 2px;
+            text-transform: uppercase; padding: 1vh 3.5vw;
+            border-radius: 24px; white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; z-index: 100;
             transition: opacity 0.4s;
         }
@@ -515,15 +520,16 @@
         }
         .gs-card-btn.show { opacity: 1; pointer-events: auto; }
 
-        /* WHO'S SERVE? — portrait, mesma posição e estilo do game-over-banner */
+        /* WHO'S SERVE? — portrait, mesma posição e formato do game-over-banner (faixa de avisos do rodapé) */
         .whos-serve-badge {
-            position: absolute; left: 59.5%; bottom: 0;
-            transform: translate(-50%, 50%);
+            position: fixed; left: 50%;
+            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
+            transform: translateX(-50%);
             background: #e03030; color: #fff;
-            font-size: 1.7vh; font-weight: 900; letter-spacing: 3px;
-            text-transform: uppercase; padding: 0.7vh 4vw;
-            border-radius: 8px; white-space: nowrap;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+            font-size: 1.5vh; font-weight: 700; letter-spacing: 0.3px;
+            padding: 1vh 3.5vw; text-align: center;
+            border-radius: 24px; white-space: nowrap; max-width: 94vw;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; z-index: 100;
             transition: opacity 0.4s;
         }
