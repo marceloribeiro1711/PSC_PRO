@@ -115,11 +115,10 @@
             display: flex; flex-direction: column;
             width: 100vw; height: 100vh;
             box-sizing: border-box;
-            /* Reserva espaço real na base da tela para os botões de
-               navegação do Android — feito aqui (no container raiz) e não
-               via margin em elementos filhos, porque .p-teams usa
-               overflow:visible e anula esse tipo de ajuste em cascata */
-            padding-bottom: calc(1.5vh + env(safe-area-inset-bottom, 16px));
+            /* A base da tela (incluindo a área dos botões de navegação do Android)
+               é reservada pela barra inferior .p-tabbar, que já aplica o
+               safe-area-inset-bottom — por isso o container raiz não tem padding-bottom */
+            padding-bottom: 0;
         }
 
         /* ============================================================
@@ -169,6 +168,34 @@
         .header-logo-placeholder span { font-size: 1.2vh; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
         .header-logo-placeholder svg { width: 3vh; height: 3vh; opacity: 0.5; }
         .header-divider { width: 1px; height: 4vh; background: var(--divider); flex-shrink: 0; }
+
+        /* ============================================================
+           MENU INFERIOR PORTRAIT — padrão do app Despesas
+           (barra fixa no rodapé, ícones lineares 20px + rótulo 10px)
+        ============================================================ */
+        :root { --ptab-h: 50px; }
+        .p-tabbar {
+            flex-shrink: 0; display: flex; width: 100%;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-card);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .p-tab-btn {
+            flex: 1; height: var(--ptab-h);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 3px;
+            padding: 8px 4px 6px;
+            background: none; border: none; font-family: inherit;
+            color: var(--text-dim); cursor: pointer;
+        }
+        .p-tab-btn svg { width: 20px; height: 20px; }
+        .p-tab-btn span { font-size: 10px; font-weight: 600; }
+        .p-tab-btn:active { color: var(--accent-blue); }
+        /* No retrato o menu hambúrguer (FAB) dá lugar à barra inferior; o FAB continua só no TV Mode */
+        @media (orientation: portrait) {
+            .p-fab-menu { display: none !important; }
+            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + env(safe-area-inset-bottom, 0px) + 1.5vh); }
+        }
 
         /* ============================================================
            PORTRAIT — equipas
@@ -350,10 +377,10 @@
             font-size: 1.8vh; font-weight: 900;
             font-variant-numeric: tabular-nums; color: #ffffff;
         }
-        .stat-box-smash {
-            border-color: #1e4a8e;
-        }
-        .stat-label-smash { font-weight: 900; }
+        /* X3/X4/Smash escondido no portrait (libera espaço para o menu inferior).
+           Os elementos continuam no DOM — nenhum id/dado muda. */
+        .stat-box-smash { border-color: #1e4a8e; display: none; }
+        .stat-label-smash { font-weight: 900; display: none; }
         .stats-team1 .stat-box { border-color: #1e4a8e; }
         .stats-team2 .stat-box { border-color: #1e4a8e; }
         .stats-team1 .stat-box:active { background: #1e3a6e; }

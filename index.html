@@ -191,6 +191,25 @@
             </div>
         </div>
     </div>
+    <!-- MENU INFERIOR PORTRAIT — mesmo padrão do app Despesas (barra fixa, ícones lineares + rótulo) -->
+    <nav class="p-tabbar" id="p-tabbar">
+        <button class="p-tab-btn" id="tab-newgame" onclick="askResetMatch()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            <span>New Game</span>
+        </button>
+        <button class="p-tab-btn" id="tab-history" onclick="openHistory()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="12" height="4" rx="1"/></svg>
+            <span>History</span>
+        </button>
+        <button class="p-tab-btn" id="tab-notes" onclick="openNotesFs(null)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+            <span>Notes</span>
+        </button>
+        <button class="p-tab-btn" id="tab-setup" onclick="openConfig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Setup</span>
+        </button>
+    </nav>
 </div>
 
 <!-- ============================================================
@@ -334,7 +353,7 @@
 <div class="config-overlay" id="config-overlay" onclick="closeConfigOnBg(event)">
     <div class="config-modal">
         <div class="config-modal-header">
-            <h2>Game Config</h2>
+            <h2>Game Setup</h2>
         </div>
         <div class="config-row">
             <div class="config-row-label">Set Mode</div>
@@ -426,7 +445,7 @@
         <button class="p-fab-item portrait-only-item" onclick="openHistory()">History</button>
         <button class="p-fab-item js-gamelog-menu-item" onclick="openGameLogMenu()">Match Log</button>
         <button class="p-fab-item" onclick="openNotesFs(null)">Notes</button>
-        <button class="p-fab-item" onclick="openConfig()">Config</button>
+        <button class="p-fab-item" onclick="openConfig()">Setup</button>
     </div>
     <button class="p-fab-btn" id="p-fab-btn" aria-label="Menu">
         <span></span><span></span><span></span>

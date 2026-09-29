@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.9.9';
+    const APP_VERSION = '3.10.0';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2616,7 +2616,8 @@
         function sum(key, off) {
             return (s[`s_${key}_${pSuffix[off]}`] || 0) + (s[`s_${key}_${pSuffix[off + 1]}`] || 0);
         }
-        const rows = STAT_LABELS.map(function (label, i) {
+        const rows = visibleStatIdx(s).map(function (i) {
+            const label = STAT_LABELS[i];
             const key = STAT_KEYS[i];
             return { label: label, v1: sum(key, 0), v2: sum(key, 2) };
         });
@@ -2886,6 +2887,14 @@
 
     const STAT_LABELS = ['Serve Won','Broken Serve','Unforced Errors','Forced Errors','Double Fault','Winners','x3 / x4 / Smash'];
     const STAT_KEYS   = ['1srv','2srv','ufe','fe','df','win','smash'];
+    // Índices das linhas de estatística a mostrar: a linha x3/x4/Smash só aparece
+    // se a partida tem algum Smash registrado (partidas antigas mantêm o dado;
+    // as novas, sem o botão no placar, não mostram a linha zerada).
+    function visibleStatIdx(stats) {
+        var smash = 0;
+        ['p1','p2','p3','p4'].forEach(function (p) { smash += ((stats && stats['s_smash_' + p]) || 0); });
+        return STAT_KEYS.map(function (k, i) { return i; }).filter(function (i) { return STAT_KEYS[i] !== 'smash' || smash > 0; });
+    }
 
     function formatServeStat(value, total) {
         if (total <= 0) return `${value}`; // sem base para % — não calcula nem mostra 0%
@@ -2909,7 +2918,8 @@
         const tot1 = ((entry.stats ? entry.stats[`s_1srv_${pSuffix[offset]}`] : undefined) || 0) + ((entry.stats ? entry.stats[`s_2srv_${pSuffix[offset]}`] : undefined) || 0);
         const tot2 = ((entry.stats ? entry.stats[`s_1srv_${pSuffix[offset+1]}`] : undefined) || 0) + ((entry.stats ? entry.stats[`s_2srv_${pSuffix[offset+1]}`] : undefined) || 0);
 
-        const rows = STAT_LABELS.map((label, i) => {
+        const rows = visibleStatIdx(entry.stats).map((i) => {
+            const label = STAT_LABELS[i];
             const key = STAT_KEYS[i];
             const v1 = (entry.stats ? entry.stats[`s_${key}_${pSuffix[offset]}`] : undefined) || 0;
             const v2 = (entry.stats ? entry.stats[`s_${key}_${pSuffix[offset+1]}`] : undefined) || 0;
@@ -3243,8 +3253,10 @@
         const tot2 = ((entry.stats ? entry.stats[`s_1srv_${pSuffix[offset+1]}`] : undefined) || 0) + ((entry.stats ? entry.stats[`s_2srv_${pSuffix[offset+1]}`] : undefined) || 0);
 
         // Largura das colunas — baseada no maior valor entre label/nomes/dados
-        const labelW = Math.max(...STAT_LABELS.map(l => l.length)) + 2;
-        const rows = STAT_LABELS.map((label, i) => {
+        const visIdx = visibleStatIdx(entry.stats);
+        const labelW = Math.max(...visIdx.map(i => STAT_LABELS[i].length)) + 2;
+        const rows = visIdx.map((i) => {
+            const label = STAT_LABELS[i];
             const key = STAT_KEYS[i];
             const v1 = (entry.stats ? entry.stats[`s_${key}_${pSuffix[offset]}`] : undefined) || 0;
             const v2 = (entry.stats ? entry.stats[`s_${key}_${pSuffix[offset+1]}`] : undefined) || 0;
@@ -3448,7 +3460,8 @@
         // ---- 2. SCOUT — Coluna A: estatística, B/C: dupla 1, D/E: dupla 2 ----
         const scoutHeaderRow = ws.addRow(['SCOUT', p1, p2, p3, p4]);
         styleHeaderRow(scoutHeaderRow);
-        STAT_LABELS.forEach((label, i) => {
+        visibleStatIdx(entry.stats).forEach((i) => {
+            const label = STAT_LABELS[i];
             const key = STAT_KEYS[i];
             const v1 = (entry.stats ? entry.stats[`s_${key}_p1`] : undefined) || 0;
             const v2 = (entry.stats ? entry.stats[`s_${key}_p2`] : undefined) || 0;
@@ -3820,12 +3833,12 @@
         { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: ['change'] },
         { text: "Standing behind the baseline, place each player on the side they actually play — left or right.", anchor: null, tip: true, advance: 'next' },
         { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: ['blur'] },
-        { text: "Menu → CONFIG sets up the match. Tap Next and we'll open it for you.", anchor: '#p-fab-btn', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
+        { text: "SETUP is where you prepare the match. Tap Next and we'll open it for you.", anchor: '#tab-setup', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
         { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie, or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
         { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
         { text: "Choose the language for the AI Analysis. Tap Next to go back to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
-        { text: "Open the menu, tap NEW GAME and confirm to start the match.", anchor: '#p-fab-btn', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'] },
+        { text: "Tap NEW GAME and confirm to start the match.", anchor: '#tab-newgame', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'] },
         { text: "Tap the ball to set who will serve first for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, low: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
         { text: "The match is on! Tap the Points box to add each point to the team that won it.", anchor: '.pts-box', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box'], actionEvent: ['click'] },
         { text: "Follow every rally and give the point to the right team. Tag the shot stat only after marking the point (optional).", anchor: null, tip: true, low: true, advance: 'next' },
@@ -3838,6 +3851,7 @@
     ];
     const TUT_HIST_STEPS = [
         { text: "Tap AI Analysis for a detailed review of the match: each player's strengths, weaknesses and what to improve, in the language you chose.", anchor: '#h-ai-footer-btn', advance: 'next' },
+        { text: "The first match in your history came from the tutorial simulation. Tap the trash icon to delete it whenever you like.", anchor: '.h-delete-btn', advance: 'next' },
     ];
 
     // Replay manual (botão no CONFIG): ignora a flag e o estado salvo
