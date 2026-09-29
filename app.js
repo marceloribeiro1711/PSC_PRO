@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.1';
+    const APP_VERSION = '3.10.2';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -872,7 +872,7 @@
             t = document.createElement('div');
             t.id = '_upload_toast';
             Object.assign(t.style, {
-                position:'fixed', bottom:'12vh', left:'50%', transform:'translateX(-50%)',
+                position:'fixed', top:'calc(11vh + env(safe-area-inset-top, 0px))', left:'50%', transform:'translateX(-50%)',
                 background:'#1e3a6e', color:'#fff', padding:'1.2dvh 4vw',
                 borderRadius:'8px', fontSize:'1.5dvh', fontWeight:'700',
                 zIndex:'99999', pointerEvents:'none', transition:'opacity .4s',
@@ -885,6 +885,30 @@
         t.style.opacity = '1';
         clearTimeout(t._timer);
         t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+    }
+
+    // Esconde o toast já (ex.: "Processing…" some assim que a foto termina de carregar)
+    function hideToast() {
+        const t = document.getElementById('_upload_toast');
+        if (!t) return;
+        clearTimeout(t._timer);
+        t.style.opacity = '0';
+    }
+
+    // Tentativa de marcar ponto sem definir o saque: o texto do rótulo vermelho
+    // ("Tap the ball to decide who will serve first" / "WHO IS SERVING FIRST?")
+    // pisca ~3x, em vez de mostrar um toast. Vale para retrato e TV Mode.
+    function blinkServeLabel() {
+        ['whos-serve-p', 'ls-whos-serve'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('blink');
+            void el.offsetWidth; // reinicia a animação se o usuário tocar de novo
+            el.classList.add('blink');
+            clearTimeout(el._blinkTimer);
+            el._blinkTimer = setTimeout(function () { el.classList.remove('blink'); }, 1700);
+        });
+        try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
     }
 
     // ── IndexedDB para fotos e logos (evita quota localStorage com base64 grande) ──
@@ -997,7 +1021,7 @@
             if (!file) return;
             _processImageFile(file, 480, function(dataUrl) {
                 applyPhoto(id, dataUrl);
-                showToast('✅ Photo updated', '#166534');
+                hideToast();
             });
             try { input.value = ''; } catch(e) {}
         });
@@ -1011,7 +1035,7 @@
             if (!file) return;
             _processImageFile(file, 300, function(dataUrl) {
                 applyLogo(side, dataUrl);
-                showToast('✅ Logo updated', '#166534');
+                hideToast();
             });
             try { input.value = ''; } catch(e) {}
         });
@@ -1859,7 +1883,7 @@
         }
         // Bloquear pontos enquanto o servidor não estiver definido
         if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2') {
-            showToast('⚠️ Choose who serves first');
+            blinkServeLabel();
             return;
         }
         if (!timerRunning && timerSeconds === 0) toggleTimer();
@@ -3583,7 +3607,6 @@
     function openHistory() {
         // Histórico é só pra leitura vertical — nunca abre em TV Mode.
         if (window.matchMedia('(orientation: landscape)').matches) {
-            showToast('History is only available in portrait mode');
             return;
         }
         carouselIdx = 0;
@@ -3709,12 +3732,10 @@
 
     function checkForUpdates() {
         if (!('serviceWorker' in navigator)) {
-            showToast('Service Worker not available');
             return;
         }
-        showToast('🔄 Checking for updates...');
         navigator.serviceWorker.getRegistration().then(reg => {
-            if (!reg) { showToast('No SW registered'); return; }
+            if (!reg) return;
             reg.update().then(() => {
                 if (reg.waiting) {
                     // Novo SW já está à espera — activar e recarregar
@@ -3728,8 +3749,7 @@
                         }
                     });
                 } else {
-                    // Já está na versão mais recente
-                    showToast('✅ Already up to date');
+                    // Já está na versão mais recente — nada a fazer
                 }
             });
         });

@@ -534,6 +534,9 @@
             transition: opacity 0.4s;
         }
         .whos-serve-badge.show { opacity: 1; }
+        /* Tentativa de marcar ponto sem definir o saque: só o texto pisca (a pílula vermelha fica fixa) */
+        @keyframes ws-text-blink { 0%, 100% { color: #fff; } 50% { color: transparent; } }
+        .whos-serve-badge.blink, .ls-badge-ws.blink { animation: ws-text-blink 0.5s ease-in-out 3; }
 
         /* GOLDEN POINT banner — entre as duas caixas de points */
         .gp-divider-wrap {
