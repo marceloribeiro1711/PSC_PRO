@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.2';
+    const APP_VERSION = '3.10.3';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3204,14 +3204,7 @@
     // partida actualmente visível no carrossel (carouselIdx), mesmo padrão
     // já usado por openPointLogFromHistoryCurrent().
     function handleAiButtonForEntryCurrent() { handleAiButtonForEntry(carouselIdx); }
-    function toggleIndividualDetailsCurrent() { toggleIndividualDetails(carouselIdx); }
     function openNotesFsCurrent() { openNotesFs(carouselIdx); }
-
-    function toggleIndividualDetails(idx) {
-        const el = document.getElementById('h-individual-' + idx);
-        if (!el) return;
-        el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-    }
 
     function buildGameSlide(entry, idx) {
         const sMode = entry.setMode === 'proset' ? 'ProSet'
@@ -3243,7 +3236,7 @@
                 <div class="gs-embed gs-card" id="gs-embed-${idx}">
                     <div class="gs-embed-loading">Loading…</div>
                 </div>
-                <div class="h-individual-details" id="h-individual-${idx}" style="display:none">
+                <div class="h-individual-details" id="h-individual-${idx}">
                     ${buildPairBlock(entry, 0, entry.winner === 0)}
                     ${buildPairBlock(entry, 1, entry.winner === 1)}
                     ${buildMatchStatsTable(entry)}
@@ -4161,8 +4154,8 @@
         setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
-        handleAiButtonForEntry, toggleIndividualDetails,
-        handleAiButtonForEntryCurrent, toggleIndividualDetailsCurrent, openNotesFsCurrent,
+        handleAiButtonForEntry,
+        handleAiButtonForEntryCurrent, openNotesFsCurrent,
     });
 
 })();

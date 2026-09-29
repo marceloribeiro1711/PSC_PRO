@@ -238,9 +238,9 @@
             <span class="h-ai-footer-icon">🔄</span>
             <span>AI Analysis</span>
         </button>
-        <button class="h-action-btn" onclick="toggleIndividualDetailsCurrent()" title="Show per-player stats for this match">
+        <button class="h-action-btn" onclick="openPointLogFromHistoryCurrent()" title="Point-by-point Match Log for this match">
             <span>📊</span>
-            <span>Individual Details</span>
+            <span>Match Log</span>
         </button>
         <button class="h-action-btn" onclick="openNotesFsCurrent()" title="Personal notes for this match">
             <span>📝</span>
@@ -256,10 +256,6 @@
             <button class="h-email-btn" onclick="exportHistoryGameToExcel()" title="Export to Excel">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export
-            </button>
-            <button class="h-email-btn" onclick="openPointLogFromHistoryCurrent()" title="Match Log">
-                <span style="font-size:1.6vh;">🎾</span>
-                Match Log
             </button>
         </div>
         <button class="history-back-btn" onclick="closeHistory()">BACK</button>
