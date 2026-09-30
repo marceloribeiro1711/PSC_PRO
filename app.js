@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.5';
+    const APP_VERSION = '3.10.6';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3606,7 +3606,6 @@
         carouselIdx = 0;
         renderCarousel();
         document.getElementById('history-overlay').classList.add('show');
-        setTimeout(function() { tutContextual(TUT_HIST_STEPS, TUT_HIST_KEY); }, 500);
 
         // Swipe support
         const wrap = document.getElementById('h-track-wrap');
@@ -3820,7 +3819,6 @@
     // ============================================================
     const TUTORIAL_DONE_KEY = 'padel_tutorial_done';
     const TUT_CARD_KEY = 'padel_tutorial_card_done';
-    const TUT_HIST_KEY = 'padel_tutorial_history_done';
     let tutActive = false;
     let tutIdx = 0;
     let tutSteps = null;
@@ -3837,7 +3835,8 @@
     // actionTargets (seletores, todos os elementos que casam) / actionEvent (lista de eventos),
     // onLeave: função opcional executada ao sair do passo (ex: abrir/fechar o CONFIG),
     // low (true = balão fixo na parte de baixo da tela, deixando o placar livre),
-    // simulate (true = o Next desse passo roda a simulação de partida antes de encerrar),
+    // center (true = balão no centro da tela, mesmo havendo alvo com destaque),
+    // simulate (true = o Next desse passo roda a simulação de partida e segue para o passo seguinte),
     // nextLabel: texto do botão (padrão: 'Got it' no último passo, 'Next' nos demais)
     const TUTORIAL_STEPS = [
         { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
@@ -3853,26 +3852,26 @@
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
         { text: "Choose the language for the AI Analysis. Tap Next to go back to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
         { text: "Tap NEW GAME and confirm to start the match.", anchor: '#tab-newgame', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'] },
-        { text: "Tap the ball to set who will serve first for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, low: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
+        { text: "Tap the ball to set who will serve first for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, center: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
         { text: "The match is on! Tap the Points box to add each point to the team that won it.", anchor: '.pts-box', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box'], actionEvent: ['click'] },
         { text: "Follow every rally and give the point to the right team. Tag the shot stat only after marking the point (optional).", anchor: null, tip: true, low: true, advance: 'next' },
-        { text: "Tap Next for a quick simulation: Pair 1 wins both sets. Afterwards, use NEW GAME to start your own match — more hints will pop up along the way.", anchor: null, low: true, simulate: true, nextLabel: 'Next', advance: 'next' },
+        { text: "Tap Next for a quick simulation: Pair 1 wins both sets.", anchor: null, center: true, simulate: true, nextLabel: 'Next', advance: 'next' },
+        { text: "The test match is over! Tap History to see it.", anchor: '#tab-history', ring: true, advance: 'action', actionTargets: ['#tab-history'], actionEvent: ['click'] },
+        { text: "Tap AI Analysis for a detailed review of the match: each player's strengths, weaknesses and what to improve, in the language you chose.", anchor: '#h-ai-footer-btn', advance: 'next' },
+        { text: "Tap Match Log to replay the match point by point.", anchor: '#h-matchlog-btn', advance: 'next' },
+        { text: "This match came from the tutorial simulation. Tap the trash icon to delete it whenever you like.", anchor: '.h-delete-btn', advance: 'next' },
     ];
 
     // Dicas contextuais: aparecem uma única vez, na primeira vez que o recurso surge de verdade
     const TUT_CARD_STEPS = [
         { text: "Show Match Card: tap it to see how the match stands so far.", anchor: '#gs-card-btn', advance: 'action', actionTargets: ['#gs-card-btn'], actionEvent: ['click'] },
     ];
-    const TUT_HIST_STEPS = [
-        { text: "Tap AI Analysis for a detailed review of the match: each player's strengths, weaknesses and what to improve, in the language you chose.", anchor: '#h-ai-footer-btn', advance: 'next' },
-        { text: "The first match in your history came from the tutorial simulation. Tap the trash icon to delete it whenever you like.", anchor: '.h-delete-btn', advance: 'next' },
-    ];
 
     // Replay manual (botão no CONFIG): ignora a flag e o estado salvo
     function startTutorialFromConfig() {
         closeConfig();
         if (tutActive) tutEnd();
-        try { localStorage.removeItem(TUT_CARD_KEY); localStorage.removeItem(TUT_HIST_KEY); } catch(e) {}
+        try { localStorage.removeItem(TUT_CARD_KEY); } catch(e) {}
         setTimeout(function() { tutStart(TUTORIAL_STEPS, TUTORIAL_DONE_KEY); }, 350);
     }
 
@@ -3919,7 +3918,6 @@
     function tutSkip() {
         try {
             localStorage.setItem(TUT_CARD_KEY, '1');
-            localStorage.setItem(TUT_HIST_KEY, '1');
         } catch(e) {}
         tutEnd();
         try { localStorage.setItem(TUTORIAL_DONE_KEY, '1'); } catch(e) {}
@@ -3975,7 +3973,8 @@
 
     // Simulação do último passo: usa o próprio motor (addPoint) para dar os 2 sets à dupla 1,
     // com o placar livre e visível. Escolhe o sacador sozinha quando o jogo pede.
-    // Ao terminar, encerra o tutorial. (A partida terminada entra no Histórico como qualquer outra.)
+    // Durante a simulação o balão desce para a base (placar livre); ao terminar, o tutorial
+    // segue para o próximo passo. (A partida terminada entra no Histórico como qualquer outra.)
     function tutSimulate() {
         tutSimulating = true;
         tutBusy = true;
@@ -3986,6 +3985,7 @@
         if (hl) hl.style.display = 'none';
         document.getElementById('tut-bubble-text').textContent = 'Simulating a match — Pair 1 wins both sets…';
         bubble.classList.add('tut-tip');
+        tutPositionBubbleLow(bubble);
         bubble.querySelector('.tut-bubble-footer').style.display = 'none';
         const sk = document.getElementById('tut-skip');
         if (sk) sk.style.display = 'none';
@@ -3999,7 +3999,13 @@
         function finish() {
             tutSimulating = false;
             tutBusy = false;
-            tutEnd();
+            if (blocker.parentNode) blocker.parentNode.removeChild(blocker);
+            const ft = bubble.querySelector('.tut-bubble-footer');
+            if (ft) ft.style.display = '';
+            if (sk) sk.style.display = '';
+            tutIdx++;
+            if (tutIdx >= tutSteps.length) { tutEnd(); return; }
+            tutShowStep();
         }
         function step() {
             if (!tutActive) { tutSimulating = false; tutBusy = false; return; }
@@ -4100,10 +4106,10 @@
             highlight.style.left = (r.left - 6) + 'px';
             highlight.style.width = (r.width + 12) + 'px';
             highlight.style.height = (r.height + 12) + 'px';
-            if (step.low) tutPositionBubbleLow(bubble); else tutPositionBubble(bubble, r);
+            if (step.center) tutPositionBubbleCenter(bubble); else if (step.low) tutPositionBubbleLow(bubble); else tutPositionBubble(bubble, r);
         } else {
             highlight.style.display = 'none';
-            if (step.low) tutPositionBubbleLow(bubble); else tutPositionBubbleCenter(bubble);
+            if (step.low && !step.center) tutPositionBubbleLow(bubble); else tutPositionBubbleCenter(bubble);
         }
 
         const nb = document.getElementById('tut-next-btn');
