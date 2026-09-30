@@ -113,10 +113,11 @@
         ============================================================ */
         #layout-portrait {
             display: flex; flex-direction: column;
-            /* Ancorado à área realmente visível (fixed + inset:0) em vez de 100vh:
-               100vh = altura com as barras do navegador recolhidas, o que cortava o
-               menu inferior na 1ª entrada (Chrome/Safari com barra de endereço visível) */
-            position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+            /* 100vh mantido como fallback; 100dvh segue a área realmente visível
+               (barra de endereço do Chrome/Safari), evitando cortar o menu inferior na
+               1ª entrada. Não usar position:fixed/inset:0 aqui: no Android isso ignora a
+               faixa da barra de navegação do sistema e o menu ficava sob os botões (3.10.7) */
+            width: 100vw; height: 100vh; height: 100dvh;
             box-sizing: border-box;
             /* A base da tela (incluindo a área dos botões de navegação do Android)
                é reservada pela barra inferior .p-tabbar, que já aplica o
