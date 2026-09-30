@@ -1493,7 +1493,10 @@
         .config-toggle-divider {
             width: 1px; height: 60%; background: var(--border-card); flex-shrink: 0;
         }
-        .config-toggle.disabled .config-toggle-opt { opacity: 0.4; cursor: not-allowed; }
+        /* Linha travada: só as opções NÃO escolhidas esmaecem. A escolhida mantém o mesmo
+           brilho e o mesmo dourado das linhas livres (ex.: Statistics), sem 'degradê'. */
+        .config-toggle.disabled .config-toggle-opt { cursor: not-allowed; }
+        .config-toggle.disabled .config-toggle-opt:not(.active) { opacity: 0.45; }
         .config-lang-toggle {
             display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
             gap: 2vw; background: var(--card-bg); border: 1.5px solid var(--border-card);

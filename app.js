@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.4';
+    const APP_VERSION = '3.10.5';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1281,6 +1281,7 @@
         document.getElementById('cfg-gp').classList.toggle('active', pointMode === 'golden');
         document.getElementById('cfg-sp').classList.toggle('active', pointMode === 'star');
         document.getElementById('cfg-point-toggle').classList.toggle('disabled', ptLocked);
+        document.getElementById('cfg-point-hint').textContent = ptLocked ? 'Match finished — start a new game to change' : '';
         // Stats toggle
         document.getElementById('cfg-stats-on').classList.toggle('active', statsEnabled);
         document.getElementById('cfg-stats-off').classList.toggle('active', !statsEnabled);
