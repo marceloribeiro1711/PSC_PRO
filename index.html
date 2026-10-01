@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script>
-    /* Altura real da área visível -> --app-h (px). Corrige o menu inferior cortado na
+    /* Altura real da área visível -> --app-h e --vh (px). Corrige o menu inferior cortado na
        1ª entrada (Android tela cheia / Safari / WKWebView). Usa innerHeight (não
        visualViewport) para o teclado não encolher o layout no iOS. */
     (function () {
@@ -14,6 +14,9 @@
             if (h > 0 && h !== last) {
                 last = h;
                 root.style.setProperty('--app-h', h + 'px');
+                /* 1 "vh" próprio = 1% da altura REAL visível. O vh do navegador pode ficar
+                   maior (Android TWA na 1ª carga, iOS/WKWebView) e deixar o conteúdo "expandido" */
+                root.style.setProperty('--vh', (h / 100) + 'px');
                 root.classList.add('has-app-h');
             }
         }

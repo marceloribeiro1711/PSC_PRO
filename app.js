@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.11';
+    const APP_VERSION = '3.10.12';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -956,7 +956,7 @@
             t = document.createElement('div');
             t.id = '_upload_toast';
             Object.assign(t.style, {
-                position:'fixed', top:'calc(11vh + env(safe-area-inset-top, 0px))', left:'50%', transform:'translateX(-50%)',
+                position:'fixed', top:'calc(calc(11 * var(--vh, 1vh)) + env(safe-area-inset-top, 0px))', left:'50%', transform:'translateX(-50%)',
                 background:'#1e3a6e', color:'#fff', padding:'1.2dvh 4vw',
                 borderRadius:'8px', fontSize:'1.5dvh', fontWeight:'700',
                 zIndex:'99999', pointerEvents:'none', transition:'opacity .4s',
@@ -2868,7 +2868,7 @@
         if (!state.matchOver && (idx === undefined || idx === null)) {
             const liveEntry = buildLiveEntrySnapshot();
             const container = document.getElementById('gs-card-content');
-            container.innerHTML = '<div style="text-align:center;padding:4vh;color:var(--text-dim)">Loading…</div>';
+            container.innerHTML = '<div style="text-align:center;padding:calc(4 * var(--vh, 1vh));color:var(--text-dim)">Loading…</div>';
             document.getElementById('gs-card-overlay').classList.add('show');
             buildGrandSlamCardHtml(liveEntry, true).then(function (html) {
                 container.innerHTML = html;
@@ -2879,7 +2879,7 @@
         const entry = (idx === undefined || idx === null) ? history[0] : history[idx];
         if (!entry) { showToast('No match found'); return; }
         const container = document.getElementById('gs-card-content');
-        container.innerHTML = '<div style="text-align:center;padding:4vh;color:var(--text-dim)">Loading…</div>';
+        container.innerHTML = '<div style="text-align:center;padding:calc(4 * var(--vh, 1vh));color:var(--text-dim)">Loading…</div>';
         document.getElementById('gs-card-overlay').classList.add('show');
         buildGrandSlamCardHtml(entry).then(function (html) {
             container.innerHTML = html;
@@ -4141,7 +4141,7 @@
         bubble.style.transform = 'translateX(-50%)';
         bubble.style.left = '50%';
         bubble.style.top = 'auto';
-        bubble.style.bottom = 'calc(2.5vh + env(safe-area-inset-bottom, 0px))';
+        bubble.style.bottom = 'calc(calc(2.5 * var(--vh, 1vh)) + env(safe-area-inset-bottom, 0px))';
     }
 
     function tutPositionBubbleCenter(bubble) {

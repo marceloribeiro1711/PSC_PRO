@@ -11,13 +11,13 @@
             --team1-bar: #e03030;
             --team2-bar: #e03030;
             --divider: #1e3a6e;
-            --toolbar-h: 6vh;
+            --toolbar-h: calc(6 * var(--vh, 1vh));
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body, html {
-            width: 100vw; height: 100vh; height: 100dvh;
+            width: 100vw; height: calc(100 * var(--vh, 1vh)); height: 100dvh;
             background-color: var(--bg);
             font-family: 'Segoe UI', Roboto, 'Arial Narrow', Arial, sans-serif;
             color: var(--text-main);
@@ -39,7 +39,7 @@
             /* Elevado para deixar espaço reservado aos botões de navegação
                do Android (gesture bar), que às vezes cobrem a barra de
                endereço mesmo com safe-area-inset reportado */
-            bottom: calc(4vh + env(safe-area-inset-bottom, 16px));
+            bottom: calc(calc(4 * var(--vh, 1vh)) + env(safe-area-inset-bottom, 16px));
             right: 4vw;
             z-index: 300;
             display: flex;
@@ -48,8 +48,8 @@
         }
 
         .p-fab-btn {
-            width: 4vh;
-            height: 4vh;
+            width: calc(4 * var(--vh, 1vh));
+            height: calc(4 * var(--vh, 1vh));
             border-radius: 6px;
             background: transparent;
             border: none;
@@ -57,7 +57,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.45vh;
+            gap: calc(0.45 * var(--vh, 1vh));
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             flex-shrink: 0;
@@ -65,7 +65,7 @@
         }
         .p-fab-btn span {
             display: block;
-            width: 2.2vh;
+            width: calc(2.2 * var(--vh, 1vh));
             height: 1.5px;
             background: #7a9cc8;
             border-radius: 1px;
@@ -78,7 +78,7 @@
             border: 1.5px solid #3a6b3a;
             border-radius: 10px;
             overflow: hidden;
-            margin-bottom: 1.2vh;
+            margin-bottom: calc(1.2 * var(--vh, 1vh));
             min-width: 36vw;
             box-shadow: 0 6px 24px rgba(0,0,0,0.8);
         }
@@ -89,12 +89,12 @@
             border: none;
             border-bottom: 1px solid var(--border-card);
             color: #e8f0fe;
-            font-size: 2vh;
+            font-size: calc(2 * var(--vh, 1vh));
             font-weight: 700;
             letter-spacing: 1px;
             text-transform: uppercase;
             text-align: left;
-            padding: 1.6vh 4vw;
+            padding: calc(1.6 * var(--vh, 1vh)) 4vw;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
         }
@@ -102,7 +102,7 @@
         .p-fab-item:active { background: var(--border-card); }
         .p-fab-item-update {
             color: #7a9cc8;
-            font-size: 1.7vh;
+            font-size: calc(1.7 * var(--vh, 1vh));
             border-top: 1px dashed var(--border-card);
         }
 
@@ -120,7 +120,7 @@
 
         #layout-portrait {
             display: flex; flex-direction: column;
-            width: 100vw; height: 100vh; height: 100dvh;
+            width: 100vw; height: calc(100 * var(--vh, 1vh)); height: 100dvh;
             box-sizing: border-box;
             /* A base da tela (incluindo a área dos botões de navegação do Android)
                é reservada pela barra inferior .p-tabbar, que já aplica o
@@ -133,9 +133,9 @@
         ============================================================ */
         .p-header {
             display: flex; flex-direction: column;
-            padding: 0.6vh 4vw;
+            padding: calc(0.6 * var(--vh, 1vh)) 4vw;
             background-color: var(--panel-bg);
-            height: 10vh; flex-shrink: 0;
+            height: calc(10 * var(--vh, 1vh)); flex-shrink: 0;
             overflow: hidden; box-sizing: border-box;
         }
         .p-header-logos {
@@ -169,12 +169,12 @@
         .sponsor-slide.fade-out { opacity: 0; }
         .sponsor-slide.fade-in  { opacity: 1; }
         .header-logo-placeholder {
-            display: flex; flex-direction: column; align-items: center; gap: 0.4vh;
+            display: flex; flex-direction: column; align-items: center; gap: calc(0.4 * var(--vh, 1vh));
             color: var(--text-dim); pointer-events: none;
         }
-        .header-logo-placeholder span { font-size: 1.2vh; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-        .header-logo-placeholder svg { width: 3vh; height: 3vh; opacity: 0.5; }
-        .header-divider { width: 1px; height: 4vh; background: var(--divider); flex-shrink: 0; }
+        .header-logo-placeholder span { font-size: calc(1.2 * var(--vh, 1vh)); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+        .header-logo-placeholder svg { width: calc(3 * var(--vh, 1vh)); height: calc(3 * var(--vh, 1vh)); opacity: 0.5; }
+        .header-divider { width: 1px; height: calc(4 * var(--vh, 1vh)); background: var(--divider); flex-shrink: 0; }
 
         /* ============================================================
            MENU INFERIOR PORTRAIT — padrão do app Despesas
@@ -201,7 +201,7 @@
         /* No retrato o menu hambúrguer (FAB) dá lugar à barra inferior; o FAB continua só no TV Mode */
         @media (orientation: portrait) {
             .p-fab-menu { display: none !important; }
-            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + env(safe-area-inset-bottom, 0px) + 1vh); }
+            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + env(safe-area-inset-bottom, 0px) + calc(1 * var(--vh, 1vh))); }
         }
 
         /* ============================================================
@@ -211,27 +211,27 @@
 
         .p-team-panel {
             flex: 1; display: flex; align-items: stretch;
-            padding: 0.3vh 3vw; border-bottom: 2px solid var(--divider);
+            padding: calc(0.3 * var(--vh, 1vh)) 3vw; border-bottom: 2px solid var(--divider);
             position: relative; gap: 0;
             overflow: visible;
         }
-        .team1.p-team-panel { flex: 0.82; padding-bottom: 2.5vh; }
-        .team2.p-team-panel { flex: 1.18; padding-top: 2.5vh; }
+        .team1.p-team-panel { flex: 0.82; padding-bottom: calc(2.5 * var(--vh, 1vh)); }
+        .team2.p-team-panel { flex: 1.18; padding-top: calc(2.5 * var(--vh, 1vh)); }
         .p-team-panel:last-child { border-bottom: none; }
 
         /* p-players-col: coluna — fotos em cima, scores em baixo */
         .p-players-col {
             flex: 1; display: flex; flex-direction: column;
-            justify-content: flex-start; gap: 0.8vh;
+            justify-content: flex-start; gap: calc(0.8 * var(--vh, 1vh));
         }
-        .team1 .p-players-col { justify-content: flex-start; gap: 2.5vh; }
+        .team1 .p-players-col { justify-content: flex-start; gap: calc(2.5 * var(--vh, 1vh)); }
         /* p-photos-row definido na secção de stats abaixo */
         .player-card {
             position: relative; display: inline-block;
             border-radius: 10px; overflow: visible; line-height: 0;
         }
         .player-photo {
-            width: 11vh; height: auto; aspect-ratio: 3/4;
+            width: calc(11 * var(--vh, 1vh)); height: auto; aspect-ratio: 3/4;
             border-radius: 10px 10px 0 0;
             border: 2px solid var(--border-card);
             object-fit: cover; object-position: top;
@@ -246,9 +246,9 @@
             background: rgba(18, 30, 50, 0.95);
             border: 2px solid var(--border-card); border-top: none;
             border-radius: 0 0 10px 10px;
-            font-size: 1.3vh; font-weight: 700; text-transform: uppercase;
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.8px; color: var(--text-main); text-align: center;
-            padding: 0.4vh 0.3vh; line-height: 1.2;
+            padding: calc(0.4 * var(--vh, 1vh)) calc(0.3 * var(--vh, 1vh)); line-height: 1.2;
             cursor: text;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
@@ -258,14 +258,14 @@
 
         /* scores row: sets + pts lado a lado */
         .p-scores-col { display: flex; flex-direction: row; align-items: flex-end; gap: 3vw; }
-        .sets-block { flex: 5; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 0.4vh; }
+        .sets-block { flex: 5; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: calc(0.4 * var(--vh, 1vh)); }
         /* Espaço perto da linha central para o banner END OF MATCH */
         .team1 .p-scores-col { padding-bottom: 0; }
         .team2 .p-scores-col { padding-top: 0; }
         .scores-labels { display: flex; align-items: center; }
         .score-label-cell {
             flex: 1; text-align: center;
-            font-size: 2.6vh; font-weight: 800; letter-spacing: 1.5px;
+            font-size: calc(2.6 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.5px;
             color: #ffffff; text-transform: uppercase;
         }
         .score-label-cell.supertie-label { color: #e03030; }
@@ -280,7 +280,7 @@
             display: flex; align-items: stretch;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 10px; overflow: hidden;
-            min-height: 8.4vh;
+            min-height: calc(8.4 * var(--vh, 1vh));
         }
         .score-cell {
             flex: 1; display: flex; align-items: center; justify-content: center;
@@ -289,24 +289,24 @@
         }
         .score-cell:last-child { border-right: none; }
         .score-cell .val {
-            font-size: 3.4vh; font-weight: 900; line-height: 1;
+            font-size: calc(3.4 * var(--vh, 1vh)); font-weight: 900; line-height: 1;
             font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.85); transition: color 0.3s;
         }
         .score-cell.won .val { color: #fff; }
         .score-cell.dim .val { color: var(--text-dim); }
         .tb-mini {
             position: absolute; top: 2px; right: 4px;
-            font-size: 1.6vh; font-weight: 700; line-height: 1;
+            font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 700; line-height: 1;
             color: var(--text-dim); display: none;
         }
         .score-cell.dim .tb-mini { display: block; }
 
         .pts-block {
             flex: 2; display: flex; flex-direction: column; justify-content: flex-end;
-            gap: 0.3vh;
+            gap: calc(0.3 * var(--vh, 1vh));
         }
         .pts-label {
-            text-align: center; font-size: 1.1vh; font-weight: 800;
+            text-align: center; font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 800;
             letter-spacing: 1.5px; text-transform: uppercase; color: #ffffff;
         }
         .pts-box {
@@ -314,15 +314,15 @@
             background: #ffffff; border: 1.5px solid var(--border-card);
             border-radius: 10px; cursor: pointer;
             transition: background 0.15s, transform 0.1s;
-            width: 100%; height: 8.4vh;
+            width: 100%; height: calc(8.4 * var(--vh, 1vh));
         }
         .pts-box:active { background: #e8e8e8; transform: scale(0.97); }
         .pts-box .pts-val {
-            font-size: 5vh; font-weight: 900; line-height: 1;
+            font-size: calc(5 * var(--vh, 1vh)); font-weight: 900; line-height: 1;
             font-variant-numeric: tabular-nums; color: #111;
             max-width: 100%; overflow: hidden;
         }
-        .pts-box .pts-val.label-lg { font-size: 2.8vh; }
+        .pts-box .pts-val.label-lg { font-size: calc(2.8 * var(--vh, 1vh)); }
 
         /* ============================================================
            PAINEL DE ESTATÍSTICAS — portrait
@@ -348,7 +348,7 @@
         }
         .stat-label {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 1.15vh; font-weight: 700; text-transform: uppercase;
+            font-size: calc(1.15 * var(--vh, 1vh)); font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.2px; color: #ffffff;
             text-align: center; line-height: 1.15;
         }
@@ -359,10 +359,10 @@
             gap: 0;
         }
         .stat-pct {
-            height: 3.5vh;
-            margin: 0.15vh 0;
+            height: calc(3.5 * var(--vh, 1vh));
+            margin: calc(0.15 * var(--vh, 1vh)) 0;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1vh; font-weight: 700;
+            font-size: calc(1 * var(--vh, 1vh)); font-weight: 700;
             color: var(--accent); opacity: 0.9;
             white-space: nowrap;
             min-width: 3.5ch; padding: 0 0.5vw;
@@ -372,16 +372,16 @@
         .stat-label-row { display: none; }
         .srv-pct-label { display: none; }
         .stat-box {
-            width: 5.2vh; height: 3.5vh;
+            width: calc(5.2 * var(--vh, 1vh)); height: calc(3.5 * var(--vh, 1vh));
             display: flex; align-items: center; justify-content: center;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 6px; cursor: pointer;
             transition: background 0.15s, transform 0.1s;
-            margin: 0.15vh 0;
+            margin: calc(0.15 * var(--vh, 1vh)) 0;
         }
         .stat-box:active { background: var(--border-card); transform: scale(0.95); }
         .stat-box span {
-            font-size: 1.8vh; font-weight: 900;
+            font-size: calc(1.8 * var(--vh, 1vh)); font-weight: 900;
             font-variant-numeric: tabular-nums; color: #ffffff;
         }
         /* X3/X4/Smash escondido no portrait (libera espaço para o menu inferior).
@@ -398,16 +398,16 @@
         ============================================================ */
         .p-players-col {
             flex: 1; display: flex; flex-direction: column;
-            justify-content: flex-start; gap: 0.8vh;
+            justify-content: flex-start; gap: calc(0.8 * var(--vh, 1vh));
         }
-        .team1 .p-players-col { justify-content: flex-start; gap: 2.5vh; }
+        .team1 .p-players-col { justify-content: flex-start; gap: calc(2.5 * var(--vh, 1vh)); }
 
         .player-card {
             position: relative; display: inline-block;
             border-radius: 10px; overflow: visible; line-height: 0;
         }
         .player-photo {
-            height: 11vh; width: auto; aspect-ratio: 3/4;
+            height: calc(11 * var(--vh, 1vh)); width: auto; aspect-ratio: 3/4;
             border-radius: 10px 10px 0 0; border: 2px solid var(--border-card);
             object-fit: cover; object-position: top;
             background-color: var(--card-bg); cursor: pointer; display: block;
@@ -418,28 +418,28 @@
             background: rgba(18, 30, 50, 0.95);
             border: 2px solid var(--border-card); border-top: none;
             border-radius: 0 0 10px 10px;
-            font-size: 1.1vh; font-weight: 700; text-transform: uppercase;
+            font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.5px; color: var(--text-main); text-align: center;
-            padding: 0.4vh 0.2vh; line-height: 1.2;
+            padding: calc(0.4 * var(--vh, 1vh)) calc(0.2 * var(--vh, 1vh)); line-height: 1.2;
             cursor: text;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .niceshot-logo {
-            position: absolute; bottom: 1vh; right: 2vw;
+            position: absolute; bottom: calc(1 * var(--vh, 1vh)); right: 2vw;
             width: 16vw; max-width: 120px;
             opacity: 0.85; pointer-events: none; z-index: 50;
         }
         .score-label-cell {
             flex: 1; text-align: center;
-            font-size: 1.1vh; font-weight: 800; letter-spacing: 1.5px;
+            font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.5px;
             color: #ffffff; text-transform: uppercase;
         }
         .scores-box {
             display: flex; align-items: stretch;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 10px; overflow: hidden;
-            min-height: 8.4vh;
+            min-height: calc(8.4 * var(--vh, 1vh));
         }
         .score-cell {
             flex: 1; display: flex; align-items: center; justify-content: center;
@@ -448,19 +448,19 @@
         }
         .score-cell:last-child { border-right: none; }
         .score-cell .val {
-            font-size: 3.4vh; font-weight: 900; line-height: 1;
+            font-size: calc(3.4 * var(--vh, 1vh)); font-weight: 900; line-height: 1;
             font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.85); transition: color 0.3s;
         }
         .score-cell.won .val { color: #fff; }
         .score-cell.dim .val { color: var(--text-dim); }
         .tb-mini {
             position: absolute; top: 2px; right: 4px;
-            font-size: 1.6vh; font-weight: 700; line-height: 1;
+            font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 700; line-height: 1;
             color: var(--text-dim); display: none;
         }
         .score-cell.dim .tb-mini { display: block; }
         .pts-label {
-            text-align: center; font-size: 1.1vh; font-weight: 800;
+            text-align: center; font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 800;
             letter-spacing: 1.5px; text-transform: uppercase; color: #ffffff;
         }
         .pts-box {
@@ -468,11 +468,11 @@
             background: #ffffff; border: 1.5px solid var(--border-card);
             border-radius: 10px; cursor: pointer;
             transition: background 0.15s, transform 0.1s;
-            width: 100%; height: 8.4vh;
+            width: 100%; height: calc(8.4 * var(--vh, 1vh));
         }
         .pts-box:active { background: #e8e8e8; transform: scale(0.97); }
         .pts-box .pts-val {
-            font-size: 5vh; font-weight: 900; line-height: 1;
+            font-size: calc(5 * var(--vh, 1vh)); font-weight: 900; line-height: 1;
             font-variant-numeric: tabular-nums; color: #111;
             max-width: 100%; overflow: hidden;
         }
@@ -482,8 +482,8 @@
         ============================================================ */
         .tiebreak-badge {
             position: fixed; left: 50%; top: 45%; transform: translate(-50%, -50%);
-            background: #dc2626; color: white; padding: 0.8vh 3vw; border-radius: 20px;
-            font-size: 2vh; font-weight: bold; text-transform: uppercase;
+            background: #dc2626; color: white; padding: calc(0.8 * var(--vh, 1vh)) 3vw; border-radius: 20px;
+            font-size: calc(2 * var(--vh, 1vh)); font-weight: bold; text-transform: uppercase;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); opacity: 0; pointer-events: none; z-index: 300;
             transition: opacity 0.3s;
         }
@@ -493,14 +493,14 @@
         /* Faixa de avisos no rodapé (retrato): END OF MATCH e o aviso do saque inicial
            ficam logo acima do espaço reservado ao botão Show Match Card, no mesmo
            formato arredondado. --mcard-slot = altura reservada ao botão + folga. */
-        :root { --mcard-slot: 4.6vh; }
+        :root { --mcard-slot: calc(4.6 * var(--vh, 1vh)); }
         .game-over-banner {
             position: fixed; left: 50%;
-            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
+            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + calc(1 * var(--vh, 1vh)) + var(--mcard-slot));
             transform: translateX(-50%);
             background: #e03030; color: #fff;
-            font-size: 1.6vh; font-weight: 800; letter-spacing: 2px;
-            text-transform: uppercase; padding: 1vh 3.5vw;
+            font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 2px;
+            text-transform: uppercase; padding: calc(1 * var(--vh, 1vh)) 3.5vw;
             border-radius: 24px; white-space: nowrap;
             box-shadow: 0 4px 16px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; z-index: 100;
@@ -517,10 +517,10 @@
            nunca atrapalha o print do resultado — e nunca sobrepõe o FAB. */
         .gs-card-btn {
             position: fixed; left: 50%; transform: translateX(-50%);
-            bottom: calc(4vh + env(safe-area-inset-bottom, 16px));
+            bottom: calc(calc(4 * var(--vh, 1vh)) + env(safe-area-inset-bottom, 16px));
             background: var(--accent-yellow); color: #1a1200;
-            font-size: 1.5vh; font-weight: 700; letter-spacing: 0.3px;
-            padding: 1vh 3.5vw; border: none; border-radius: 24px;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.3px;
+            padding: calc(1 * var(--vh, 1vh)) 3.5vw; border: none; border-radius: 24px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; z-index: 300;
             transition: opacity 0.4s;
@@ -530,11 +530,11 @@
         /* WHO'S SERVE? — portrait, mesma posição e formato do game-over-banner (faixa de avisos do rodapé) */
         .whos-serve-badge {
             position: fixed; left: 50%;
-            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
+            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + calc(1 * var(--vh, 1vh)) + var(--mcard-slot));
             transform: translateX(-50%);
             background: #e03030; color: #fff;
-            font-size: 1.5vh; font-weight: 700; letter-spacing: 0.3px;
-            padding: 1vh 3.5vw; text-align: center;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.3px;
+            padding: calc(1 * var(--vh, 1vh)) 3.5vw; text-align: center;
             border-radius: 24px; white-space: nowrap; max-width: 94vw;
             box-shadow: 0 4px 16px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; z-index: 100;
@@ -554,8 +554,8 @@
         .gp-divider-badge {
             position: absolute; right: 3vw;
             background: #e03030; color: #fff;
-            font-size: 1.1vh; font-weight: 900; letter-spacing: 2px;
-            text-transform: uppercase; padding: 0.35vh 1.2vw;
+            font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 2px;
+            text-transform: uppercase; padding: calc(0.35 * var(--vh, 1vh)) 1.2vw;
             border-radius: 5px; white-space: nowrap;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
             opacity: 0; transition: opacity 0.4s;
@@ -567,8 +567,8 @@
             position: absolute; left: 50%; bottom: 0;
             transform: translate(-50%, 50%);
             background: #c8e030; color: #0b1a35;
-            font-size: 1.1vh; font-weight: 900; letter-spacing: 2px;
-            text-transform: uppercase; padding: 0.35vh 1.2vw;
+            font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 2px;
+            text-transform: uppercase; padding: calc(0.35 * var(--vh, 1vh)) 1.2vw;
             border-radius: 5px; white-space: nowrap;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; z-index: 102;
@@ -578,7 +578,7 @@
 
         /* Logo fixo NiceShot */
         .niceshot-logo {
-            position: absolute; bottom: 1.5vh; right: 3vw;
+            position: absolute; bottom: calc(1.5 * var(--vh, 1vh)); right: 3vw;
             width: 22vw; max-width: 140px;
             opacity: 0.85; pointer-events: none; z-index: 50;
         }
@@ -590,7 +590,7 @@
             position: absolute; left: 5vw; bottom: 0;
             transform: translateY(50%);
             background: #0e2040; border: 1.5px solid #1e3a6e;
-            border-radius: 7px; padding: 0.35vh 2.5vw;
+            border-radius: 7px; padding: calc(0.35 * var(--vh, 1vh)) 2.5vw;
             display: flex; flex-direction: column; align-items: center;
             cursor: pointer; z-index: 101; user-select: none;
             transition: border-color 0.2s;
@@ -598,12 +598,12 @@
         .match-timer:hover { border-color: var(--text-dim); }
         .match-timer.running { border-color: var(--accent-blue); }
         .timer-label {
-            font-size: 0.9vh; font-weight: 700; letter-spacing: 1.5px;
+            font-size: calc(0.9 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 1.5px;
             text-transform: uppercase; color: var(--text-dim); line-height: 1;
-            margin-bottom: 0.2vh;
+            margin-bottom: calc(0.2 * var(--vh, 1vh));
         }
         .timer-display {
-            font-size: 2.2vh; font-weight: 900; color: #ffffff;
+            font-size: calc(2.2 * var(--vh, 1vh)); font-weight: 900; color: #ffffff;
             font-variant-numeric: tabular-nums; letter-spacing: 1px; line-height: 1;
         }
 
@@ -627,17 +627,17 @@
             .history-overlay.show > *:not(.h-rotate-message) { display: none !important; }
             .history-overlay.show .h-rotate-message {
                 display: flex; flex-direction: column; align-items: center;
-                justify-content: center; gap: 3vh; height: 100%; width: 100%;
-                box-sizing: border-box; padding: 4vh; text-align: center;
+                justify-content: center; gap: calc(3 * var(--vh, 1vh)); height: 100%; width: 100%;
+                box-sizing: border-box; padding: calc(4 * var(--vh, 1vh)); text-align: center;
             }
             .h-rotate-message p {
-                font-size: 2.2vh; font-weight: 700; color: var(--text-main);
+                font-size: calc(2.2 * var(--vh, 1vh)); font-weight: 700; color: var(--text-main);
                 line-height: 1.5; margin: 0;
             }
             .h-rotate-close-btn {
                 background: var(--panel-bg); border: 1.5px solid var(--divider);
-                cursor: pointer; color: #fff; font-size: 2vh; font-weight: 700;
-                letter-spacing: 2px; padding: 1.2vh 4vw; border-radius: 999px;
+                cursor: pointer; color: #fff; font-size: calc(2 * var(--vh, 1vh)); font-weight: 700;
+                letter-spacing: 2px; padding: calc(1.2 * var(--vh, 1vh)) 4vw; border-radius: 999px;
             }
             .h-rotate-close-btn:active { opacity: 0.6; }
         }
@@ -645,19 +645,19 @@
         /* Header */
         .history-modal-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 1.6vh 4vw;
+            padding: calc(1.6 * var(--vh, 1vh)) 4vw;
             background: var(--panel-bg);
             border-bottom: 1.5px solid var(--divider);
             flex-shrink: 0;
         }
         .history-modal-header h2 {
-            font-size: 2.4vh; font-weight: 900; letter-spacing: 2px;
+            font-size: calc(2.4 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 2px;
             text-transform: uppercase; color: var(--text-main);
         }
         /* Footer com botão BACK */
         .history-footer {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 1.6vh 4vw; gap: 2vw;
+            padding: calc(1.6 * var(--vh, 1vh)) 4vw; gap: 2vw;
             background: var(--bg);
             border-top: 1.5px solid var(--divider);
             flex-shrink: 0;
@@ -665,8 +665,8 @@
         .history-footer-actions { display: flex; align-items: center; gap: 1.5vw; }
         .history-back-btn {
             background: var(--bg); border: none; cursor: pointer;
-            color: #fff; font-size: 2vh; font-weight: 700;
-            letter-spacing: 2px; padding: 1vh 2vw;
+            color: #fff; font-size: calc(2 * var(--vh, 1vh)); font-weight: 700;
+            letter-spacing: 2px; padding: calc(1 * var(--vh, 1vh)) 2vw;
         }
         .history-back-btn:active { opacity: 0.6; }
 
@@ -684,75 +684,75 @@
         }
         .history-carousel-slide {
             min-width: 100vw; height: 100%;
-            overflow-y: auto; overscroll-behavior: contain; padding: 2vh 4vw 2vh;
+            overflow-y: auto; overscroll-behavior: contain; padding: calc(2 * var(--vh, 1vh)) 4vw calc(2 * var(--vh, 1vh));
             box-sizing: border-box;
         }
         .history-empty {
             display: flex; align-items: center; justify-content: center;
-            height: 100%; color: var(--text-dim); font-size: 1.8vh;
+            height: 100%; color: var(--text-dim); font-size: calc(1.8 * var(--vh, 1vh));
         }
 
         /* Nav bar — dots e counter */
         .history-nav {
             display: flex; align-items: center; justify-content: center;
             gap: 3vw;
-            padding: 1.2vh 4vw;
+            padding: calc(1.2 * var(--vh, 1vh)) 4vw;
             background: var(--panel-bg);
             border-top: 1.5px solid var(--divider);
             flex-shrink: 0;
         }
         .h-nav-arrow {
-            font-size: 2.4vh; font-weight: 900; line-height: 1;
+            font-size: calc(2.4 * var(--vh, 1vh)); font-weight: 900; line-height: 1;
             color: var(--border-card); transition: color 0.2s;
         }
         .h-nav-arrow.lit { color: #f5c518; }
         .h-counter {
-            font-size: 1.4vh; font-weight: 700; color: var(--text-dim);
+            font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; color: var(--text-dim);
         }
 
         /* cada jogo */
-        .h-game { padding-bottom: 1vh; }
+        .h-game { padding-bottom: calc(1 * var(--vh, 1vh)); }
 
         /* cabeçalho do jogo */
         .h-game-meta {
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 1vh; gap: 2vw;
+            margin-bottom: calc(1 * var(--vh, 1vh)); gap: 2vw;
         }
         .h-game-meta-left { display: flex; align-items: center; gap: 2vw; flex: 1; min-width: 0; }
         .h-game-date {
-            font-size: 1.3vh; font-weight: 800; color: #ffffff;
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 800; color: #ffffff;
             letter-spacing: 1px; flex-shrink: 0;
         }
         .h-game-modebadge {
-            font-size: 1.4vh; font-weight: 700; color: #ffffff;
+            font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; color: #ffffff;
             background: var(--card-bg); border: 1px solid var(--border-card);
-            border-radius: 4px; padding: 0.2vh 1.5vw; letter-spacing: 1px;
+            border-radius: 4px; padding: calc(0.2 * var(--vh, 1vh)) 1.5vw; letter-spacing: 1px;
             text-transform: uppercase; flex-shrink: 0;
         }
         .h-game-duration {
-            font-size: 1.3vh; font-weight: 700; color: var(--accent-blue);
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700; color: var(--accent-blue);
             letter-spacing: 0.5px; flex-shrink: 0;
         }
         .h-game-meta-right { display: flex; align-items: center; gap: 1.5vw; flex-shrink: 0; }
         .h-gamelog-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             cursor: pointer; color: var(--text-main);
-            padding: 0.5vh 2vw; border-radius: 6px;
-            font-size: 1.3vh; font-weight: 700; letter-spacing: 0.5px;
+            padding: calc(0.5 * var(--vh, 1vh)) 2vw; border-radius: 6px;
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.5px;
             transition: border-color 0.2s;
         }
         .h-gamelog-btn:hover { border-color: var(--accent-blue); }
         .h-delete-btn {
             background: rgba(224,48,48,0.12); border: 1.5px solid #e03030;
             cursor: pointer; color: #e03030;
-            padding: 0.5vh 2vw; border-radius: 6px;
+            padding: calc(0.5 * var(--vh, 1vh)) 2vw; border-radius: 6px;
             display: flex; align-items: center; gap: 1vw;
-            font-size: 1.3vh; font-weight: 700; letter-spacing: 1px;
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 1px;
             text-transform: uppercase;
             transition: color 0.2s, background 0.2s; flex-shrink: 0;
         }
         .h-delete-btn:hover { color: #fff; background: #e03030; }
-        .h-delete-btn svg { width: 1.6vh; height: 1.6vh; }
+        .h-delete-btn svg { width: calc(1.6 * var(--vh, 1vh)); height: calc(1.6 * var(--vh, 1vh)); }
         .h-game-score { display: none; }
         .h-game-winners { display: none; }
 
@@ -761,14 +761,14 @@
         .h-email-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             cursor: pointer; color: #fff;
-            padding: 0.7vh 2.2vw; border-radius: 6px;
+            padding: calc(0.7 * var(--vh, 1vh)) 2.2vw; border-radius: 6px;
             display: flex; align-items: center; gap: 1.2vw;
-            font-size: 1.3vh; font-weight: 700; letter-spacing: 0.5px;
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.5px;
             text-transform: uppercase;
             transition: background 0.2s;
         }
         .h-email-btn:hover { background: var(--border-card); }
-        .h-email-btn svg { width: 1.7vh; height: 1.7vh; }
+        .h-email-btn svg { width: calc(1.7 * var(--vh, 1vh)); height: calc(1.7 * var(--vh, 1vh)); }
 
         /* ============================================================
            EXPORT OPTIONS + EMAIL PROMPT MODALS
@@ -782,33 +782,33 @@
         .export-overlay.show { opacity: 1; pointer-events: all; }
         .export-modal {
             background: var(--panel-bg); border: 1.5px solid var(--border-card);
-            border-radius: 14px; padding: 3vh 6vw;
+            border-radius: 14px; padding: calc(3 * var(--vh, 1vh)) 6vw;
             width: 78vw; max-width: 360px;
-            display: flex; flex-direction: column; gap: 1.4vh;
+            display: flex; flex-direction: column; gap: calc(1.4 * var(--vh, 1vh));
         }
         .export-modal h3 {
-            color: #fff; font-size: 2vh; font-weight: 800;
-            text-align: center; margin-bottom: 0.4vh;
+            color: #fff; font-size: calc(2 * var(--vh, 1vh)); font-weight: 800;
+            text-align: center; margin-bottom: calc(0.4 * var(--vh, 1vh));
         }
         .export-option-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             color: #fff; border-radius: 10px; cursor: pointer;
-            padding: 1.4vh 2vw; font-size: 1.7vh; font-weight: 700;
+            padding: calc(1.4 * var(--vh, 1vh)) 2vw; font-size: calc(1.7 * var(--vh, 1vh)); font-weight: 700;
             display: flex; align-items: center; justify-content: center; gap: 2vw;
             transition: background 0.2s;
         }
         .export-option-btn:hover { background: var(--border-card); }
-        .export-option-btn svg { width: 2vh; height: 2vh; }
+        .export-option-btn svg { width: calc(2 * var(--vh, 1vh)); height: calc(2 * var(--vh, 1vh)); }
         .export-cancel-btn {
             background: none; border: none; color: var(--text-dim);
-            cursor: pointer; font-size: 1.5vh; font-weight: 700;
-            letter-spacing: 1px; padding: 0.8vh 0; text-transform: uppercase;
+            cursor: pointer; font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700;
+            letter-spacing: 1px; padding: calc(0.8 * var(--vh, 1vh)) 0; text-transform: uppercase;
         }
         .email-input {
             width: 100%; box-sizing: border-box;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
-            border-radius: 10px; color: #fff; font-size: 1.7vh;
-            padding: 1.4vh 3vw; outline: none;
+            border-radius: 10px; color: #fff; font-size: calc(1.7 * var(--vh, 1vh));
+            padding: calc(1.4 * var(--vh, 1vh)) 3vw; outline: none;
         }
         .email-input:focus { border-color: var(--accent-blue); }
         .email-confirm-btn { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
@@ -817,21 +817,21 @@
         .h-pair {
             border: 1.5px solid var(--border-card);
             border-radius: 10px; overflow: hidden;
-            margin-bottom: 1vh;
+            margin-bottom: calc(1 * var(--vh, 1vh));
         }
         .h-pair:last-child { margin-bottom: 0; }
         .h-pair.winner { border-color: #f5c518; }
 
         .h-pair-header {
             display: flex; align-items: center; gap: 2vw;
-            background: var(--card-bg); padding: 0.7vh 2.5vw;
+            background: var(--card-bg); padding: calc(0.7 * var(--vh, 1vh)) 2.5vw;
             border-bottom: 1px solid var(--border-card);
         }
         .h-pair.winner .h-pair-header { background: rgba(245,197,24,0.08); border-bottom-color: #f5c518; }
 
         .h-pair-photos { display: flex; gap: 1.5vw; align-items: center; flex-shrink: 0; }
         .h-pair-photo {
-            width: 4.5vh; height: 4.5vh;
+            width: calc(4.5 * var(--vh, 1vh)); height: calc(4.5 * var(--vh, 1vh));
             border-radius: 6px; object-fit: cover; object-position: top;
             border: 1.5px solid var(--border-card);
         }
@@ -840,32 +840,32 @@
 
         /* Notes box in history */
         .h-notes-box {
-            margin-top: 1vh;
+            margin-top: calc(1 * var(--vh, 1vh));
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 8px; overflow: hidden;
         }
         .h-notes-label {
             display: flex; align-items: center; justify-content: space-between;
-            font-size: 1.2vh; font-weight: 800; letter-spacing: 1.5px;
+            font-size: calc(1.2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.5px;
             text-transform: uppercase; color: var(--text-dim);
-            padding: 0.6vh 2.5vw; border-bottom: 1px solid var(--border-card);
+            padding: calc(0.6 * var(--vh, 1vh)) 2.5vw; border-bottom: 1px solid var(--border-card);
             background: rgba(255,255,255,0.03);
         }
         .h-notes-expand-btn {
             background: none; border: 1px solid var(--border-card);
             border-radius: 5px; color: var(--text-dim); cursor: pointer;
-            padding: 0.2vh 1.5vw; font-size: 1.1vh; font-weight: 700;
+            padding: calc(0.2 * var(--vh, 1vh)) 1.5vw; font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 700;
             letter-spacing: 0.5px; text-transform: uppercase;
             transition: background 0.2s, color 0.2s;
             display: flex; align-items: center; gap: 0.8vw;
         }
         .h-notes-expand-btn:hover { background: var(--border-card); color: #fff; }
-        .h-notes-expand-btn svg { width: 1.4vh; height: 1.4vh; }
+        .h-notes-expand-btn svg { width: calc(1.4 * var(--vh, 1vh)); height: calc(1.4 * var(--vh, 1vh)); }
         .h-notes-preview {
-            width: 100%; min-height: 6vh; max-height: 14vh;
+            width: 100%; min-height: calc(6 * var(--vh, 1vh)); max-height: calc(14 * var(--vh, 1vh));
             background: transparent; border: none;
-            color: rgba(255,255,255,0.75); font-size: 1.5vh; line-height: 1.5;
-            padding: 1vh 2.5vw; resize: none; font-family: 'Courier New', Courier, monospace;
+            color: rgba(255,255,255,0.75); font-size: calc(1.5 * var(--vh, 1vh)); line-height: 1.5;
+            padding: calc(1 * var(--vh, 1vh)) 2.5vw; resize: none; font-family: 'Courier New', Courier, monospace;
             outline: none; box-sizing: border-box; overflow: hidden;
             pointer-events: none;
         }
@@ -873,9 +873,9 @@
             display: block; width: 100%;
             background: var(--border-card); border: none;
             border-top: 1px solid var(--divider);
-            color: #fff; font-size: 1.4vh; font-weight: 800;
+            color: #fff; font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 800;
             letter-spacing: 1px; text-transform: uppercase;
-            padding: 0.7vh 0; cursor: pointer;
+            padding: calc(0.7 * var(--vh, 1vh)) 0; cursor: pointer;
             transition: background 0.2s;
         }
         .h-notes-save:hover { background: var(--text-dim); }
@@ -898,18 +898,18 @@
         .gs-card-scroll {
             width: 100%; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
             display: flex; align-items: flex-start; justify-content: center;
-            padding: 2vh 0;
+            padding: calc(2 * var(--vh, 1vh)) 0;
             box-sizing: border-box;
         }
         .gs-card-fixed-footer {
             flex-shrink: 0; display: flex; justify-content: flex-end;
-            padding: 1.5vh 5%; background: var(--bg);
+            padding: calc(1.5 * var(--vh, 1vh)) 5%; background: var(--bg);
             border-top: 1px solid var(--border-card);
         }
         .gs-card {
             width: 94%; max-width: 600px;
             background: var(--panel-bg); border: 1px solid var(--border-card);
-            border-radius: 14px; padding: 0 0 2vh;
+            border-radius: 14px; padding: 0 0 calc(2 * var(--vh, 1vh));
             box-sizing: border-box;
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -919,8 +919,8 @@
                 "stats  stats"
                 "footer footer";
         }
-        .gs-photo-block.t1 { grid-area: photo1; margin-bottom: 1.3vh; }
-        .gs-photo-block.t2 { grid-area: photo2; margin-bottom: 1.3vh; }
+        .gs-photo-block.t1 { grid-area: photo1; margin-bottom: calc(1.3 * var(--vh, 1vh)); }
+        .gs-photo-block.t2 { grid-area: photo2; margin-bottom: calc(1.3 * var(--vh, 1vh)); }
         .gs-photo-pair { display: flex; align-items: flex-start; }
         .gs-photo-block.t2 .gs-photo-pair { justify-content: flex-end; }
         .gs-photo {
@@ -940,28 +940,28 @@
 
         .gs-sets-table {
             grid-area: sets;
-            margin: 0 3% 1.3vh; background: var(--card-bg);
+            margin: 0 3% calc(1.3 * var(--vh, 1vh)); background: var(--card-bg);
             border: 1.5px solid var(--border-card); border-radius: 8px; overflow: hidden;
         }
         .gs-sets-row { display: flex; }
         .gs-sets-row + .gs-sets-row { border-top: 1.5px solid var(--border-card); }
         .gs-sets-label {
             flex: 1.4; display: flex; align-items: center; justify-content: center;
-            font-size: 1.3vh; font-weight: 700; letter-spacing: 0.5px; color: var(--text-main);
-            text-transform: uppercase; padding: 0.6vh 0; border-right: 1.5px solid var(--border-card);
+            font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.5px; color: var(--text-main);
+            text-transform: uppercase; padding: calc(0.6 * var(--vh, 1vh)) 0; border-right: 1.5px solid var(--border-card);
         }
         .gs-sets-label.gs-red { color: var(--accent-red); }
         .gs-sets-val {
-            flex: 1; text-align: center; font-size: 1.9vh; font-weight: 900;
-            color: var(--text-main); padding: 0.6vh 0;
+            flex: 1; text-align: center; font-size: calc(1.9 * var(--vh, 1vh)); font-weight: 900;
+            color: var(--text-main); padding: calc(0.6 * var(--vh, 1vh)) 0;
         }
         .gs-sets-val + .gs-sets-val { border-left: 1.5px solid var(--border-card); }
 
-        .gs-stats { grid-area: stats; display: flex; flex-direction: column; gap: 0.7vh; padding: 0 3%; }
-        .gs-stat-row { display: flex; flex-wrap: wrap; align-items: center; font-size: 1.7vh; }
+        .gs-stats { grid-area: stats; display: flex; flex-direction: column; gap: calc(0.7 * var(--vh, 1vh)); padding: 0 3%; }
+        .gs-stat-row { display: flex; flex-wrap: wrap; align-items: center; font-size: calc(1.7 * var(--vh, 1vh)); }
         .gs-stat-label {
             order: -1; flex-basis: 100%;
-            text-align: center; font-size: 1.35vh; color: var(--text-main); font-weight: 500;
+            text-align: center; font-size: calc(1.35 * var(--vh, 1vh)); color: var(--text-main); font-weight: 500;
             text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;
         }
         .gs-stat-num { width: 8%; color: var(--text-main); font-weight: 700; }
@@ -970,22 +970,22 @@
         .gs-bar-half { flex: 1; display: flex; }
         .gs-bar-half.left { justify-content: flex-end; }
         .gs-bar-half.right { justify-content: flex-start; }
-        .gs-bar-fill { height: 0.8vh; }
+        .gs-bar-fill { height: calc(0.8 * var(--vh, 1vh)); }
         .gs-bar-fill.t1 { background: linear-gradient(to left, rgba(56,189,248,0.35), var(--accent-blue)); border-radius: 3px 0 0 3px; }
         .gs-bar-fill.t2 { background: linear-gradient(to right, rgba(245,197,24,0.35), var(--accent-yellow)); border-radius: 0 3px 3px 0; }
 
         .gs-footer {
             grid-area: footer;
             display: flex; border-top: 1px solid var(--border-card);
-            margin: 1.3vh 3% 0; padding-top: 1vh;
+            margin: calc(1.3 * var(--vh, 1vh)) 3% 0; padding-top: calc(1 * var(--vh, 1vh));
         }
         .gs-footer-side { flex: 1; text-align: center; position: relative; }
         .gs-footer-side.t1 { border-right: 1px solid var(--border-card); color: var(--accent-blue); }
         .gs-footer-side.t2 { color: var(--accent-yellow); }
-        .gs-footer-side { font-weight: 500; font-size: 1.6vh; line-height: 1.3; }
+        .gs-footer-side { font-weight: 500; font-size: calc(1.6 * var(--vh, 1vh)); line-height: 1.3; }
         .gs-trophy {
-            position: absolute; top: -2.2vh; left: 50%; transform: translateX(-50%);
-            font-size: 1.7vh;
+            position: absolute; top: calc(-2.2 * var(--vh, 1vh)); left: 50%; transform: translateX(-50%);
+            font-size: calc(1.7 * var(--vh, 1vh));
         }
 
         .notes-fs-overlay {
@@ -998,7 +998,7 @@
         }
         .notes-fs-overlay.show { opacity: 1; pointer-events: all; }
         .notes-fs-modal {
-            width: 80vw; height: 80vh; max-width: 640px;
+            width: 80vw; height: calc(80 * var(--vh, 1vh)); max-width: 640px;
             background: var(--bg); border: 2px solid var(--border-card);
             border-radius: 14px; overflow: hidden;
             display: flex; flex-direction: column;
@@ -1006,18 +1006,18 @@
         }
         .notes-fs-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 1.4vh 4vw;
+            padding: calc(1.4 * var(--vh, 1vh)) 4vw;
             background: var(--panel-bg);
             border-bottom: 1.5px solid var(--divider);
             flex-shrink: 0;
         }
         .notes-fs-title {
-            font-size: 1.7vh; font-weight: 900; letter-spacing: 1px;
+            font-size: calc(1.7 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 1px;
             color: var(--text-main);
         }
         .notes-fs-footer {
             display: flex; gap: 2vw; justify-content: flex-end;
-            padding: 1.4vh 4vw;
+            padding: calc(1.4 * var(--vh, 1vh)) 4vw;
             background: var(--panel-bg);
             border-top: 1.5px solid var(--divider);
             flex-shrink: 0;
@@ -1025,7 +1025,7 @@
         .notes-fs-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             color: #fff; border-radius: 8px; cursor: pointer;
-            padding: 0.7vh 3.5vw; font-size: 1.4vh; font-weight: 800;
+            padding: calc(0.7 * var(--vh, 1vh)) 3.5vw; font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 800;
             letter-spacing: 1px; text-transform: uppercase;
             transition: background 0.2s, border-color 0.2s;
         }
@@ -1036,15 +1036,15 @@
             flex: 1; width: 100%;
             background: var(--bg); border: none;
             color: #ffffff; font-family: 'Courier New', Courier, monospace;
-            font-size: 1.6vh; line-height: 1.6;
-            padding: 2vh 4vw; resize: none;
+            font-size: calc(1.6 * var(--vh, 1vh)); line-height: 1.6;
+            padding: calc(2 * var(--vh, 1vh)) 4vw; resize: none;
             outline: none; box-sizing: border-box;
         }
         .notes-fs-counter {
-            padding: 0.8vh 4vw;
+            padding: calc(0.8 * var(--vh, 1vh)) 4vw;
             background: var(--panel-bg);
             border-top: 1px solid var(--divider);
-            font-size: 1.1vh; color: var(--text-dim);
+            font-size: calc(1.1 * var(--vh, 1vh)); color: var(--text-dim);
             text-align: right; flex-shrink: 0;
         }
 
@@ -1052,21 +1052,21 @@
            visibilidade, não deve ficar "escondida" no fim das estatísticas */
         .h-notes-cta {
             width: 100%; display: flex; align-items: center; justify-content: center;
-            gap: 2vw; margin-top: 1.2vh; padding: 1.3vh 2vw;
+            gap: 2vw; margin-top: calc(1.2 * var(--vh, 1vh)); padding: calc(1.3 * var(--vh, 1vh)) 2vw;
             background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(245,197,24,0.15));
             border: 1.5px solid var(--accent-blue); border-radius: 10px;
-            color: var(--text-main); font-size: 1.5vh; font-weight: 800;
+            color: var(--text-main); font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 800;
             letter-spacing: 0.5px; cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
         }
         .h-notes-cta:hover { border-color: var(--accent-yellow); }
-        .h-notes-cta-icon { font-size: 1.9vh; }
+        .h-notes-cta-icon { font-size: calc(1.9 * var(--vh, 1vh)); }
         .h-notes-cta-arrow { color: var(--text-dim); font-weight: 900; }
         .h-ai-regen-btn {
             width: 100%; display: flex; align-items: center; justify-content: center;
-            gap: 1.5vw; margin-top: 0.8vh; padding: 0.9vh 2vw;
+            gap: 1.5vw; margin-top: calc(0.8 * var(--vh, 1vh)); padding: calc(0.9 * var(--vh, 1vh)) 2vw;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
-            border-radius: 8px; color: var(--text-dim); font-size: 1.3vh; font-weight: 700;
+            border-radius: 8px; color: var(--text-dim); font-size: calc(1.3 * var(--vh, 1vh)); font-weight: 700;
             letter-spacing: 0.3px; cursor: pointer;
             transition: border-color 0.2s, color 0.2s;
         }
@@ -1077,113 +1077,113 @@
         .h-ai-regen-btn.done:hover { border-color: var(--border-card); color: var(--text-dim); }
 
         /* Card embutido por padrão no Histórico */
-        .gs-embed { margin-top: 1vh; }
+        .gs-embed { margin-top: calc(1 * var(--vh, 1vh)); }
         /* Match Card compacto no Histórico: fica mais baixo para que o usuário perceba
            as tabelas individuais logo abaixo. Só afeta o card embutido (.gs-embed). */
-        .gs-embed { padding-bottom: 1.2vh; }
+        .gs-embed { padding-bottom: calc(1.2 * var(--vh, 1vh)); }
         .gs-embed .gs-photo { width: 26%; }
-        .gs-embed .gs-photo-block.t1, .gs-embed .gs-photo-block.t2 { margin-bottom: 0.8vh; }
-        .gs-embed .gs-sets-table { margin-bottom: 0.9vh; }
-        .gs-embed .gs-sets-label, .gs-embed .gs-sets-val { padding-top: 0.4vh; padding-bottom: 0.4vh; }
-        .gs-embed .gs-stats { gap: 0.3vh; }
-        .gs-embed .gs-stat-row { font-size: 1.5vh; }
-        .gs-embed .gs-stat-label { font-size: 1.2vh; margin-bottom: 0; }
-        .gs-embed .gs-footer { margin-top: 0.9vh; padding-top: 0.7vh; }
+        .gs-embed .gs-photo-block.t1, .gs-embed .gs-photo-block.t2 { margin-bottom: calc(0.8 * var(--vh, 1vh)); }
+        .gs-embed .gs-sets-table { margin-bottom: calc(0.9 * var(--vh, 1vh)); }
+        .gs-embed .gs-sets-label, .gs-embed .gs-sets-val { padding-top: calc(0.4 * var(--vh, 1vh)); padding-bottom: calc(0.4 * var(--vh, 1vh)); }
+        .gs-embed .gs-stats { gap: calc(0.3 * var(--vh, 1vh)); }
+        .gs-embed .gs-stat-row { font-size: calc(1.5 * var(--vh, 1vh)); }
+        .gs-embed .gs-stat-label { font-size: calc(1.2 * var(--vh, 1vh)); margin-bottom: 0; }
+        .gs-embed .gs-footer { margin-top: calc(0.9 * var(--vh, 1vh)); padding-top: calc(0.7 * var(--vh, 1vh)); }
         .gs-embed-loading {
-            text-align: center; padding: 4vh 0; color: var(--text-dim); font-size: 1.5vh;
+            text-align: center; padding: calc(4 * var(--vh, 1vh)) 0; color: var(--text-dim); font-size: calc(1.5 * var(--vh, 1vh));
         }
 
         /* Linha de ação — 4 posições reservadas, 3 em uso por enquanto */
         .h-action-row {
             display: flex; gap: 2vw; flex-shrink: 0;
-            padding: 1.2vh 4vw; background: var(--bg);
+            padding: calc(1.2 * var(--vh, 1vh)) 4vw; background: var(--bg);
             border-top: 1.5px solid var(--divider);
         }
         .h-action-btn {
             flex: 1; display: flex; flex-direction: column; align-items: center;
-            gap: 0.4vh; padding: 1.2vh 1vw; background: var(--card-bg);
+            gap: calc(0.4 * var(--vh, 1vh)); padding: calc(1.2 * var(--vh, 1vh)) 1vw; background: var(--card-bg);
             border: 1.5px solid var(--border-card); border-radius: 10px;
-            color: var(--text-main); font-size: 1.15vh; font-weight: 700;
+            color: var(--text-main); font-size: calc(1.15 * var(--vh, 1vh)); font-weight: 700;
             letter-spacing: 0.2px; cursor: pointer; transition: border-color 0.2s;
         }
         .h-action-btn:hover { border-color: var(--accent-blue); }
-        .h-action-btn span:first-child { font-size: 2.2vh; }
+        .h-action-btn span:first-child { font-size: calc(2.2 * var(--vh, 1vh)); }
 
-        .h-individual-details { margin-top: 1.5vh; }
+        .h-individual-details { margin-top: calc(1.5 * var(--vh, 1vh)); }
 
         /* ============================================================
            MATCH STATS TABLE inside notes (monospace rendered)
         ============================================================ */
         .h-match-stats-wrap {
-            margin-top: 1vh;
+            margin-top: calc(1 * var(--vh, 1vh));
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 8px; overflow: hidden;
         }
         .h-match-stats-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0.6vh 2.5vw; border-bottom: 1px solid var(--border-card);
+            padding: calc(0.6 * var(--vh, 1vh)) 2.5vw; border-bottom: 1px solid var(--border-card);
             background: rgba(255,255,255,0.03);
         }
         .h-match-stats-title {
-            font-size: 1.2vh; font-weight: 800; letter-spacing: 1.5px;
+            font-size: calc(1.2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.5px;
             text-transform: uppercase; color: var(--text-dim);
         }
         .h-stats-html-table {
             width: 100%; border-collapse: collapse;
-            font-size: 1.45vh;
+            font-size: calc(1.45 * var(--vh, 1vh));
         }
         .h-stats-html-table thead tr {
             background: rgba(255,255,255,0.05);
             border-bottom: 2px solid var(--border-card);
         }
         .h-stats-html-table th {
-            padding: 0.7vh 2vw; font-weight: 800;
-            font-size: 1.35vh; letter-spacing: 0.5px;
+            padding: calc(0.7 * var(--vh, 1vh)) 2vw; font-weight: 800;
+            font-size: calc(1.35 * var(--vh, 1vh)); letter-spacing: 0.5px;
             text-transform: uppercase; color: var(--text-dim);
         }
         .h-stats-html-table th:first-child { text-align: left; }
         .h-stats-html-table th:not(:first-child) { text-align: center; }
         .h-stats-html-table td {
-            padding: 0.65vh 2vw; color: #fff;
+            padding: calc(0.65 * var(--vh, 1vh)) 2vw; color: #fff;
             border-bottom: 1px solid rgba(30,58,110,0.35);
         }
-        .h-stats-html-table td:first-child { text-align: left; color: var(--text-dim); font-size: 1.3vh; }
+        .h-stats-html-table td:first-child { text-align: left; color: var(--text-dim); font-size: calc(1.3 * var(--vh, 1vh)); }
         .h-stats-html-table td:not(:first-child) { text-align: center; font-weight: 700; }
         .h-stats-html-table tr:last-child td { border-bottom: none; }
         .h-stats-html-table .section-head td {
             background: rgba(255,255,255,0.04);
             color: var(--accent-blue); font-weight: 900;
-            font-size: 1.3vh; letter-spacing: 1px; padding: 0.5vh 2vw;
+            font-size: calc(1.3 * var(--vh, 1vh)); letter-spacing: 1px; padding: calc(0.5 * var(--vh, 1vh)) 2vw;
             border-top: 1px solid var(--border-card);
         }
         .h-stats-html-table .section-head td:first-child { text-align: left; }
         .h-stats-html-table .total-head td {
             background: rgba(245,197,24,0.07);
             color: #f5c518; font-weight: 900;
-            font-size: 1.3vh; letter-spacing: 1px; padding: 0.5vh 2vw;
+            font-size: calc(1.3 * var(--vh, 1vh)); letter-spacing: 1px; padding: calc(0.5 * var(--vh, 1vh)) 2vw;
             border-top: 2px solid var(--border-card);
         }
         .h-stats-html-table .val-win { color: #4ade80; }
         .h-stats-html-table .val-gp  { color: #f5c518; }
         .h-stats-html-table .val-sp  { color: var(--accent-blue); }
         .h-pair-name-row {
-            font-size: 1.5vh; font-weight: 700; color: #ffffff;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700; color: #ffffff;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-transform: uppercase; letter-spacing: 0.5px;
         }
         .h-pair-name-sep { color: var(--text-dim); margin: 0 0.8vw; font-weight: 400; }
         .h-winner-right {
             display: flex; flex-direction: column; align-items: flex-end;
-            gap: 0.3vh; flex-shrink: 0;
+            gap: calc(0.3 * var(--vh, 1vh)); flex-shrink: 0;
         }
         .h-winner-badge {
-            font-size: 1.2vh; font-weight: 900; color: #f5c518;
+            font-size: calc(1.2 * var(--vh, 1vh)); font-weight: 900; color: #f5c518;
             letter-spacing: 1.5px; text-transform: uppercase;
             background: rgba(245,197,24,0.12); border: 1px solid #f5c518;
-            border-radius: 4px; padding: 0.2vh 1.2vw;
+            border-radius: 4px; padding: calc(0.2 * var(--vh, 1vh)) 1.2vw;
         }
         .h-winner-score {
-            font-size: 1.7vh; font-weight: 900; color: #f5c518;
+            font-size: calc(1.7 * var(--vh, 1vh)); font-weight: 900; color: #f5c518;
             letter-spacing: 2px;
         }
 
@@ -1200,7 +1200,7 @@
         label.photo-label .photo-edit-hint {
             position: absolute; bottom: 4px; right: 4px;
             background: rgba(0,0,0,.55); color: #fff;
-            font-size: 1.4vh; border-radius: 4px;
+            font-size: calc(1.4 * var(--vh, 1vh)); border-radius: 4px;
             padding: 1px 5px; pointer-events: none;
             opacity: 0.85;
         }
@@ -1208,23 +1208,23 @@
 
 
         .h-stats-table {
-            width: 100%; border-collapse: collapse; font-size: 1.5vh;
+            width: 100%; border-collapse: collapse; font-size: calc(1.5 * var(--vh, 1vh));
         }
         .h-stats-table th {
             background: rgba(255,255,255,0.04);
             color: #ffffff; font-weight: 700;
             text-transform: uppercase; letter-spacing: 0.8px;
-            padding: 0.7vh 2vw; text-align: center;
+            padding: calc(0.7 * var(--vh, 1vh)) 2vw; text-align: center;
             border-bottom: 1px solid var(--border-card);
-            font-size: 1.4vh;
+            font-size: calc(1.4 * var(--vh, 1vh));
         }
         .h-stats-table th:first-child { text-align: left; }
         .h-stats-table td {
-            padding: 0.65vh 2vw; text-align: center;
+            padding: calc(0.65 * var(--vh, 1vh)) 2vw; text-align: center;
             color: #ffffff; border-bottom: 1px solid rgba(30,58,110,0.4);
-            font-size: 1.5vh;
+            font-size: calc(1.5 * var(--vh, 1vh));
         }
-        .h-stats-table td:first-child { text-align: left; color: #ffffff; font-size: 1.4vh; }
+        .h-stats-table td:first-child { text-align: left; color: #ffffff; font-size: calc(1.4 * var(--vh, 1vh)); }
         .h-stats-table tr:last-child td { border-bottom: none; }
 
         /* ============================================================
@@ -1233,7 +1233,7 @@
         .toolbar-btn-icon {
             flex: 0 0 auto; padding: 0 3vw; max-width: none;
         }
-        .toolbar-btn-icon svg { width: 2.4vh; height: 2.4vh; }
+        .toolbar-btn-icon svg { width: calc(2.4 * var(--vh, 1vh)); height: calc(2.4 * var(--vh, 1vh)); }
 
         /* ============================================================
            AI ANALYSIS — overlay de espera e popup de erro/retry
@@ -1245,17 +1245,17 @@
             opacity: 0; pointer-events: none; transition: opacity 0.2s;
         }
         .ai-wait-overlay.show { opacity: 1; pointer-events: all; }
-        .ai-wait-box { text-align: center; padding: 4vh 8vw; }
+        .ai-wait-box { text-align: center; padding: calc(4 * var(--vh, 1vh)) 8vw; }
         .ai-wait-spinner {
-            width: 6vh; height: 6vh; margin: 0 auto 2vh;
+            width: calc(6 * var(--vh, 1vh)); height: calc(6 * var(--vh, 1vh)); margin: 0 auto calc(2 * var(--vh, 1vh));
             border: 4px solid var(--border-card); border-top-color: var(--accent-blue);
             border-radius: 50%; animation: ai-spin 0.9s linear infinite;
         }
         @keyframes ai-spin { to { transform: rotate(360deg); } }
-        .ai-wait-text { font-size: 2.2vh; font-weight: 800; color: #fff; margin-bottom: 0.8vh; }
-        .ai-wait-sub { font-size: 1.4vh; color: var(--text-dim); margin-bottom: 2vh; }
+        .ai-wait-text { font-size: calc(2.2 * var(--vh, 1vh)); font-weight: 800; color: #fff; margin-bottom: calc(0.8 * var(--vh, 1vh)); }
+        .ai-wait-sub { font-size: calc(1.4 * var(--vh, 1vh)); color: var(--text-dim); margin-bottom: calc(2 * var(--vh, 1vh)); }
         .ai-wait-countdown {
-            font-size: 3.5vh; font-weight: 900; color: var(--accent-blue);
+            font-size: calc(3.5 * var(--vh, 1vh)); font-weight: 900; color: var(--accent-blue);
             font-variant-numeric: tabular-nums;
         }
 
@@ -1267,16 +1267,16 @@
         }
         .ai-error-overlay.show { opacity: 1; pointer-events: all; }
         .ai-error-box {
-            width: 84vw; max-width: 420px; padding: 3.5vh 6vw;
+            width: 84vw; max-width: 420px; padding: calc(3.5 * var(--vh, 1vh)) 6vw;
             background: var(--panel-bg); border: 2px solid #e05555; border-radius: 14px;
             text-align: center;
         }
-        .ai-error-title { font-size: 2vh; font-weight: 900; color: #ff6b6b; margin-bottom: 1.2vh; }
-        .ai-error-msg { font-size: 1.5vh; color: var(--text-dim); line-height: 1.5; margin-bottom: 2.5vh; }
+        .ai-error-title { font-size: calc(2 * var(--vh, 1vh)); font-weight: 900; color: #ff6b6b; margin-bottom: calc(1.2 * var(--vh, 1vh)); }
+        .ai-error-msg { font-size: calc(1.5 * var(--vh, 1vh)); color: var(--text-dim); line-height: 1.5; margin-bottom: calc(2.5 * var(--vh, 1vh)); }
         .ai-error-actions { display: flex; gap: 3vw; }
         .ai-error-btn {
-            flex: 1; padding: 1.2vh 0; border-radius: 8px; cursor: pointer;
-            font-size: 1.5vh; font-weight: 800; letter-spacing: 0.5px;
+            flex: 1; padding: calc(1.2 * var(--vh, 1vh)) 0; border-radius: 8px; cursor: pointer;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 0.5px;
             background: var(--card-bg); border: 1.5px solid var(--border-card); color: #fff;
         }
         .ai-error-btn.primary { background: #1e4a2e; border-color: #2a7a40; color: #4ade80; }
@@ -1295,38 +1295,38 @@
             border: 2px solid var(--border-card);
             border-radius: 14px;
             width: 92vw; max-width: 440px;
-            padding: 2vh 4vw 2.5vh;
-            display: flex; flex-direction: column; gap: 2.5vh;
+            padding: calc(2 * var(--vh, 1vh)) 4vw calc(2.5 * var(--vh, 1vh));
+            display: flex; flex-direction: column; gap: calc(2.5 * var(--vh, 1vh));
         }
         .config-modal-header {
             display: flex; align-items: center; justify-content: space-between;
         }
         .config-modal-header h2 {
-            font-size: 2.4vh; font-weight: 900; letter-spacing: 2px;
+            font-size: calc(2.4 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 2px;
             text-transform: uppercase; color: var(--text-main);
         }
         .config-modal-footer {
             display: flex; justify-content: flex-end;
-            margin-top: 0.5vh;
+            margin-top: calc(0.5 * var(--vh, 1vh));
         }
         .config-back-btn {
             background: var(--bg); border: none; cursor: pointer;
-            color: #fff; font-size: 2vh; font-weight: 700;
-            letter-spacing: 2px; padding: 1vh 2vw;
+            color: #fff; font-size: calc(2 * var(--vh, 1vh)); font-weight: 700;
+            letter-spacing: 2px; padding: calc(1 * var(--vh, 1vh)) 2vw;
         }
         .config-back-btn:active { opacity: 0.6; }
 
         /* ============================================================
            POINT LOG POPUP
         ============================================================ */
-        .pointlog-modal { gap: 1vh; }
+        .pointlog-modal { gap: calc(1 * var(--vh, 1vh)); }
         .pointlog-set-tabs {
-            display: none; gap: 1.2vw; margin-bottom: 0.8vh;
+            display: none; gap: 1.2vw; margin-bottom: calc(0.8 * var(--vh, 1vh));
         }
         .pointlog-set-tab {
             background: var(--card-bg); border: 2px solid var(--border-card);
             color: var(--text-dim); border-radius: 8px; cursor: pointer;
-            padding: 1.1vh 4.5vw; font-size: 1.8vh; font-weight: 900;
+            padding: calc(1.1 * var(--vh, 1vh)) 4.5vw; font-size: calc(1.8 * var(--vh, 1vh)); font-weight: 900;
             letter-spacing: 0.5px;
         }
         .pointlog-set-tab.active {
@@ -1338,26 +1338,26 @@
             color: var(--text-main); text-transform: uppercase;
         }
         .pointlog-team-name.pointlog-team1 { color: var(--accent-blue); }
-        .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: 0.3vh; }
+        .pointlog-team-name.pointlog-team2 { color: var(--accent-yellow); margin-top: calc(0.3 * var(--vh, 1vh)); }
         .pointlog-bp {
-            font-size: 1.5vh; font-weight: 700;
-            margin-bottom: 0.4vh; letter-spacing: 0.3px;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700;
+            margin-bottom: calc(0.4 * var(--vh, 1vh)); letter-spacing: 0.3px;
         }
         .pointlog-bp-team1 { color: var(--accent-blue); }
         .pointlog-bp-team2 { color: var(--accent-yellow); }
         .pointlog-bp-number {
-            color: #ff5252; font-weight: 900; font-size: 1.8vh;
+            color: #ff5252; font-weight: 900; font-size: calc(1.8 * var(--vh, 1vh));
         }
         /* Cada linha tem seu próprio scroll horizontal, sincronizado via JS
            (initPointLogScrollSync) — rolar uma rola a outra junto */
         .pointlog-trail {
             display: flex; align-items: center; flex-wrap: nowrap;
-            overflow-x: auto; overscroll-behavior-x: contain; padding: 0.4vh 0;
+            overflow-x: auto; overscroll-behavior-x: contain; padding: calc(0.4 * var(--vh, 1vh)) 0;
         }
         .pointlog-node {
             flex: 0 0 auto;
             width: 4.4vw; min-width: 30px;
-            height: 4.4vh; min-height: 30px;
+            height: calc(4.4 * var(--vh, 1vh)); min-height: 30px;
             display: flex; align-items: center; justify-content: center;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 7px; margin-right: 0.3vw;
@@ -1386,23 +1386,23 @@
            pontos que um game normal (sem teto de 15/30/40) */
         .pointlog-trail.compact .pointlog-node {
             width: 2.8vw; min-width: 20px;
-            height: 2.8vh; min-height: 20px;
+            height: calc(2.8 * var(--vh, 1vh)); min-height: 20px;
             font-size: 1.2dvh; border-radius: 6px;
         }
         .pointlog-trail.compact .pointlog-node-win { font-size: 1dvh; }
         .pointlog-trail.compact .pointlog-node-lose { min-width: 5vw; font-size: 0.85dvh; }
         .pointlog-trail.compact .pointlog-connector { flex-basis: 0.4vw; margin-right: 0.15vw; }
         .pointlog-divider {
-            border-top: 1px dashed var(--border-card); margin: 0.6vh 0;
+            border-top: 1px dashed var(--border-card); margin: calc(0.6 * var(--vh, 1vh)) 0;
         }
         .pointlog-nav {
             display: flex; justify-content: space-between; align-items: center;
-            margin-top: 0.5vh;
+            margin-top: calc(0.5 * var(--vh, 1vh));
         }
         .pointlog-nav-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             color: var(--text-main); border-radius: 8px; cursor: pointer;
-            padding: 0.8vh 3vw; font-size: 1.6dvh; font-weight: 700;
+            padding: calc(0.8 * var(--vh, 1vh)) 3vw; font-size: 1.6dvh; font-weight: 700;
             visibility: hidden;
         }
         .pointlog-nav-btn:hover { border-color: var(--accent-blue); }
@@ -1411,24 +1411,24 @@
            SET LOG — trajetória de games do set (nível acima do Game Log)
         ============================================================ */
         .setlog-block {
-            margin-bottom: 0.3vh; padding: 1.2vh 1vw;
+            margin-bottom: calc(0.3 * var(--vh, 1vh)); padding: calc(1.2 * var(--vh, 1vh)) 1vw;
             background: var(--panel-bg); border: 1.5px solid var(--border-card);
             border-radius: 10px;
         }
         .setlog-team-name {
-            font-size: 1.4vh; font-weight: 700; letter-spacing: 0.3px;
+            font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.3px;
             color: var(--text-dim); text-transform: uppercase;
         }
         .setlog-team-name.setlog-team1 { color: var(--accent-blue); }
-        .setlog-team-name.setlog-team2 { color: var(--accent-yellow); margin-bottom: 0.3vh; }
+        .setlog-team-name.setlog-team2 { color: var(--accent-yellow); margin-bottom: calc(0.3 * var(--vh, 1vh)); }
         .setlog-trail {
             display: flex; align-items: center; flex-wrap: nowrap;
-            overflow-x: auto; overscroll-behavior-x: contain; padding: 0.3vh 0;
+            overflow-x: auto; overscroll-behavior-x: contain; padding: calc(0.3 * var(--vh, 1vh)) 0;
         }
         .setlog-node {
             flex: 0 0 auto; cursor: pointer;
             width: 4.4vw; min-width: 30px;
-            height: 4.4vh; min-height: 30px;
+            height: calc(4.4 * var(--vh, 1vh)); min-height: 30px;
             display: flex; align-items: center; justify-content: center;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 7px; margin-right: 0.3vw;
@@ -1447,22 +1447,22 @@
             margin-right: 0.3vw;
         }
         .setlog-divider {
-            border-top: 1px dashed var(--border-card); margin: 0.4vh 0;
+            border-top: 1px dashed var(--border-card); margin: calc(0.4 * var(--vh, 1vh)) 0;
         }
         .gamelog-block {
-            padding: 1.2vh 1vw;
+            padding: calc(1.2 * var(--vh, 1vh)) 1vw;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             border-radius: 10px;
         }
         .pointlog-empty-msg {
-            color: var(--text-dim); font-size: 1.5vh; font-style: italic;
-            padding: 1vh 0; text-align: center;
+            color: var(--text-dim); font-size: calc(1.5 * var(--vh, 1vh)); font-style: italic;
+            padding: calc(1 * var(--vh, 1vh)) 0; text-align: center;
         }
 
         .check-update-btn {
             background: var(--card-bg); border: 1.5px solid var(--border-card);
             color: #fff; border-radius: 8px; cursor: pointer;
-            padding: 1vh 4vw; font-size: 2vh; font-weight: 700;
+            padding: calc(1 * var(--vh, 1vh)) 4vw; font-size: calc(2 * var(--vh, 1vh)); font-weight: 700;
             letter-spacing: 0.5px; width: 100%;
             transition: background 0.2s;
         }
@@ -1470,24 +1470,24 @@
         .check-update-btn:active { opacity: 0.7; }
 
         .config-version {
-            text-align: center; padding: 1.2vh 0 0.4vh;
-            font-size: 1.8vh; font-weight: 600; letter-spacing: 2px;
+            text-align: center; padding: calc(1.2 * var(--vh, 1vh)) 0 calc(0.4 * var(--vh, 1vh));
+            font-size: calc(1.8 * var(--vh, 1vh)); font-weight: 600; letter-spacing: 2px;
             color: rgba(255, 255, 255, 0.55);
         }
 
-        .config-row { display: flex; flex-direction: column; gap: 0.8vh; }
+        .config-row { display: flex; flex-direction: column; gap: calc(0.8 * var(--vh, 1vh)); }
         .config-row-label {
-            font-size: 1.8vh; font-weight: 700; letter-spacing: 1.5px;
+            font-size: calc(1.8 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 1.5px;
             text-transform: uppercase; color: rgba(255, 255, 255, 0.88);
         }
         .config-toggle {
             display: flex; align-items: center;
             background: var(--card-bg); border: 1.5px solid var(--border-card);
-            border-radius: 10px; overflow: hidden; height: 6vh;
+            border-radius: 10px; overflow: hidden; height: calc(6 * var(--vh, 1vh));
         }
         .config-toggle-opt {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            font-size: 1.6vh; font-weight: 800; letter-spacing: 0.5px;
+            font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 0.5px;
             text-transform: uppercase; cursor: pointer; height: 100%;
             color: rgba(255, 255, 255, 0.78); transition: background 0.2s, color 0.2s;
             user-select: none; text-align: center; padding: 0 0.5vw;
@@ -1507,12 +1507,12 @@
         .config-lang-toggle {
             display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
             gap: 2vw; background: var(--card-bg); border: 1.5px solid var(--border-card);
-            border-radius: 10px; padding: 1vh 0;
+            border-radius: 10px; padding: calc(1 * var(--vh, 1vh)) 0;
         }
         .config-lang-opt {
             background: transparent; border: 2px solid transparent;
-            border-radius: 8px; cursor: pointer; padding: 0.4vh 1vw;
-            font-size: 3vh; line-height: 1; transition: border-color 0.2s, background 0.2s;
+            border-radius: 8px; cursor: pointer; padding: calc(0.4 * var(--vh, 1vh)) 1vw;
+            font-size: calc(3 * var(--vh, 1vh)); line-height: 1; transition: border-color 0.2s, background 0.2s;
             opacity: 0.5;
         }
         .config-lang-opt.active {
@@ -1520,14 +1520,14 @@
             opacity: 1;
         }
         .config-hint {
-            font-size: 1.5vh; color: rgba(255, 255, 255, 0.7); text-align: center;
+            font-size: calc(1.5 * var(--vh, 1vh)); color: rgba(255, 255, 255, 0.7); text-align: center;
             letter-spacing: 0.5px;
         }
         .cfg-logos-row {
             display: flex; gap: 3vw;
         }
         .cfg-logo-slot {
-            flex: 1; height: 8vh;
+            flex: 1; height: calc(8 * var(--vh, 1vh));
             background: var(--card-bg); border: 1.5px dashed var(--border-card);
             border-radius: 8px; cursor: pointer; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
@@ -1536,22 +1536,22 @@
         .cfg-logo-slot:hover { border-color: var(--text-dim); }
         .cfg-logo-slot img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
         .cfg-logo-placeholder {
-            display: flex; flex-direction: column; align-items: center; gap: 0.4vh;
+            display: flex; flex-direction: column; align-items: center; gap: calc(0.4 * var(--vh, 1vh));
             color: var(--text-dim); pointer-events: none;
         }
-        .cfg-logo-placeholder span { font-size: 1.1vh; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+        .cfg-logo-placeholder span { font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
 
         /* ícone do modo de ponto junto ao label Points */
-        .pts-mode-icon { font-size: 1.4vh; font-weight: 900; color: #f5c518; vertical-align: middle; letter-spacing: 0.5px; }
+        .pts-mode-icon { font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 900; color: #f5c518; vertical-align: middle; letter-spacing: 0.5px; }
 
         /* ============================================================
            SERVE BALL INDICATOR
         ============================================================ */
         .serve-ball {
             display: block;
-            width: 4vh; height: 4vh;
+            width: calc(4 * var(--vh, 1vh)); height: calc(4 * var(--vh, 1vh));
             min-width: 28px; min-height: 28px;
-            margin: 0.6vh auto 0;
+            margin: calc(0.6 * var(--vh, 1vh)) auto 0;
             opacity: 0.15;
             transition: opacity 0.3s ease, filter 0.3s ease;
             filter: grayscale(80%);
@@ -1583,25 +1583,25 @@
         .ng-overlay.show { display: flex; }
         .ng-modal {
             background: var(--panel-bg); border: 1.5px solid var(--border-card);
-            border-radius: 16px; padding: 3vh 6vw 2.5vh;
+            border-radius: 16px; padding: calc(3 * var(--vh, 1vh)) 6vw calc(2.5 * var(--vh, 1vh));
             width: 80vw; max-width: 340px;
-            display: flex; flex-direction: column; align-items: center; gap: 1.4vh;
+            display: flex; flex-direction: column; align-items: center; gap: calc(1.4 * var(--vh, 1vh));
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
         }
         .ng-title {
-            font-size: 1.1vh; font-weight: 800; letter-spacing: 2px;
+            font-size: calc(1.1 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 2px;
             text-transform: uppercase; color: var(--accent); opacity: 0.8;
         }
         .ng-message {
-            font-size: 1.8vh; font-weight: 600; color: #fff;
+            font-size: calc(1.8 * var(--vh, 1vh)); font-weight: 600; color: #fff;
             text-align: center; line-height: 1.4;
         }
         .ng-buttons {
-            display: flex; gap: 3vw; margin-top: 0.6vh; width: 100%;
+            display: flex; gap: 3vw; margin-top: calc(0.6 * var(--vh, 1vh)); width: 100%;
         }
         .ng-btn {
-            flex: 1; padding: 1.3vh 0; border-radius: 10px;
-            font-size: 1.5vh; font-weight: 800; letter-spacing: 0.5px;
+            flex: 1; padding: calc(1.3 * var(--vh, 1vh)) 0; border-radius: 10px;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 0.5px;
             text-transform: uppercase; cursor: pointer;
             transition: opacity 0.15s; width: 100%;
             -webkit-appearance: none; appearance: none;
@@ -1631,9 +1631,9 @@
             to   { opacity: 1;    transform: scale(1.03); }
         }
         #splash-version {
-            margin-top: 2vh;
+            margin-top: calc(2 * var(--vh, 1vh));
             color: #7a9cc8;
-            font-size: 2.2vh;
+            font-size: calc(2.2 * var(--vh, 1vh));
             font-weight: 600;
             letter-spacing: 0.08em;
         }
@@ -1647,7 +1647,7 @@
 #layout-landscape {
     display: none;
     width: 100vw;
-    height: 100vh;
+    height: calc(100 * var(--vh, 1vh));
     background: #0b1a35;
     color: #fff;
     font-family: inherit;
@@ -1666,7 +1666,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    height: 6vh;
+    height: calc(6 * var(--vh, 1vh));
     padding: 0 1.5vw 0 2vw;
     background: #0b1a35;
     flex-shrink: 0;
@@ -1689,18 +1689,18 @@
     background: #0d2145;
     border: 2px solid #1e3a6e;
     border-radius: 10px;
-    padding: 0.4vh 1.5vw;
-    margin-top: 0.8vh;
+    padding: calc(0.4 * var(--vh, 1vh)) 1.5vw;
+    margin-top: calc(0.8 * var(--vh, 1vh));
 }
 .ls-timer-label {
-    font-size: 1.8vh;
+    font-size: calc(1.8 * var(--vh, 1vh));
     color: #7a9cc8;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 600;
 }
 .ls-timer-display {
-    font-size: 4.5vh;
+    font-size: calc(4.5 * var(--vh, 1vh));
     font-weight: 800;
     color: #e8f0fe;
     letter-spacing: 0.05em;
@@ -1730,8 +1730,8 @@
     padding: 0 2vw 0 4.5vw;
     gap: 0;
 }
-.ls-team1 { align-items: flex-end; margin-top: 0; margin-bottom: 2.5vh; }
-.ls-team2 { align-items: flex-start; margin-bottom: 0; margin-top: 2.5vh; }
+.ls-team1 { align-items: flex-end; margin-top: 0; margin-bottom: calc(2.5 * var(--vh, 1vh)); }
+.ls-team2 { align-items: flex-start; margin-bottom: 0; margin-top: calc(2.5 * var(--vh, 1vh)); }
 
 /* ── TÍTULO ÚNICO Set 1 / Set 2 / SUPERTIE ── */
 .ls-sets-header-row {
@@ -1741,7 +1741,7 @@
     padding: 0 2vw 0 4.5vw;
     gap: 2vw;
     flex-shrink: 0;
-    margin-bottom: 0.8vh;
+    margin-bottom: calc(0.8 * var(--vh, 1vh));
 }
 .ls-sets-header-spacer {
     flex: 0 0 37vw;
@@ -1762,7 +1762,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.6vh;
+    gap: calc(0.6 * var(--vh, 1vh));
     flex: 1;
     position: relative;
 }
@@ -1787,7 +1787,7 @@
 }
 
 .ls-name {
-    font-size: 3.2vh;
+    font-size: calc(3.2 * var(--vh, 1vh));
     font-weight: 700;
     color: #e8f0fe;
     text-align: center;
@@ -1800,12 +1800,12 @@
 }
 
 .ls-serve-ball {
-    width: 5vh; height: 5vh;
+    width: calc(5 * var(--vh, 1vh)); height: calc(5 * var(--vh, 1vh));
     min-width: 32px; min-height: 32px;
     flex-shrink: 0;
     cursor: pointer;
     position: absolute;
-    left: -9.5vh;
+    left: calc(-9.5 * var(--vh, 1vh));
     bottom: 13.5vw;
     transform: translateY(100%);
 }
@@ -1822,7 +1822,7 @@
 .ls-sets-block {
     display: flex;
     flex-direction: column;
-    gap: 0.4vh;
+    gap: calc(0.4 * var(--vh, 1vh));
 }
 
 .ls-sets-labels {
@@ -1831,7 +1831,7 @@
     gap: 0;
 }
 .ls-set-label {
-    font-size: 3.8vh;
+    font-size: calc(3.8 * var(--vh, 1vh));
     font-weight: 700;
     color: #ffffff;
     text-transform: uppercase;
@@ -1852,11 +1852,11 @@
 
 .ls-set-cell {
     width: 12vw;
-    height: 24.5vh;
+    height: calc(24.5 * var(--vh, 1vh));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14vh;
+    font-size: calc(14 * var(--vh, 1vh));
     font-weight: 900;
     color: rgba(255,255,255,0.85);
     border-right: 1.5px solid var(--border-card);
@@ -1871,7 +1871,7 @@
     position: absolute;
     top: 4px;
     right: 6px;
-    font-size: 4.6vh;
+    font-size: calc(4.6 * var(--vh, 1vh));
     color: #7a9cc8;
     font-weight: 600;
 }
@@ -1881,20 +1881,20 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4vh;
+    gap: calc(0.4 * var(--vh, 1vh));
 }
 .ls-pts-label-header {
     width: 12vw;
 }
 .ls-pts-icon {
-    font-size: 4.4vh;
+    font-size: calc(4.4 * var(--vh, 1vh));
     font-weight: 900;
     color: #f5c518;
     letter-spacing: 0.06em;
 }
 .ls-pts-box {
     width: 12vw;
-    height: 24.5vh;
+    height: calc(24.5 * var(--vh, 1vh));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1908,7 +1908,7 @@
 }
 .ls-pts-box:active { background: #e8e8e8; transform: scale(0.97); }
 .ls-pts-val {
-    font-size: 14vh;
+    font-size: calc(14 * var(--vh, 1vh));
     font-weight: 900;
     color: #111;
     font-variant-numeric: tabular-nums;
@@ -1916,7 +1916,7 @@
     overflow: hidden;
 }
 .ls-pts-val.label-lg {
-    font-size: 9.5vh;
+    font-size: calc(9.5 * var(--vh, 1vh));
 }
 
 /* ── DIVIDER ROW com badges + timer ── */
@@ -1925,7 +1925,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    height: 5vh;
+    height: calc(5 * var(--vh, 1vh));
     padding: 0 2vw;
     flex-shrink: 0;
     gap: 1vw;
@@ -1940,9 +1940,9 @@
 /* END OF MATCH e BREAK POINT — itens naturais no flex da divider-row, centrados automaticamente */
 .ls-badge-eo {
     display: none;
-    padding: 0.6vh 1.4vw;
+    padding: calc(0.6 * var(--vh, 1vh)) 1.4vw;
     border-radius: 20px;
-    font-size: 4vh;
+    font-size: calc(4 * var(--vh, 1vh));
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1952,17 +1952,17 @@
 .ls-badge-eo.show { display: inline-block; }
 .ls-card-btn {
     display: none;
-    width: 4vh; height: 4vh; border-radius: 50%;
+    width: calc(4 * var(--vh, 1vh)); height: calc(4 * var(--vh, 1vh)); border-radius: 50%;
     background: var(--accent-yellow); color: #1a1200;
-    border: none; font-size: 2vh; line-height: 1;
+    border: none; font-size: calc(2 * var(--vh, 1vh)); line-height: 1;
     cursor: pointer;
 }
 .ls-card-btn.show { display: inline-flex; align-items: center; justify-content: center; }
 .ls-badge-ws {
     display: none;
-    padding: 0.6vh 1.4vw;
+    padding: calc(0.6 * var(--vh, 1vh)) 1.4vw;
     border-radius: 20px;
-    font-size: 4vh;
+    font-size: calc(4 * var(--vh, 1vh));
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1977,9 +1977,9 @@
     left: 27.4vw;
     top: 50%;
     transform: translate(-50%, -50%);
-    padding: 0.5vh 1.6vw;
+    padding: calc(0.5 * var(--vh, 1vh)) 1.6vw;
     border-radius: 8px;
-    font-size: 4vh;
+    font-size: calc(4 * var(--vh, 1vh));
     font-weight: 900;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -2012,9 +2012,9 @@
 
 .ls-badge-gp {
     display: none;
-    padding: 0.5vh 1.4vw;
+    padding: calc(0.5 * var(--vh, 1vh)) 1.4vw;
     border-radius: 8px;
-    font-size: 4vh;
+    font-size: calc(4 * var(--vh, 1vh));
     font-weight: 900;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -2032,31 +2032,31 @@
        não faz sentido em TV Mode. */
     .portrait-only-item { display: none !important; }
     .p-fab-item {
-        font-size: 3vh;
-        padding: 2vh 2vw;
+        font-size: calc(3 * var(--vh, 1vh));
+        padding: calc(2 * var(--vh, 1vh)) 2vw;
     }
     .p-fab-dropdown {
         min-width: 22vw;
         border-radius: 12px;
     }
     .p-fab-btn {
-        width: 6vh;
-        height: 6vh;
+        width: calc(6 * var(--vh, 1vh));
+        height: calc(6 * var(--vh, 1vh));
     }
     /* Card do Jogo — layout próprio pro TV Mode: o placar de sets ocupa o
        espaço vazio entre as duas fotos (em vez de ficar embaixo), nomes
        das duplas passam pra baixo das fotos (fonte branca, maior, pra ler
        de longe). Card centralizado verticalmente — o layout compacto do
        TV Mode não corre o risco de cortar conteúdo como no retrato. */
-    .gs-card-scroll { align-items: safe center; padding: 1vh 0; }
+    .gs-card-scroll { align-items: safe center; padding: calc(1 * var(--vh, 1vh)) 0; }
     .gs-card {
         max-width: 960px;
-        padding: 1.5vh 0 1.5vh;
+        padding: calc(1.5 * var(--vh, 1vh)) 0 calc(1.5 * var(--vh, 1vh));
         grid-template-columns: 1fr auto 1fr;
         grid-template-areas: "photo1 sets photo2" "stats stats stats";
         align-items: center;
         column-gap: 3vw;
-        row-gap: 1.3vh;
+        row-gap: calc(1.3 * var(--vh, 1vh));
     }
     .gs-photo-block.t1, .gs-photo-block.t2 { margin-bottom: 0; }
     .gs-photo { width: 32%; }
@@ -2064,64 +2064,64 @@
     .gs-footer { display: none; }
     .gs-photo-names {
         display: flex; align-items: center; justify-content: center; gap: 0.6vw;
-        margin: 1vh 0; color: #fff; font-weight: 900;
-        font-size: 3vh; letter-spacing: 0.3px;
+        margin: calc(1 * var(--vh, 1vh)) 0; color: #fff; font-weight: 900;
+        font-size: calc(3 * var(--vh, 1vh)); letter-spacing: 0.3px;
     }
     .gs-photo-names .gs-trophy {
-        position: static; transform: none; font-size: 2.8vh;
+        position: static; transform: none; font-size: calc(2.8 * var(--vh, 1vh));
     }
     /* Fontes maiores em todo o card, pra leitura à distância na TV */
-    .gs-sets-label { font-size: 2.4vh; }
-    .gs-sets-val { font-size: 4.5vh; }
+    .gs-sets-label { font-size: calc(2.4 * var(--vh, 1vh)); }
+    .gs-sets-val { font-size: calc(4.5 * var(--vh, 1vh)); }
     /* Rótulo da estatística passa a ficar na mesma linha da barra (em vez
        de linha própria em cima) — economiza uma linha inteira por
        estatística; o espaço ganho vira fonte maior nos números. */
-    .gs-stat-row { flex-wrap: nowrap; font-size: 4.2vh; }
+    .gs-stat-row { flex-wrap: nowrap; font-size: calc(4.2 * var(--vh, 1vh)); }
     .gs-stat-label {
         order: 0; flex: 0 0 24vw; text-align: center;
         margin: 0 1vw; white-space: normal; line-height: 1.1;
-        font-size: 2vh;
+        font-size: calc(2 * var(--vh, 1vh));
     }
-    .gs-bar-fill { height: 2vh; }
-    .gs-stats { gap: 1.1vh; }
+    .gs-bar-fill { height: calc(2 * var(--vh, 1vh)); }
+    .gs-stats { gap: calc(1.1 * var(--vh, 1vh)); }
     .config-overlay {
         backdrop-filter: blur(4px);
     }
     .config-modal {
         width: 70vw;
         max-width: 900px;
-        padding: 3vh 5vw 4vh;
-        gap: 3.5vh;
+        padding: calc(3 * var(--vh, 1vh)) 5vw calc(4 * var(--vh, 1vh));
+        gap: calc(3.5 * var(--vh, 1vh));
     }
     .config-modal-header h2 {
-        font-size: 4vh;
+        font-size: calc(4 * var(--vh, 1vh));
         letter-spacing: 3px;
     }
     .config-back-btn {
-        font-size: 2.6vh;
+        font-size: calc(2.6 * var(--vh, 1vh));
     }
     .config-row-label {
-        font-size: 3vh;
+        font-size: calc(3 * var(--vh, 1vh));
         letter-spacing: 2px;
     }
     .config-toggle {
-        height: 8vh;
+        height: calc(8 * var(--vh, 1vh));
         border-radius: 14px;
     }
     .config-toggle-opt {
-        font-size: 2.6vh;
+        font-size: calc(2.6 * var(--vh, 1vh));
         letter-spacing: 1px;
     }
     .config-hint {
-        font-size: 2.2vh;
+        font-size: calc(2.2 * var(--vh, 1vh));
     }
     .config-version {
-        font-size: 2.8vh;
+        font-size: calc(2.8 * var(--vh, 1vh));
         letter-spacing: 3px;
     }
     .check-update-btn {
-        font-size: 3vh;
-        padding: 1.8vh 4vw;
+        font-size: calc(3 * var(--vh, 1vh));
+        padding: calc(1.8 * var(--vh, 1vh)) 4vw;
     }
 }
 
@@ -2166,7 +2166,7 @@
 }
 .tut-next-btn:active { opacity: 0.7; }
 .tut-skip {
-    position: fixed; top: calc(1.2vh + env(safe-area-inset-top, 0px)); right: 1.5vh;
+    position: fixed; top: calc(calc(1.2 * var(--vh, 1vh)) + env(safe-area-inset-top, 0px)); right: calc(1.5 * var(--vh, 1vh));
     pointer-events: auto; background: none; border: none;
     color: #cfe3f5; font-size: 11px; text-decoration: underline;
     z-index: 5001; padding: 6px;
@@ -2175,8 +2175,8 @@
 
 .config-tut-btn {
     background: var(--panel-bg); border: 1.5px solid var(--divider);
-    color: #fff; font-size: 1.7vh; font-weight: 700; letter-spacing: 1px;
-    padding: 1vh 4vw; border-radius: 999px; cursor: pointer;
+    color: #fff; font-size: calc(1.7 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 1px;
+    padding: calc(1 * var(--vh, 1vh)) 4vw; border-radius: 999px; cursor: pointer;
 }
 .config-tut-btn:active { opacity: 0.6; }
 
