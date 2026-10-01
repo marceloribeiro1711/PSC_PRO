@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.12';
+    const APP_VERSION = '3.10.13';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3935,7 +3935,7 @@
         { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
         { text: "Choose the language for the AI Analysis. Tap Next to go back to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
-        { text: "Tap NEW GAME and confirm to start the match.", anchor: '#tab-newgame', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'] },
+        { text: "Tap NEW GAME and confirm to start the match.", anchor: '#tab-newgame', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'], onSkip: function() { return tutSkipNewGame(); } },
         { text: "Tap the ball to set who will serve first for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, center: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
         { text: "The match is on! Tap the Points box to add each point to the team that won it.", anchor: '.pts-box', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box'], actionEvent: ['click'] },
         { text: "Follow every rally and give the point to the right team. Tag the shot stat only after marking the point (optional).", anchor: null, tip: true, low: true, advance: 'next' },
@@ -3945,6 +3945,25 @@
         { text: "Tap Match Log to replay the match point by point.", anchor: '#h-matchlog-btn', advance: 'next' },
         { text: "This match came from the tutorial simulation. Tap the trash icon to delete it whenever you like.", anchor: '.h-delete-btn', advance: 'next' },
     ];
+
+    // "Skip step" no passo NEW GAME: os passos seguintes (escolher o sacador, marcar pontos) precisam
+    // de uma partida nova em curso. Então o Skip força a partida nova. Se houver uma partida REAL em
+    // andamento (com pontos e ainda não terminada), nada é apagado em silêncio: abre o diálogo normal
+    // de confirmação e o tutorial espera nesse passo. Devolve false para o tutorial não avançar.
+    function tutSkipNewGame() {
+        const ov = document.getElementById('ng-overlay');
+        if (ov) ov.classList.remove('show');
+        const hasPlay = state.sets.some(function(st) { return st[0] || st[1]; }) ||
+                        state.pts[0] || state.pts[1] ||
+                        (matchGameLogs && matchGameLogs.length > 0) ||
+                        (currentGamePoints && currentGamePoints.length > 0);
+        if (hasPlay && !state.matchOver) {
+            askResetMatch();
+            return false;
+        }
+        forceClear();
+        return true;
+    }
 
     // Dicas contextuais: aparecem uma única vez, na primeira vez que o recurso surge de verdade
     const TUT_CARD_STEPS = [
@@ -4025,13 +4044,24 @@
             '</div>' +
             '<button class="tut-skip" id="tut-skip">Skip tutorial</button>';
         document.body.appendChild(ov);
-        document.getElementById('tut-next-btn').addEventListener('click', tutNext);
+        document.getElementById('tut-next-btn').addEventListener('click', tutNextClick);
         document.getElementById('tut-skip').addEventListener('click', tutSkip);
         window.addEventListener('resize', tutReposition);
     }
 
     function tutReposition() {
         if (tutActive && !tutSimulating) tutShowStep();
+    }
+
+    // Clique no botão do balão (Next / Skip step). Em passo de ação com onSkip, o Skip primeiro
+    // prepara o que o passo seguinte precisa; se o onSkip devolver false, o tutorial não avança.
+    function tutNextClick() {
+        if (tutBusy) return;
+        const cur = tutSteps && tutSteps[tutIdx];
+        if (cur && cur.advance === 'action' && typeof cur.onSkip === 'function') {
+            if (cur.onSkip() === false) return;
+        }
+        tutNext();
     }
 
     function tutNext() {
