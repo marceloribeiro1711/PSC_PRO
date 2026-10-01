@@ -3,6 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script>
+    /* Altura real da área visível -> --app-h (px). Corrige o menu inferior cortado na
+       1ª entrada (Android tela cheia / Safari / WKWebView). Usa innerHeight (não
+       visualViewport) para o teclado não encolher o layout no iOS. */
+    (function () {
+        var root = document.documentElement, last = 0;
+        function setH() {
+            var h = Math.round(window.innerHeight || 0);
+            if (h > 0 && h !== last) {
+                last = h;
+                root.style.setProperty('--app-h', h + 'px');
+                root.classList.add('has-app-h');
+            }
+        }
+        setH();
+        window.addEventListener('resize', setH);
+        window.addEventListener('pageshow', setH);
+        window.addEventListener('orientationchange', function () {
+            setTimeout(setH, 100); setTimeout(setH, 400);
+        });
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) { setH(); setTimeout(setH, 300); }
+        });
+        /* na 1ª entrada a janela ainda se ajusta (barras do sistema): re-mede algumas vezes */
+        [50, 150, 400, 900, 1800, 3000].forEach(function (t) { setTimeout(setH, t); });
+    })();
+    </script>
     <title>Padel Coaching Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <meta name="theme-color" content="#0b1a35">
