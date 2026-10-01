@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.10';
+    const APP_VERSION = '3.10.11';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -101,6 +101,90 @@
         if (cfgVerEl) cfgVerEl.textContent = 'V ' + APP_VERSION;
     }
     updateVersionLabels();
+
+    // ── Painel de diagnóstico de tela (oculto) ────────────────────────────────
+    // 5 toques seguidos na linha de versão do Setup mostram as medidas reais da tela
+    // (innerHeight, vh/dvh/svh/lvh, safe-area...). Serve para calibrar iOS/Android.
+    (function () {
+        var taps = 0, timer = null;
+        function px(v) { return (v === null || v === undefined || isNaN(v)) ? 'n/d' : (Math.round(v * 10) / 10) + 'px'; }
+        function unitPx(unit, prop) {
+            try {
+                var d = document.createElement('div');
+                d.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;width:1px;height:0;';
+                document.body.appendChild(d);
+                d.style[prop] = '100' + unit;
+                var v = d.getBoundingClientRect()[prop];
+                document.body.removeChild(d);
+                return v > 0 ? v : null;
+            } catch (e) { return null; }
+        }
+        function inset(side) {
+            try {
+                var d = document.createElement('div');
+                d.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;padding-' + side + ':env(safe-area-inset-' + side + ',0px);';
+                document.body.appendChild(d);
+                var v = parseFloat(getComputedStyle(d)['padding' + side.charAt(0).toUpperCase() + side.slice(1)]) || 0;
+                document.body.removeChild(d);
+                return v;
+            } catch (e) { return null; }
+        }
+        function rect(sel) {
+            var e = document.querySelector(sel); if (!e) return 'n/d';
+            var r = e.getBoundingClientRect();
+            return 'top ' + Math.round(r.top) + ' | bottom ' + Math.round(r.bottom) + ' | h ' + Math.round(r.height);
+        }
+        function mm(q) { try { return window.matchMedia(q).matches ? 'sim' : 'não'; } catch (e) { return 'n/d'; } }
+        function build() {
+            var vv = window.visualViewport, root = document.documentElement;
+            var L = [];
+            L.push('PSC PRO ' + APP_VERSION + ' — diagnóstico de tela');
+            L.push('');
+            L.push('innerHeight      ' + px(window.innerHeight) + '   innerWidth ' + px(window.innerWidth));
+            L.push('outerHeight      ' + px(window.outerHeight));
+            L.push('visualViewport   h ' + (vv ? px(vv.height) + ' | top ' + px(vv.offsetTop) + ' | esc ' + vv.scale : 'n/d'));
+            L.push('screen           ' + screen.width + 'x' + screen.height + ' | avail ' + screen.availWidth + 'x' + screen.availHeight);
+            L.push('documentElement  clientH ' + root.clientHeight + ' | scrollH ' + root.scrollHeight);
+            L.push('body             clientH ' + document.body.clientHeight + ' | scrollH ' + document.body.scrollHeight);
+            L.push('');
+            L.push('100vh  ' + px(unitPx('vh', 'height')) + '   100dvh ' + px(unitPx('dvh', 'height')));
+            L.push('100svh ' + px(unitPx('svh', 'height')) + '   100lvh ' + px(unitPx('lvh', 'height')));
+            L.push('--app-h ' + (getComputedStyle(root).getPropertyValue('--app-h').trim() || 'n/d') + '   classe has-app-h: ' + root.classList.contains('has-app-h'));
+            L.push('');
+            L.push('safe-area  topo ' + px(inset('top')) + ' | base ' + px(inset('bottom')) + ' | esq ' + px(inset('left')) + ' | dir ' + px(inset('right')));
+            L.push('');
+            L.push('#layout-portrait  ' + rect('#layout-portrait'));
+            L.push('cabeçalho         ' + rect('#layout-portrait > :first-child'));
+            L.push('.p-teams          ' + rect('.p-teams'));
+            L.push('#p-tabbar         ' + rect('#p-tabbar'));
+            L.push('');
+            L.push('DPR ' + window.devicePixelRatio + ' | standalone ' + mm('(display-mode: standalone)') + ' | fullscreen ' + mm('(display-mode: fullscreen)') + ' | ' + (mm('(orientation: portrait)') === 'sim' ? 'retrato' : 'paisagem'));
+            L.push((navigator.userAgent || '').replace(/\s+/g, ' ').slice(0, 120));
+            return L.join('\n');
+        }
+        function show() {
+            var old = document.getElementById('diag-overlay'); if (old) old.parentNode.removeChild(old);
+            var o = document.createElement('div');
+            o.id = 'diag-overlay';
+            o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:999999;background:rgba(0,0,0,0.92);color:#9fe870;padding:12px;box-sizing:border-box;overflow:auto;-webkit-overflow-scrolling:touch;';
+            var pre = document.createElement('pre');
+            pre.style.cssText = 'margin:0 0 12px;font:11px/1.45 Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;';
+            pre.textContent = build();
+            var b1 = document.createElement('button'); b1.textContent = 'Atualizar';
+            var b2 = document.createElement('button'); b2.textContent = 'Fechar';
+            [b1, b2].forEach(function (b) { b.style.cssText = 'margin-right:10px;padding:10px 18px;font:600 14px sans-serif;border:0;border-radius:8px;background:#f5c518;color:#1a1200;'; });
+            b1.onclick = function () { pre.textContent = build(); };
+            b2.onclick = function () { if (o.parentNode) o.parentNode.removeChild(o); };
+            o.appendChild(pre); o.appendChild(b1); o.appendChild(b2);
+            document.body.appendChild(o);
+        }
+        var el = document.getElementById('config-version-label');
+        if (el) el.addEventListener('click', function () {
+            taps++; clearTimeout(timer);
+            timer = setTimeout(function () { taps = 0; }, 2500);
+            if (taps >= 5) { taps = 0; show(); }
+        });
+    })();
 
     // ============================================================
     // SERVE INDICATOR SYSTEM
