@@ -119,10 +119,12 @@
                faixa da barra de navegação do sistema e o menu ficava sob os botões (3.10.7) */
             width: 100vw; height: 100vh; height: 100dvh;
             box-sizing: border-box;
-            /* A base da tela (incluindo a área dos botões de navegação do Android)
-               é reservada pela barra inferior .p-tabbar, que já aplica o
-               safe-area-inset-bottom — por isso o container raiz não tem padding-bottom */
-            padding-bottom: 0;
+            /* Faixa vazia reservada na base (--nav-reserve): em tela cheia (TWA
+               fullscreen) a barra de navegação do Android aparece por cima da base da
+               tela quando o usuário puxa para cima. Com esta faixa ela cobre só o espaço
+               vazio e nunca o menu inferior .p-tabbar. Em navegador comum (barra de
+               endereço) a faixa também é mantida, para o layout ser o mesmo em todo modo */
+            padding-bottom: var(--nav-reserve, 0px);
         }
 
         /* ============================================================
@@ -177,7 +179,9 @@
            MENU INFERIOR PORTRAIT — padrão do app Despesas
            (barra fixa no rodapé, ícones lineares 20px + rótulo 10px)
         ============================================================ */
-        :root { --ptab-h: 50px; }
+        :root { --ptab-h: 50px; --nav-reserve: 0px; }
+        /* Faixa vazia reservada na base só no retrato (ver #layout-portrait) */
+        @media (orientation: portrait) { :root { --nav-reserve: 48px; } }
         .p-tabbar {
             flex-shrink: 0; display: flex; width: 100%;
             background: var(--panel-bg);
@@ -198,7 +202,7 @@
         /* No retrato o menu hambúrguer (FAB) dá lugar à barra inferior; o FAB continua só no TV Mode */
         @media (orientation: portrait) {
             .p-fab-menu { display: none !important; }
-            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + env(safe-area-inset-bottom, 0px) + 1vh); }
+            #gs-card-btn.gs-card-btn { bottom: calc(var(--ptab-h) + var(--nav-reserve, 0px) + env(safe-area-inset-bottom, 0px) + 1vh); }
         }
 
         /* ============================================================
@@ -493,7 +497,7 @@
         :root { --mcard-slot: 4.6vh; }
         .game-over-banner {
             position: fixed; left: 50%;
-            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
+            bottom: calc(var(--ptab-h, 50px) + var(--nav-reserve, 0px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
             transform: translateX(-50%);
             background: #e03030; color: #fff;
             font-size: 1.6vh; font-weight: 800; letter-spacing: 2px;
@@ -527,7 +531,7 @@
         /* WHO'S SERVE? — portrait, mesma posição e formato do game-over-banner (faixa de avisos do rodapé) */
         .whos-serve-badge {
             position: fixed; left: 50%;
-            bottom: calc(var(--ptab-h, 50px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
+            bottom: calc(var(--ptab-h, 50px) + var(--nav-reserve, 0px) + env(safe-area-inset-bottom, 0px) + 1vh + var(--mcard-slot));
             transform: translateX(-50%);
             background: #e03030; color: #fff;
             font-size: 1.5vh; font-weight: 700; letter-spacing: 0.3px;
