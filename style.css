@@ -256,6 +256,16 @@
         .team2 .player-name:focus { color: var(--accent-yellow); }
         [contenteditable="true"] { user-select: text; -webkit-user-select: text; }
 
+        /* iOS: ao SEGURAR estes quadros (PONTOS, estatísticas e placar de sets) o iPhone selecionava
+           o número e abria o menu Copy / Look Up / Translate. Só o `user-select` sem prefixo não basta
+           no Safari/iOS, por isso a forma -webkit- também. Fica restrito aos quadros de toque:
+           campos de nome, notas e e-mail continuam selecionáveis/editáveis. */
+        .pts-box, .pts-box *, .ls-pts-box, .ls-pts-box *,
+        .stat-box, .stat-box *, .score-cell, .score-cell *, .ls-set-cell, .ls-set-cell * {
+            -webkit-user-select: none; user-select: none;
+            -webkit-touch-callout: none;
+        }
+
         /* scores row: sets + pts lado a lado */
         .p-scores-col { display: flex; flex-direction: row; align-items: flex-end; gap: 3vw; }
         .sets-block { flex: 5; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: calc(0.4 * var(--vh, 1vh)); }
