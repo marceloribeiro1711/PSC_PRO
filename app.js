@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.15';
+    const APP_VERSION = '3.10.17';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2066,7 +2066,7 @@
     }
 
     function removePoint(event, teamIndex) {
-        event.preventDefault();
+        if (event && event.preventDefault) event.preventDefault();
         const idx = teamIndex - 1;
         const inDC = pointMode === 'star'
             && state.deuceCount > 0
@@ -2392,6 +2392,60 @@
             e.preventDefault();
             if (hasTouched) { hasTouched = false; return; }
             decStatById(id);
+        });
+    });
+
+    // Quadros de PONTOS (retrato e TV Mode): toque curto = +1 ponto; toque longo (600ms) = -1 ponto.
+    // O iPhone não dispara `contextmenu` no toque longo, então o desfazer usa o mesmo cronômetro
+    // das estatísticas e dos sets. O clique que o iOS gera ao soltar o dedo depois do toque longo
+    // é descartado (hasTouched), senão o desfazer viraria +1. `contextmenu` fica como reserva
+    // para mouse/desktop. Deslizar o dedo mais de 10px cancela o toque (não conta como ponto).
+    document.querySelectorAll('.pts-box, .ls-pts-box').forEach(function(box) {
+        var team = parseInt(box.dataset.team, 10);
+        var timer = null, isLong = false, hasTouched = false, moved = false, sx = 0, sy = 0;
+
+        box.addEventListener('touchstart', function(e) {
+            hasTouched = true;
+            isLong = false;
+            moved = false;
+            var t = e.touches && e.touches[0];
+            sx = t ? t.clientX : 0;
+            sy = t ? t.clientY : 0;
+            clearTimeout(timer);
+            timer = setTimeout(function() {
+                isLong = true;
+                removePoint(null, team);
+            }, 600);
+        }, { passive: true });
+
+        box.addEventListener('touchmove', function(e) {
+            var t = e.touches && e.touches[0];
+            if (!t) return;
+            if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) {
+                moved = true;
+                clearTimeout(timer);
+            }
+        }, { passive: true });
+
+        box.addEventListener('touchcancel', function() {
+            clearTimeout(timer);
+            moved = true;
+        });
+
+        box.addEventListener('touchend', function() {
+            clearTimeout(timer);
+            if (!isLong && !moved) addPoint(team);
+        });
+
+        box.addEventListener('click', function() {
+            if (hasTouched) { hasTouched = false; return; }
+            addPoint(team);
+        });
+
+        box.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            if (hasTouched) return; // toque longo no celular: quem desfaz é o cronômetro; o clique pós-toque continua descartado
+            removePoint(null, team);
         });
     });
 
