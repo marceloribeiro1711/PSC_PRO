@@ -60,7 +60,7 @@
   .topo { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 6px; }
   .circuito { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: .02em;
     text-transform: uppercase; line-height: 1.1; }
-  .circuito.fip { color: #ffffff; }
+  .linha-circuito { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .etiquetas { display: flex; gap: 6px; flex-wrap: wrap; }
   .tag { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
     padding: 4px 8px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
@@ -289,9 +289,9 @@ function cartao(t, st) {
 
   return `<article class="card ${destaque}">
     <div class="topo">
-      <div class="circuito">${escapar(circuitoDe(t))}</div>
-      <div class="etiquetas">
-        ${categoriaDe(t) ? `<span class="tag cat">${escapar(categoriaDe(t))}</span>` : ""}
+      <div class="linha-circuito">
+        <span class="circuito">${escapar(circuitoDe(t))}</span>
+        ${categoriaDe(t) ? `<span class="circuito">${escapar(categoriaDe(t))}</span>` : ""}
       </div>
       <h2>${escapar(t.torneio)}</h2>
       ${t.clube ? `<div class="clube">${escapar(t.clube)}</div>` : ""}
