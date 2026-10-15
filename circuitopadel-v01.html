@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Torneios de Padel · Inscrições e Pagamentos</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --surface: #111b2e;
+    --surface-2: #17243d;
+    --line: #22324f;
+    --text: #e8eef9;
+    --muted: #8a9bbb;
+    --accent: #3b82f6;
+    --open: #22c55e;
+    --open-bg: rgba(34,197,94,.14);
+    --pay: #f59e0b;
+    --pay-bg: rgba(245,158,11,.14);
+    --closed: #64748b;
+    --live: #a855f7;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 28px 24px 8px; max-width: 1280px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 14px; }
+
+  .resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px; max-width: 1280px; margin: 20px auto 8px; padding: 0 24px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px; }
+  .kpi b { display: block; font-size: 26px; }
+  .kpi span { color: var(--muted); font-size: 13px; }
+  .kpi.open b { color: var(--open); }
+  .kpi.pay b { color: var(--pay); }
+
+  .filtros { max-width: 1280px; margin: 16px auto 4px; padding: 0 24px; display: flex;
+    flex-wrap: wrap; gap: 14px 24px; align-items: center; }
+  .grupo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .grupo label { color: var(--muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: .06em; margin-right: 4px; }
+  .chip { background: var(--surface); color: var(--text); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  main { max-width: 1280px; margin: 18px auto 40px; padding: 0 24px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; display: flex; flex-direction: column; }
+  .card.destaque-pay { border-color: rgba(245,158,11,.55); box-shadow: 0 0 0 1px rgba(245,158,11,.25) inset; }
+  .card.destaque-open { border-color: rgba(34,197,94,.55); box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
+
+  .topo { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .etiquetas { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    padding: 4px 8px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
+  .tag.cat { background: rgba(59,130,246,.18); color: #93c5fd; }
+  .tag.circ-fip { background: rgba(168,85,247,.18); color: #d8b4fe; }
+  h2 { font-size: 17px; margin: 2px 0 0; line-height: 1.3; }
+  .local { color: var(--muted); font-size: 13px; }
+
+  .alerta { margin: 0 18px; padding: 10px 12px; border-radius: 12px; font-weight: 700;
+    font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .alerta .ponto { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
+  .alerta.open { background: var(--open-bg); color: var(--open); }
+  .alerta.open .ponto { background: var(--open); animation: pisca 1.4s infinite; }
+  .alerta.pay { background: var(--pay-bg); color: var(--pay); }
+  .alerta.pay .ponto { background: var(--pay); animation: pisca 1.4s infinite; }
+  .alerta.live { background: rgba(168,85,247,.16); color: #d8b4fe; }
+  .alerta.live .ponto { background: var(--live); animation: pisca 1.4s infinite; }
+  .alerta.closed { background: var(--surface-2); color: var(--muted); }
+  .alerta.closed .ponto { background: var(--closed); }
+  @keyframes pisca { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+  .contagem { margin: 12px 18px 0; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
+  .contagem small { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .relogio { display: flex; gap: 8px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .bloco-t { text-align: center; min-width: 52px; }
+  .bloco-t b { display: block; font-size: 22px; line-height: 1.1; }
+  .bloco-t span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .encerrado { font-size: 15px; font-weight: 600; color: var(--muted); }
+
+  dl { margin: 12px 18px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  dl div { min-width: 0; }
+  dt { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  dd { margin: 2px 0 0; font-size: 14px; word-break: break-word; }
+  dd.vazio { color: #4b5b78; font-style: italic; }
+  .largo { grid-column: 1 / -1; }
+
+  .rodape { margin-top: auto; padding: 14px 18px 16px; display: flex; justify-content: space-between;
+    align-items: center; gap: 10px; border-top: 1px solid var(--line); margin-top: 16px; }
+  .fonte { font-size: 11px; color: var(--muted); }
+  .botao { background: var(--accent); color: #fff; text-decoration: none; font-weight: 600;
+    font-size: 13px; padding: 9px 14px; border-radius: 10px; }
+  .botao:hover { filter: brightness(1.1); }
+
+  .vazio-lista { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px 0; }
+  footer { max-width: 1280px; margin: 0 auto 30px; padding: 0 24px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Torneios de Padel · Inscrições e Pagamentos</h1>
+  <div class="sub" id="atualizado">Carregando…</div>
+</header>
+
+<section class="resumo" aria-label="Resumo">
+  <div class="kpi open"><b id="k-abertas">0</b><span>Inscrições abertas</span></div>
+  <div class="kpi pay"><b id="k-pagamento">0</b><span>Pagamentos a decorrer</span></div>
+  <div class="kpi"><b id="k-total">0</b><span>Torneios listados</span></div>
+</section>
+
+<section class="filtros" aria-label="Filtros">
+  <div class="grupo" id="f-circuito">
+    <label>Circuito</label>
+    <button class="chip" data-valor="todos" aria-pressed="true">Todos</button>
+    <button class="chip" data-valor="FPP Portugal" aria-pressed="false">FPP Portugal</button>
+    <button class="chip" data-valor="FIP" aria-pressed="false">FIP</button>
+  </div>
+  <div class="grupo" id="f-categoria">
+    <label>Categoria</label>
+    <button class="chip" data-valor="todas" aria-pressed="true">Todas</button>
+    <button class="chip" data-valor="ABS" aria-pressed="false">ABS</button>
+    <button class="chip" data-valor="VET" aria-pressed="false">VET</button>
+    <button class="chip" data-valor="JOV" aria-pressed="false">JOV</button>
+  </div>
+  <div class="grupo" id="f-status">
+    <label>Mostrar</label>
+    <button class="chip" data-valor="todos" aria-pressed="true">Todos</button>
+    <button class="chip" data-valor="abertas" aria-pressed="false">Inscrições abertas</button>
+    <button class="chip" data-valor="pagamento" aria-pressed="false">Pagamento a decorrer</button>
+  </div>
+</section>
+
+<main id="lista" aria-live="polite"></main>
+
+<footer>
+  Informação complementar. A obrigação de confirmar prazos e regulamentos é sempre do atleta.
+  Os estados e contagens são calculados no seu dispositivo, com a hora local.
+</footer>
+
+<script>
+// ==========================================================
+// DADOS: arquivo JSON ao lado desta página (mesmo nome-versão).
+// Ao fazer deploy, retire o sufixo -vNN do nome do JSON e aqui.
+// Se o arquivo não existir, usa a cópia embutida abaixo.
+// ==========================================================
+const ARQUIVO_JSON = "torneiosjson-v01.json";
+const DADOS_EMBUTIDOS = [{"torneio": "FIP Promises", "circuito": "FIP (calendário TieSports)", "cidade": "Mafra", "pais": "Portugal", "clube": "My Padel Center", "genero": "M & F", "categoria": "JUV", "taxa": "Ver regulamento interno", "link": "https://tiepadel.tiesports.com/torneios/fip-promises-jov-2026-10-12", "inicio": "2026-10-12", "fim": "2026-10-18", "inscData": null, "inscHora": null, "pagData": null, "pagHora": null, "statusColeta": "Torneio a decorrer", "coletadoEm": "2026-10-15T14:20", "fonte": null}, {"torneio": "Open Oeiras Valley", "circuito": "FIP (calendário TieSports)", "cidade": "Oeiras", "pais": "Portugal", "clube": "Oeiras Padel Academy", "genero": "M&F", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/OpenOeirasValley", "inicio": "2026-10-13", "fim": "2026-10-18", "inscData": "2026-10-06", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Torneio a decorrer", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "Open A-Z Padel Guimarães", "circuito": "FPP Portugal", "cidade": "Guimarães", "pais": "Portugal", "clube": "Top-padel Guimarães", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/OpenAZPadelGuimaraes", "inicio": "2026-10-21", "fim": "2026-10-25", "inscData": "2026-10-14", "inscHora": "15:00", "pagData": "2026-10-16", "pagHora": "17:00", "statusColeta": "Pagamentos a decorrer", "coletadoEm": "2026-10-15T14:20", "fonte": "detalhe"}, {"torneio": "5º Open Padcenter", "circuito": "FPP Portugal", "cidade": "Odivelas", "pais": "Portugal", "clube": "Padcenter Odivelas", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/5OpenPadCenter26", "inicio": "2026-10-22", "fim": "2026-10-25", "inscData": "2026-10-14", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Pagamentos a decorrer", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "1º Open de Absolutos by GRIP", "circuito": "FPP Portugal", "cidade": "Pinhal Novo", "pais": "Portugal", "clube": "GRIP - Grande Indoor Padel", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/1openDeAbsolutosByGRIP2026", "inicio": "2026-10-27", "fim": "2026-11-01", "inscData": "2026-10-20", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Inscrições abertas", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "XI Open Ultra Padel Club by AJúlio", "circuito": "FPP Portugal", "cidade": "Leiria", "pais": "Portugal", "clube": "Ultra Padel Club", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/XIOpenUltraPadelClubbyAJulio", "inicio": "2026-10-28", "fim": "2026-11-01", "inscData": "2026-10-20", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Inscrições abertas", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "Open Luximos Christie's 2026", "circuito": "FPP Portugal", "cidade": "Porto", "pais": "Portugal", "clube": "Your Top-padel Industrial", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/Tournaments/OpenLuximosChristies26", "inicio": "2026-10-30", "fim": "2026-11-01", "inscData": "2026-10-20", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Inscrições abertas", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "III Open W Padel & Ténis Parque", "circuito": "FPP Portugal", "cidade": "Barreiro", "pais": "Portugal", "clube": "W Padel Ténis & Parque", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/IIIOpenWPadelTenisParque", "inicio": "2026-10-30", "fim": "2026-11-01", "inscData": "2026-10-21", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Inscrições abertas", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "II OPEN ABSOLUTOS DEZ POR VINTE by D6", "circuito": "FPP Portugal", "cidade": "Santarém", "pais": "Portugal", "clube": "Dezporvinte", "genero": "F1-F6; M1-M6", "categoria": "ABS", "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/Tournaments/IOpenABSDezporVinteByD6", "inicio": "2026-11-06", "fim": "2026-11-08", "inscData": "2026-10-27", "inscHora": "15:00", "pagData": null, "pagHora": null, "statusColeta": "Inscrições abertas", "coletadoEm": "2026-10-15T14:20", "fonte": "calendário"}, {"torneio": "FINAL LIGA de CLUBES ABSOLUTOS", "circuito": "FPP Portugal", "cidade": "Porto", "pais": "Portugal", "clube": "FPP", "genero": "M & F", "categoria": null, "taxa": "Ver regulamento interno", "link": "https://fpp.tiepadel.com/tournaments/ef2c1e43-5cb2-4980-a7bb-9e7b7da110bb", "inicio": "2026-11-19", "fim": "2026-11-22", "inscData": null, "inscHora": null, "pagData": null, "pagHora": null, "statusColeta": "Inscrições fechadas", "coletadoEm": "2026-10-15T14:20", "fonte": null}];
+
+const ESTADO = { circuito: "todos", categoria: "todas", status: "todos" };
+let TORNEIOS = [];
+
+// --- utilidades -----------------------------------------------
+const MESES_PT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+function dataLocal(iso, hora) {
+  // iso = 'AAAA-MM-DD'; hora = 'HH:MM' ou vazio
+  if (!iso) return null;
+  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (hora) {
+    const [hh, mm] = hora.split(":").map(Number);
+    return { data: new Date(a, m - 1, d, hh, mm), exata: true };
+  }
+  // sem hora: o prazo vale até o fim do dia
+  return { data: new Date(a, m - 1, d, 23, 59, 59), exata: false };
+}
+
+function formataData(iso) {
+  if (!iso) return null;
+  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return `${String(d).padStart(2, "0")} ${MESES_PT[m - 1]} ${a}`;
+}
+
+function formataFaixa(i, f) {
+  if (!i && !f) return null;
+  if (i && f && i !== f) return `${formataData(i)} – ${formataData(f)}`;
+  return formataData(i || f);
+}
+
+function escapar(t) {
+  return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// --- regra de status (igual à do robô, aplicada ao relógio) ----
+function calcularStatus(t, agora) {
+  const insc = dataLocal(t.inscData, t.inscHora);
+  const pag  = dataLocal(t.pagData, t.pagHora);
+  const inscPassou = insc ? (insc.exata ? agora >= insc.data : agora > insc.data) : null;
+  const pagPassou  = pag  ? (pag.exata  ? agora >= pag.data  : agora > pag.data)  : null;
+
+  // Inscrições abertas: prazo de inscrição ainda não passou
+  if (inscPassou === false) return { chave: "abertas", rotulo: "Inscrições abertas", alvo: insc };
+
+  // Pagamento a decorrer: inscrição encerrada e prazo de pagamento ainda não passou
+  if (inscPassou === true && pagPassou === false) return { chave: "pagamento", rotulo: "Pagamento a decorrer", alvo: pag };
+
+  // Torneio em curso (sem prazo de pagamento ativo), segundo o calendário
+  if (t.statusColeta && /decorrer/i.test(t.statusColeta) && !/Pagamentos/i.test(t.statusColeta) && inscPassou !== false)
+    return { chave: "curso", rotulo: "Torneio a decorrer", alvo: null };
+
+  // Sem datas: usa o status de quando o robô coletou
+  if (inscPassou === null && pagPassou === null) {
+    const s = (t.statusColeta || "").toLowerCase();
+    if (s.includes("abert")) return { chave: "abertas", rotulo: "Inscrições abertas", alvo: null };
+    if (s.includes("pagamentos")) return { chave: "pagamento", rotulo: "Pagamento a decorrer", alvo: null };
+  }
+
+  return { chave: "fechadas", rotulo: "Inscrições encerradas", alvo: null };
+}
+
+// --- cartão -----------------------------------------------------
+function blocoAlerta(st) {
+  const mapa = {
+    abertas:   ["open",   "Inscrições abertas"],
+    pagamento: ["pay",    "Pagamento a decorrer"],
+    curso:     ["live",   "Torneio a decorrer"],
+    fechadas:  ["closed", "Inscrições encerradas"],
+  };
+  const [classe, texto] = mapa[st.chave];
+  return `<div class="alerta ${classe}"><span class="ponto"></span>${texto}</div>`;
+}
+
+function blocoContagem(st) {
+  if (!st.alvo) return "";
+  const rotulo = st.chave === "abertas" ? "Fecha as inscrições em" : "Fecha o pagamento em";
+  return `<div class="contagem" data-alvo="${st.alvo.data.getTime()}" data-exata="${st.alvo.exata}">
+    <small>${rotulo}</small>
+    <div class="relogio"></div>
+  </div>`;
+}
+
+function campo(rotulo, valor, largo = false) {
+  const vazio = !valor;
+  return `<div class="${largo ? "largo" : ""}"><dt>${rotulo}</dt>
+    <dd class="${vazio ? "vazio" : ""}">${vazio ? "Sem informação" : escapar(valor)}</dd></div>`;
+}
+
+function cartao(t, st) {
+  const destaque = st.chave === "abertas" ? "destaque-open" : st.chave === "pagamento" ? "destaque-pay" : "";
+  const inscricao = t.inscData
+    ? `${formataData(t.inscData)}${t.inscHora ? " · " + t.inscHora : ""}` : null;
+  const pagamento = t.pagData
+    ? `${formataData(t.pagData)}${t.pagHora ? " · " + t.pagHora : ""}` : null;
+  const circ = t.circuito && t.circuito.startsWith("FIP") ? "circ-fip" : "";
+
+  return `<article class="card ${destaque}">
+    <div class="topo">
+      <div class="etiquetas">
+        <span class="tag ${circ}">${escapar(t.circuito || "Circuito n/d")}</span>
+        ${t.categoria ? `<span class="tag cat">${escapar(t.categoria)}</span>` : ""}
+      </div>
+      <h2>${escapar(t.torneio)}</h2>
+      <div class="local">${escapar([t.cidade, t.pais].filter(Boolean).join(" · "))}</div>
+    </div>
+
+    ${blocoAlerta(st)}
+    ${blocoContagem(st)}
+
+    <dl>
+      ${campo("Datas do torneio", formataFaixa(t.inicio, t.fim), true)}
+      ${campo("Inscrições até", inscricao)}
+      ${campo("Pagamento até", pagamento)}
+      ${campo("Clube", t.clube, true)}
+      ${campo("Gênero", t.genero)}
+      ${campo("Taxa", t.taxa)}
+    </dl>
+
+    <div class="rodape">
+      <span class="fonte">${t.fonte ? "Prazo: " + escapar(t.fonte) : ""}</span>
+      ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">Ver torneio</a>` : ""}
+    </div>
+  </article>`;
+}
+
+// --- contagem regressiva ---------------------------------------
+function formataRestante(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const bloco = (v, r) => `<div class="bloco-t"><b>${String(v).padStart(2, "0")}</b><span>${r}</span></div>`;
+  return bloco(d, "dias") + bloco(h, "horas") + bloco(m, "min") + bloco(s, "seg");
+}
+
+function atualizarRelogios() {
+  const agora = Date.now();
+  document.querySelectorAll(".contagem").forEach(el => {
+    const alvo = Number(el.dataset.alvo);
+    const exata = el.dataset.exata === "true";
+    const cont = el.querySelector(".relogio");
+    if (exata && alvo - agora > 0) {
+      cont.innerHTML = formataRestante(alvo - agora);
+    } else if (!exata && alvo - agora > 0) {
+      cont.innerHTML = formataRestante(alvo - agora);
+    } else {
+      cont.innerHTML = `<span class="encerrado">Prazo encerrado</span>`;
+    }
+  });
+}
+
+// --- filtros e renderização -------------------------------------
+function passaFiltro(t, st) {
+  if (ESTADO.circuito !== "todos") {
+    const ok = ESTADO.circuito === "FIP" ? (t.circuito || "").startsWith("FIP") : t.circuito === ESTADO.circuito;
+    if (!ok) return false;
+  }
+  if (ESTADO.categoria !== "todas" && t.categoria !== ESTADO.categoria) return false;
+  if (ESTADO.status === "abertas" && st.chave !== "abertas") return false;
+  if (ESTADO.status === "pagamento" && st.chave !== "pagamento") return false;
+  return true;
+}
+
+function ordenar(a, b) {
+  // alertas primeiro (pagamento e inscrições abertas), depois pelo próximo prazo
+  const peso = { pagamento: 0, abertas: 1, curso: 2, fechadas: 3 };
+  const sa = a.st, sb = b.st;
+  if (peso[sa.chave] !== peso[sb.chave]) return peso[sa.chave] - peso[sb.chave];
+  const ta = sa.alvo ? sa.alvo.data.getTime() : Infinity;
+  const tb = sb.alvo ? sb.alvo.data.getTime() : Infinity;
+  return ta - tb;
+}
+
+function renderizar() {
+  const agora = new Date();
+  const itens = TORNEIOS.map(t => ({ t, st: calcularStatus(t, agora) }));
+
+  document.getElementById("k-abertas").textContent = itens.filter(i => i.st.chave === "abertas").length;
+  document.getElementById("k-pagamento").textContent = itens.filter(i => i.st.chave === "pagamento").length;
+  document.getElementById("k-total").textContent = itens.length;
+
+  const visiveis = itens.filter(i => passaFiltro(i.t, i.st)).sort(ordenar);
+  const lista = document.getElementById("lista");
+  lista.innerHTML = visiveis.length
+    ? visiveis.map(i => cartao(i.t, i.st)).join("")
+    : `<div class="vazio-lista">Nenhum torneio com estes filtros.</div>`;
+
+  atualizarRelogios();
+}
+
+function ligarFiltros() {
+  document.querySelectorAll(".grupo").forEach(grupo => {
+    const chave = grupo.id.replace("f-", "");
+    grupo.querySelectorAll(".chip").forEach(botao => {
+      botao.addEventListener("click", () => {
+        grupo.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", "false"));
+        botao.setAttribute("aria-pressed", "true");
+        ESTADO[chave] = botao.dataset.valor;
+        renderizar();
+      });
+    });
+  });
+}
+
+async function carregar() {
+  let dados = DADOS_EMBUTIDOS;
+  try {
+    const resp = await fetch(ARQUIVO_JSON, { cache: "no-store" });
+    if (resp.ok) dados = await resp.json();
+  } catch (e) { /* sem arquivo ao lado: usa a cópia embutida */ }
+  TORNEIOS = dados;
+
+  const ultima = dados.map(t => t.coletadoEm).filter(Boolean).sort().pop();
+  document.getElementById("atualizado").textContent =
+    ultima ? `Dados coletados em ${ultima.replace("T", " ")} · atualizado no seu relógio` : "Dados sem data de coleta";
+
+  renderizar();
+}
+
+ligarFiltros();
+carregar();
+// Recalcula status e contagens a cada segundo
+setInterval(() => {
+  const agora = new Date();
+  const mudou = TORNEIOS.some(t => {
+    const st = calcularStatus(t, agora);
+    return st.alvo && st.alvo.data < agora; // um prazo acabou de passar: redesenha
+  });
+  if (mudou) renderizar(); else atualizarRelogios();
+}, 1000);
+</script>
+</body>
+</html>
