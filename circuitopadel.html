@@ -107,7 +107,7 @@
   dd.vazio { color: #4b5b78; font-style: italic; }
   .largo { grid-column: 1 / -1; }
 
-  .rodape { margin-top: auto; padding: 14px 18px 16px; display: flex; justify-content: space-between;
+  .rodape { margin-top: auto; padding: 14px 18px 16px; display: flex; justify-content: flex-end;
     align-items: center; gap: 10px; border-top: 1px solid var(--line); margin-top: 16px; }
   .fonte { font-size: 11px; color: var(--muted); }
   .botao { background: var(--accent); color: #fff; text-decoration: none; font-weight: 600;
@@ -136,7 +136,8 @@
     <label>Circuito</label>
     <button class="chip" data-valor="todos" aria-pressed="true">Todos</button>
     <button class="chip" data-valor="FPP Portugal" aria-pressed="false">FPP Portugal</button>
-    <button class="chip" data-valor="FIP" aria-pressed="false">FIP</button>
+    <button class="chip" data-valor="FIP Promises" aria-pressed="false">FIP Promises</button>
+    <button class="chip" data-valor="CUPRA FIP Tour" aria-pressed="false">CUPRA FIP Tour</button>
   </div>
   <div class="grupo" id="f-categoria">
     <label>Categoria</label>
@@ -193,6 +194,33 @@ function formataFaixa(i, f) {
   if (!i && !f) return null;
   if (i && f && i !== f) return `${formataData(i)} – ${formataData(f)}`;
   return formataData(i || f);
+}
+
+// Circuito de exibição: separa FIP Promises e CUPRA FIP Tour pelo nome do torneio/circuito
+function circuitoDe(t) {
+  const base = (t.circuito || "") + " " + (t.torneio || "");
+  if (!/FIP/i.test(base)) return t.circuito || "FPP Portugal";
+  if (/PROMISES/i.test(base)) return "FIP Promises";
+  if (/CUPRA|BRONZE|SILVER|GOLD|PLATINUM|STAR|RISE|PROMOTION/i.test(base)) return "CUPRA FIP Tour";
+  return "FIP (outros)";
+}
+
+// Categoria padrão por circuito FIP; JUV passa a ser JOV
+function categoriaDe(t) {
+  const c = circuitoDe(t);
+  if (c === "FIP Promises") return "JOV";
+  if (c === "CUPRA FIP Tour") return "ABS";
+  const cat = (t.categoria || "").toUpperCase();
+  if (!cat) return null;
+  return cat === "JUV" ? "JOV" : cat;
+}
+
+// Data e hora no formato dd-mm-aaaa hh:mm
+function formataDataHora(iso) {
+  if (!iso) return null;
+  const [dia, hora] = iso.split("T");
+  const [a, m, d] = dia.split("-");
+  return `${d}-${m}-${a}${hora ? " " + hora.slice(0, 5) : ""}`;
 }
 
 function escapar(t) {
@@ -261,9 +289,9 @@ function cartao(t, st) {
 
   return `<article class="card ${destaque}">
     <div class="topo">
-      <div class="circuito">${escapar(t.circuito || "Circuito n/d")}</div>
+      <div class="circuito">${escapar(circuitoDe(t))}</div>
       <div class="etiquetas">
-        ${t.categoria ? `<span class="tag cat">${escapar(t.categoria)}</span>` : ""}
+        ${categoriaDe(t) ? `<span class="tag cat">${escapar(categoriaDe(t))}</span>` : ""}
       </div>
       <h2>${escapar(t.torneio)}</h2>
       ${t.clube ? `<div class="clube">${escapar(t.clube)}</div>` : ""}
@@ -281,7 +309,6 @@ function cartao(t, st) {
     </dl>
 
     <div class="rodape">
-      <span class="fonte">${t.fonte ? "Prazo: " + escapar(t.fonte) : ""}</span>
       ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">Ver torneio</a>` : ""}
     </div>
   </article>`;
@@ -309,12 +336,8 @@ function atualizarRelogios() {
 }
 
 function passaFiltro(t, st) {
-  if (ESTADO.circuito !== "todos") {
-    // FIP inclui FIP Promises, CUPRA FIP Tour e demais circuitos FIP
-    const ok = ESTADO.circuito === "FIP" ? /FIP/i.test(t.circuito || "") : t.circuito === ESTADO.circuito;
-    if (!ok) return false;
-  }
-  if (ESTADO.categoria !== "todas" && t.categoria !== ESTADO.categoria) return false;
+  if (ESTADO.circuito !== "todos" && circuitoDe(t) !== ESTADO.circuito) return false;
+  if (ESTADO.categoria !== "todas" && categoriaDe(t) !== ESTADO.categoria) return false;
   if (ESTADO.status === "abertas" && st.chave !== "abertas") return false;
   if (ESTADO.status === "pagamento" && st.chave !== "pagamento") return false;
   return true;
@@ -376,7 +399,7 @@ async function carregar() {
 
   const ultima = dados.map(t => t.coletadoEm).filter(Boolean).sort().pop();
   document.getElementById("atualizado").textContent =
-    ultima ? `Dados coletados em ${ultima.replace("T", " ")} · horários no seu relógio` : "Dados sem data de coleta";
+    ultima ? `Última atualização: ${formataDataHora(ultima)}` : "Última atualização: não informada";
 
   renderizar();
 }
