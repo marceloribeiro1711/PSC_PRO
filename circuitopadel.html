@@ -180,15 +180,15 @@
   <section class="filtros" aria-label="Filters">
     <div class="linha" id="f-circuito">
       <button class="chip" data-valor="todos" aria-pressed="true">All</button>
-      <button class="chip" data-valor="FIP Promises" aria-pressed="false">FIP Promises</button>
-      <button class="chip" data-valor="CUPRA FIP Tour" aria-pressed="false">CUPRA FIP Tour</button>
+      <button class="chip" data-valor="Promise" aria-pressed="false">Promise</button>
+      <button class="chip" data-valor="CUPRA Tour" aria-pressed="false">CUPRA Tour</button>
       <button class="chip" data-valor="FPP Portugal" aria-pressed="false">FPP</button>
     </div>
     <div class="linha" id="f-categoria">
       <button class="chip" data-valor="todas" aria-pressed="true">All</button>
-      <button class="chip" data-valor="ABS" aria-pressed="false">ABS</button>
-      <button class="chip" data-valor="VET" aria-pressed="false">VET</button>
-      <button class="chip" data-valor="JOV" aria-pressed="false">JOV</button>
+      <button class="chip" data-valor="MAIN" aria-pressed="false">MAIN</button>
+      <button class="chip" data-valor="MASTERS" aria-pressed="false">MASTERS</button>
+      <button class="chip" data-valor="JUNIOR" aria-pressed="false">JUNIOR</button>
     </div>
     <div class="linha" id="f-status">
       <button class="chip" data-valor="todos" aria-pressed="true">All</button>
@@ -627,19 +627,20 @@ function escapar(t) {
 // ---------- circuito e categoria ----------
 function circuitoDe(t) {
   const base = (t.circuito || "") + " " + (t.torneio || "");
-  if (!/FIP/i.test(base)) return t.circuito || "FPP";
-  if (/PROMISES/i.test(base)) return "FIP Promises";
-  if (/CUPRA|BRONZE|SILVER|GOLD|PLATINUM|STAR|RISE|PROMOTION/i.test(base)) return "CUPRA FIP Tour";
+  if (!/FIP|PROMISE|CUPRA/i.test(base)) return t.circuito || "FPP Portugal";
+  if (/PROMISE/i.test(base)) return "Promise";
+  if (/CUPRA|BRONZE|SILVER|GOLD|PLATINUM|STAR|RISE|PROMOTION/i.test(base)) return "CUPRA Tour";
   return "FIP (other)";
 }
 
 function categoriaDe(t) {
   const c = circuitoDe(t);
-  if (c === "FIP Promises") return "JOV";
-  if (c === "CUPRA FIP Tour") return "ABS";
+  if (c === "Promise") return "JUNIOR";
+  if (c === "CUPRA Tour") return "MAIN";
   const cat = (t.categoria || "").toUpperCase();
   if (!cat) return null;
-  return cat === "JUV" ? "JOV" : cat;
+  const traducao = { ABS: "MAIN", VET: "MASTERS", JOV: "JUNIOR", JUV: "JUNIOR" };
+  return traducao[cat] || cat;
 }
 
 // ---------- status pelo relógio ----------
