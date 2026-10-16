@@ -502,14 +502,46 @@ function mostrarSplash() {
 }
 
 // ---------- datas ----------
-function dataLocal(iso, hora) {
+// Converte data + hora de um fuso de origem (ex.: Europe/Lisbon) para um instante real
+function offsetMinutos(timestamp, tz) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(new Date(timestamp)).map(x => [x.type, x.value]));
+  const visto = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  return (visto - timestamp) / 60000;
+}
+
+function zonedParaInstante(a, m, d, hh, mm, ss, tz) {
+  const base = Date.UTC(a, m - 1, d, hh, mm, ss);
+  let off = offsetMinutos(base, tz);
+  let ts = base - off * 60000;
+  const off2 = offsetMinutos(ts, tz);
+  if (off2 !== off) ts = base - off2 * 60000;
+  return new Date(ts);
+}
+
+// Prazo como instante. Sem fuso informado, usa o fuso do aparelho.
+function dataLocal(iso, hora, fuso) {
   if (!iso) return null;
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
   if (hora) {
     const [hh, mm] = hora.split(":").map(Number);
-    return { data: new Date(a, m - 1, d, hh, mm), exata: true };
+    const data = fuso ? zonedParaInstante(a, m, d, hh, mm, 0, fuso) : new Date(a, m - 1, d, hh, mm);
+    return { data, exata: true };
   }
-  return { data: new Date(a, m - 1, d, 23, 59, 59), exata: false };
+  // Sem hora: vale até o fim do dia, no fuso de origem
+  const data = fuso ? zonedParaInstante(a, m, d, 23, 59, 59, fuso) : new Date(a, m - 1, d, 23, 59, 59);
+  return { data, exata: false };
+}
+
+// Texto do prazo no horário do aparelho (dd Mon aaaa · HH:MM)
+function exibirPrazo(iso, hora, fuso) {
+  if (!iso) return null;
+  if (!hora) return formataData(iso);
+  const dt = dataLocal(iso, hora, fuso).data;
+  const pad = n => String(n).padStart(2, "0");
+  return `${dt.getDate()} ${MESES_EN[dt.getMonth()]} ${dt.getFullYear()} · ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 }
 
 function formataData(iso) {
@@ -612,8 +644,8 @@ function categoriaDe(t) {
 
 // ---------- status pelo relógio ----------
 function calcularStatus(t, agora) {
-  const insc = dataLocal(t.inscData, t.inscHora);
-  const pag  = dataLocal(t.pagData, t.pagHora);
+  const insc = dataLocal(t.inscData, t.inscHora, t.fuso);
+  const pag  = dataLocal(t.pagData, t.pagHora, t.fuso);
   const inscPassou = insc ? (insc.exata ? agora >= insc.data : agora > insc.data) : null;
   const pagPassou  = pag  ? (pag.exata  ? agora >= pag.data  : agora > pag.data)  : null;
   const coleta = (t.statusColeta || "").toLowerCase();
@@ -691,10 +723,8 @@ function cartao(t, st) {
   const botaoPagar = escolha === "in"
     ? `<button class="botao-pagar ${pagoMarcado ? "pago" : ""}" type="button" data-id="${escapar(id)}" aria-pressed="${pagoMarcado}">${pagoMarcado ? "PAID" : "NOT PAID"}</button>`
     : "";
-  const inscricao = t.inscData
-    ? `${formataData(t.inscData)}${t.inscHora ? " · " + t.inscHora : ""}` : null;
-  const pagamento = t.pagData
-    ? `${formataData(t.pagData)}${t.pagHora ? " · " + t.pagHora : ""}` : null;
+  const inscricao = exibirPrazo(t.inscData, t.inscHora, t.fuso);
+  const pagamento = exibirPrazo(t.pagData, t.pagHora, t.fuso);
   const pais = paisPorNome(t.pais);
   const bandeira = pais ? `<span class="bandeira-card" title="${escapar(pais.nome)}">${bandeiraEmoji(pais.codigo)}</span>` : "";
   const cat = categoriaDe(t);
