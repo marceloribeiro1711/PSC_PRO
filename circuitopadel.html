@@ -134,6 +134,15 @@
     font-size: 13px; padding: 9px 14px; border-radius: 10px; }
   .botao:hover { filter: brightness(1.1); }
 
+  .alerta.pago { background: rgba(34,197,94,.10); color: #86efac; border: 1px solid rgba(34,197,94,.35); }
+  .alerta.pago .marca-ok { width: 20px; height: 20px; border-radius: 50%; background: var(--open); color: #04210f;
+    font-size: 12px; line-height: 20px; text-align: center; flex: 0 0 20px; font-weight: 800; }
+  .acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .botao-pagar { background: #dc2626; color: #ffffff; border: 0; border-radius: 10px; padding: 9px 14px;
+    font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+  .botao-pagar.pago { background: #16a34a; color: #ffffff; }
+  .botao-pagar:hover { filter: brightness(1.08); }
+
   .vazio-lista { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px 0; }
   footer { max-width: 1280px; margin: 0 auto 30px; padding: 0 24px; color: var(--muted); font-size: 12px; }
 </style>
@@ -516,6 +525,31 @@ function formataDataHora(iso) {
   return `${d}-${m}-${a}${hora ? " " + hora.slice(0, 5) : ""}`;
 }
 
+// ---------- "Já paguei": controle local deste navegador (não vai para a planilha) ----------
+const CHAVE_PAGOS = "circuitopadel.pagos";
+let PAGOS = [];
+
+function carregarPagos() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHAVE_PAGOS) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+
+function salvarPagos() {
+  try { localStorage.setItem(CHAVE_PAGOS, JSON.stringify(PAGOS)); } catch (e) { /* sem armazenamento */ }
+}
+
+// Identificador estável do torneio: link oficial, ou nome + início como reserva
+function idTorneio(t) {
+  return t.link || `${t.torneio}|${t.inicio || ""}`;
+}
+
+function alternarPago(id) {
+  PAGOS = PAGOS.includes(id) ? PAGOS.filter(x => x !== id) : [...PAGOS, id];
+  salvarPagos();
+}
+
 function escapar(t) {
   return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
@@ -590,7 +624,17 @@ function campo(rotulo, valor, largo = false) {
 }
 
 function cartao(t, st) {
-  const destaque = st.chave === "abertas" ? "destaque-open" : st.chave === "pagamento" ? "destaque-pay" : "";
+  const id = idTorneio(t);
+  const emPagamento = st.chave === "pagamento";
+  const pago = emPagamento && PAGOS.includes(id);
+  const destaque = pago ? "" : st.chave === "abertas" ? "destaque-open" : st.chave === "pagamento" ? "destaque-pay" : "";
+  const alerta = pago
+    ? `<div class="alerta pago"><span class="marca-ok">✓</span>Already paid</div>`
+    : blocoAlerta(st);
+  const contagem = blocoContagem(st);
+  const botaoPagar = emPagamento
+    ? `<button class="botao-pagar ${pago ? "pago" : ""}" type="button" data-id="${escapar(id)}" aria-pressed="${pago}">${pago ? "PAID" : "NOT PAID"}</button>`
+    : "";
   const inscricao = t.inscData
     ? `${formataData(t.inscData)}${t.inscHora ? " · " + t.inscHora : ""}` : null;
   const pagamento = t.pagData
@@ -613,8 +657,8 @@ function cartao(t, st) {
       <div class="local">${escapar([t.cidade, t.pais].filter(Boolean).join(" · "))}</div>
     </div>
 
-    ${blocoAlerta(st)}
-    ${blocoContagem(st)}
+    ${alerta}
+    ${contagem}
 
     <dl>
       ${campo("Dates", formataFaixa(t.inicio, t.fim), true)}
@@ -624,7 +668,10 @@ function cartao(t, st) {
     </dl>
 
     <div class="rodape">
-      ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">View tournament</a>` : ""}
+      <div class="acoes">
+        ${botaoPagar}
+        ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">View tournament</a>` : ""}
+      </div>
     </div>
   </article>`;
 }
@@ -730,6 +777,13 @@ async function carregar() {
 }
 
 SELECAO_SALVA = carregarSelecao();
+PAGOS = carregarPagos();
+document.getElementById("lista").addEventListener("click", (e) => {
+  const b = e.target.closest(".botao-pagar");
+  if (!b) return;
+  alternarPago(b.dataset.id);
+  renderizar();
+});
 document.getElementById("grade-paises").innerHTML = `<p class="lead">Loading…</p>`;
 ligarSplash();
 ligarFiltros();
