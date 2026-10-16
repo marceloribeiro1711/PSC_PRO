@@ -49,6 +49,7 @@
     border-radius: 14px; padding: 16px 44px; font-size: 15px; font-weight: 800; letter-spacing: .12em;
     text-transform: uppercase; cursor: pointer; box-shadow: 0 14px 34px rgba(59,130,246,.45); }
   .botao-ver:hover { filter: brightness(1.1); }
+  .botao-ver:disabled { background: #2a3a58; color: #7f8fb0; box-shadow: none; cursor: not-allowed; }
 
   /* ---------- Lista de torneios ---------- */
   .barra { position: sticky; top: 0; z-index: 10; background: rgba(11,18,32,.92);
@@ -275,96 +276,96 @@ const PAISES = [
   { codigo: "ve", nome: "Venezuela", nomePt: "Venezuela", regiao: "Americas", aliases: [] },
   { codigo: "bs", nome: "Bahamas", nomePt: "Bahamas", regiao: "Americas", aliases: [] },
   { codigo: "bb", nome: "Barbados", nomePt: "Barbados", regiao: "Americas", aliases: [] },
-  { codigo: "ae", nome: "United Arab Emirates", nomePt: "Emirados Árabes Unidos", regiao: "Asia & Oceania", aliases: ["UAE"] },
-  { codigo: "bh", nome: "Bahrain", nomePt: "Bahrein", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "bd", nome: "Bangladesh", nomePt: "Bangladesh", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "cn", nome: "China", nomePt: "China", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "hk", nome: "Hong Kong", nomePt: "Hong Kong", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "in", nome: "India", nomePt: "Índia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "id", nome: "Indonesia", nomePt: "Indonésia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "il", nome: "Israel", nomePt: "Israel", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "jp", nome: "Japan", nomePt: "Japão", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "jo", nome: "Jordan", nomePt: "Jordânia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "kz", nome: "Kazakhstan", nomePt: "Cazaquistão", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "kw", nome: "Kuwait", nomePt: "Kuwait", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "lb", nome: "Lebanon", nomePt: "Líbano", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "my", nome: "Malaysia", nomePt: "Malásia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "mv", nome: "Maldives", nomePt: "Maldivas", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "mn", nome: "Mongolia", nomePt: "Mongólia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "om", nome: "Oman", nomePt: "Omã", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "ph", nome: "Philippines", nomePt: "Filipinas", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "qa", nome: "Qatar", nomePt: "Catar", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "sa", nome: "Saudi Arabia", nomePt: "Arábia Saudita", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "sg", nome: "Singapore", nomePt: "Singapura", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "kr", nome: "South Korea", nomePt: "Coreia do Sul", regiao: "Asia & Oceania", aliases: ["Korea", "Republic of Korea"] },
-  { codigo: "lk", nome: "Sri Lanka", nomePt: "Sri Lanka", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "tw", nome: "Taiwan", nomePt: "Taiwan", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "th", nome: "Thailand", nomePt: "Tailândia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "vn", nome: "Vietnam", nomePt: "Vietname", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "am", nome: "Armenia", nomePt: "Arménia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "az", nome: "Azerbaijan", nomePt: "Azerbaijão", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "uz", nome: "Uzbekistan", nomePt: "Uzbequistão", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "ir", nome: "Iran", nomePt: "Irão", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "iq", nome: "Iraq", nomePt: "Iraque", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "dz", nome: "Algeria", nomePt: "Argélia", regiao: "Africa", aliases: [] },
-  { codigo: "ao", nome: "Angola", nomePt: "Angola", regiao: "Africa", aliases: [] },
-  { codigo: "bj", nome: "Benin", nomePt: "Benin", regiao: "Africa", aliases: [] },
-  { codigo: "bw", nome: "Botswana", nomePt: "Botsuana", regiao: "Africa", aliases: [] },
-  { codigo: "bf", nome: "Burkina Faso", nomePt: "Burkina Faso", regiao: "Africa", aliases: [] },
-  { codigo: "cm", nome: "Cameroon", nomePt: "Camarões", regiao: "Africa", aliases: [] },
-  { codigo: "cv", nome: "Cape Verde", nomePt: "Cabo Verde", regiao: "Africa", aliases: [] },
-  { codigo: "cf", nome: "Central African Republic", nomePt: "República Centro-Africana", regiao: "Africa", aliases: [] },
-  { codigo: "td", nome: "Chad", nomePt: "Chade", regiao: "Africa", aliases: [] },
-  { codigo: "km", nome: "Comoros", nomePt: "Comores", regiao: "Africa", aliases: [] },
-  { codigo: "cg", nome: "Republic of the Congo", nomePt: "República do Congo", regiao: "Africa", aliases: [] },
-  { codigo: "cd", nome: "DR Congo", nomePt: "RD Congo", regiao: "Africa", aliases: [] },
-  { codigo: "ci", nome: "Ivory Coast", nomePt: "Costa do Marfim", regiao: "Africa", aliases: [] },
-  { codigo: "eg", nome: "Egypt", nomePt: "Egito", regiao: "Africa", aliases: [] },
-  { codigo: "gq", nome: "Equatorial Guinea", nomePt: "Guiné Equatorial", regiao: "Africa", aliases: [] },
-  { codigo: "er", nome: "Eritrea", nomePt: "Eritreia", regiao: "Africa", aliases: [] },
-  { codigo: "et", nome: "Ethiopia", nomePt: "Etiópia", regiao: "Africa", aliases: [] },
-  { codigo: "ga", nome: "Gabon", nomePt: "Gabão", regiao: "Africa", aliases: [] },
-  { codigo: "gm", nome: "Gambia", nomePt: "Gâmbia", regiao: "Africa", aliases: [] },
-  { codigo: "gh", nome: "Ghana", nomePt: "Gana", regiao: "Africa", aliases: [] },
-  { codigo: "gn", nome: "Guinea", nomePt: "Guiné", regiao: "Africa", aliases: [] },
-  { codigo: "gw", nome: "Guinea-Bissau", nomePt: "Guiné-Bissau", regiao: "Africa", aliases: [] },
-  { codigo: "ke", nome: "Kenya", nomePt: "Quénia", regiao: "Africa", aliases: [] },
-  { codigo: "ls", nome: "Lesotho", nomePt: "Lesoto", regiao: "Africa", aliases: [] },
-  { codigo: "lr", nome: "Liberia", nomePt: "Libéria", regiao: "Africa", aliases: [] },
-  { codigo: "ly", nome: "Libya", nomePt: "Líbia", regiao: "Africa", aliases: [] },
-  { codigo: "mg", nome: "Madagascar", nomePt: "Madagáscar", regiao: "Africa", aliases: [] },
-  { codigo: "mw", nome: "Malawi", nomePt: "Malawi", regiao: "Africa", aliases: [] },
-  { codigo: "ml", nome: "Mali", nomePt: "Mali", regiao: "Africa", aliases: [] },
-  { codigo: "mr", nome: "Mauritania", nomePt: "Mauritânia", regiao: "Africa", aliases: [] },
-  { codigo: "mu", nome: "Mauritius", nomePt: "Maurícia", regiao: "Africa", aliases: [] },
-  { codigo: "ma", nome: "Morocco", nomePt: "Marrocos", regiao: "Africa", aliases: [] },
-  { codigo: "mz", nome: "Mozambique", nomePt: "Moçambique", regiao: "Africa", aliases: [] },
-  { codigo: "na", nome: "Namibia", nomePt: "Namíbia", regiao: "Africa", aliases: [] },
-  { codigo: "ne", nome: "Niger", nomePt: "Níger", regiao: "Africa", aliases: [] },
-  { codigo: "ng", nome: "Nigeria", nomePt: "Nigéria", regiao: "Africa", aliases: [] },
-  { codigo: "rw", nome: "Rwanda", nomePt: "Ruanda", regiao: "Africa", aliases: [] },
-  { codigo: "st", nome: "São Tomé and Príncipe", nomePt: "São Tomé e Príncipe", regiao: "Africa", aliases: [] },
-  { codigo: "sn", nome: "Senegal", nomePt: "Senegal", regiao: "Africa", aliases: [] },
-  { codigo: "sc", nome: "Seychelles", nomePt: "Seicheles", regiao: "Africa", aliases: [] },
-  { codigo: "sl", nome: "Sierra Leone", nomePt: "Serra Leoa", regiao: "Africa", aliases: [] },
-  { codigo: "so", nome: "Somalia", nomePt: "Somália", regiao: "Africa", aliases: [] },
-  { codigo: "za", nome: "South Africa", nomePt: "África do Sul", regiao: "Africa", aliases: [] },
-  { codigo: "ss", nome: "South Sudan", nomePt: "Sudão do Sul", regiao: "Africa", aliases: [] },
-  { codigo: "sd", nome: "Sudan", nomePt: "Sudão", regiao: "Africa", aliases: [] },
-  { codigo: "sz", nome: "Eswatini", nomePt: "Essuatíni", regiao: "Africa", aliases: [] },
-  { codigo: "tz", nome: "Tanzania", nomePt: "Tanzânia", regiao: "Africa", aliases: [] },
-  { codigo: "tg", nome: "Togo", nomePt: "Togo", regiao: "Africa", aliases: [] },
-  { codigo: "tn", nome: "Tunisia", nomePt: "Tunísia", regiao: "Africa", aliases: [] },
-  { codigo: "ug", nome: "Uganda", nomePt: "Uganda", regiao: "Africa", aliases: [] },
-  { codigo: "zm", nome: "Zambia", nomePt: "Zâmbia", regiao: "Africa", aliases: [] },
-  { codigo: "zw", nome: "Zimbabwe", nomePt: "Zimbábue", regiao: "Africa", aliases: [] },
-  { codigo: "au", nome: "Australia", nomePt: "Austrália", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "nz", nome: "New Zealand", nomePt: "Nova Zelândia", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "fj", nome: "Fiji", nomePt: "Fiji", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "pg", nome: "Papua New Guinea", nomePt: "Papua-Nova Guiné", regiao: "Asia & Oceania", aliases: [] },
-  { codigo: "ws", nome: "Samoa", nomePt: "Samoa", regiao: "Asia & Oceania", aliases: [] },
+  { codigo: "ae", nome: "United Arab Emirates", nomePt: "Emirados Árabes Unidos", regiao: "Asia", aliases: ["UAE"] },
+  { codigo: "bh", nome: "Bahrain", nomePt: "Bahrein", regiao: "Asia", aliases: [] },
+  { codigo: "bd", nome: "Bangladesh", nomePt: "Bangladesh", regiao: "Asia", aliases: [] },
+  { codigo: "cn", nome: "China", nomePt: "China", regiao: "Asia", aliases: [] },
+  { codigo: "hk", nome: "Hong Kong", nomePt: "Hong Kong", regiao: "Asia", aliases: [] },
+  { codigo: "in", nome: "India", nomePt: "Índia", regiao: "Asia", aliases: [] },
+  { codigo: "id", nome: "Indonesia", nomePt: "Indonésia", regiao: "Asia", aliases: [] },
+  { codigo: "il", nome: "Israel", nomePt: "Israel", regiao: "Asia", aliases: [] },
+  { codigo: "jp", nome: "Japan", nomePt: "Japão", regiao: "Asia", aliases: [] },
+  { codigo: "jo", nome: "Jordan", nomePt: "Jordânia", regiao: "Asia", aliases: [] },
+  { codigo: "kz", nome: "Kazakhstan", nomePt: "Cazaquistão", regiao: "Asia", aliases: [] },
+  { codigo: "kw", nome: "Kuwait", nomePt: "Kuwait", regiao: "Asia", aliases: [] },
+  { codigo: "lb", nome: "Lebanon", nomePt: "Líbano", regiao: "Asia", aliases: [] },
+  { codigo: "my", nome: "Malaysia", nomePt: "Malásia", regiao: "Asia", aliases: [] },
+  { codigo: "mv", nome: "Maldives", nomePt: "Maldivas", regiao: "Asia", aliases: [] },
+  { codigo: "mn", nome: "Mongolia", nomePt: "Mongólia", regiao: "Asia", aliases: [] },
+  { codigo: "om", nome: "Oman", nomePt: "Omã", regiao: "Asia", aliases: [] },
+  { codigo: "ph", nome: "Philippines", nomePt: "Filipinas", regiao: "Asia", aliases: [] },
+  { codigo: "qa", nome: "Qatar", nomePt: "Catar", regiao: "Asia", aliases: [] },
+  { codigo: "sa", nome: "Saudi Arabia", nomePt: "Arábia Saudita", regiao: "Asia", aliases: [] },
+  { codigo: "sg", nome: "Singapore", nomePt: "Singapura", regiao: "Asia", aliases: [] },
+  { codigo: "kr", nome: "South Korea", nomePt: "Coreia do Sul", regiao: "Asia", aliases: ["Korea", "Republic of Korea"] },
+  { codigo: "lk", nome: "Sri Lanka", nomePt: "Sri Lanka", regiao: "Asia", aliases: [] },
+  { codigo: "tw", nome: "Taiwan", nomePt: "Taiwan", regiao: "Asia", aliases: [] },
+  { codigo: "th", nome: "Thailand", nomePt: "Tailândia", regiao: "Asia", aliases: [] },
+  { codigo: "vn", nome: "Vietnam", nomePt: "Vietname", regiao: "Asia", aliases: [] },
+  { codigo: "am", nome: "Armenia", nomePt: "Arménia", regiao: "Asia", aliases: [] },
+  { codigo: "az", nome: "Azerbaijan", nomePt: "Azerbaijão", regiao: "Asia", aliases: [] },
+  { codigo: "uz", nome: "Uzbekistan", nomePt: "Uzbequistão", regiao: "Asia", aliases: [] },
+  { codigo: "ir", nome: "Iran", nomePt: "Irão", regiao: "Asia", aliases: [] },
+  { codigo: "iq", nome: "Iraq", nomePt: "Iraque", regiao: "Asia", aliases: [] },
+  { codigo: "dz", nome: "Algeria", nomePt: "Argélia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ao", nome: "Angola", nomePt: "Angola", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "bj", nome: "Benin", nomePt: "Benin", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "bw", nome: "Botswana", nomePt: "Botsuana", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "bf", nome: "Burkina Faso", nomePt: "Burkina Faso", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "cm", nome: "Cameroon", nomePt: "Camarões", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "cv", nome: "Cape Verde", nomePt: "Cabo Verde", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "cf", nome: "Central African Republic", nomePt: "República Centro-Africana", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "td", nome: "Chad", nomePt: "Chade", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "km", nome: "Comoros", nomePt: "Comores", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "cg", nome: "Republic of the Congo", nomePt: "República do Congo", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "cd", nome: "DR Congo", nomePt: "RD Congo", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ci", nome: "Ivory Coast", nomePt: "Costa do Marfim", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "eg", nome: "Egypt", nomePt: "Egito", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "gq", nome: "Equatorial Guinea", nomePt: "Guiné Equatorial", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "er", nome: "Eritrea", nomePt: "Eritreia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "et", nome: "Ethiopia", nomePt: "Etiópia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ga", nome: "Gabon", nomePt: "Gabão", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "gm", nome: "Gambia", nomePt: "Gâmbia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "gh", nome: "Ghana", nomePt: "Gana", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "gn", nome: "Guinea", nomePt: "Guiné", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "gw", nome: "Guinea-Bissau", nomePt: "Guiné-Bissau", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ke", nome: "Kenya", nomePt: "Quénia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ls", nome: "Lesotho", nomePt: "Lesoto", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "lr", nome: "Liberia", nomePt: "Libéria", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ly", nome: "Libya", nomePt: "Líbia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "mg", nome: "Madagascar", nomePt: "Madagáscar", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "mw", nome: "Malawi", nomePt: "Malawi", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ml", nome: "Mali", nomePt: "Mali", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "mr", nome: "Mauritania", nomePt: "Mauritânia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "mu", nome: "Mauritius", nomePt: "Maurícia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ma", nome: "Morocco", nomePt: "Marrocos", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "mz", nome: "Mozambique", nomePt: "Moçambique", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "na", nome: "Namibia", nomePt: "Namíbia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ne", nome: "Niger", nomePt: "Níger", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ng", nome: "Nigeria", nomePt: "Nigéria", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "rw", nome: "Rwanda", nomePt: "Ruanda", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "st", nome: "São Tomé and Príncipe", nomePt: "São Tomé e Príncipe", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "sn", nome: "Senegal", nomePt: "Senegal", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "sc", nome: "Seychelles", nomePt: "Seicheles", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "sl", nome: "Sierra Leone", nomePt: "Serra Leoa", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "so", nome: "Somalia", nomePt: "Somália", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "za", nome: "South Africa", nomePt: "África do Sul", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ss", nome: "South Sudan", nomePt: "Sudão do Sul", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "sd", nome: "Sudan", nomePt: "Sudão", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "sz", nome: "Eswatini", nomePt: "Essuatíni", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "tz", nome: "Tanzania", nomePt: "Tanzânia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "tg", nome: "Togo", nomePt: "Togo", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "tn", nome: "Tunisia", nomePt: "Tunísia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ug", nome: "Uganda", nomePt: "Uganda", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "zm", nome: "Zambia", nomePt: "Zâmbia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "zw", nome: "Zimbabwe", nomePt: "Zimbábue", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "au", nome: "Australia", nomePt: "Austrália", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "nz", nome: "New Zealand", nomePt: "Nova Zelândia", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "fj", nome: "Fiji", nomePt: "Fiji", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "pg", nome: "Papua New Guinea", nomePt: "Papua-Nova Guiné", regiao: "Africa & Oceania", aliases: [] },
+  { codigo: "ws", nome: "Samoa", nomePt: "Samoa", regiao: "Africa & Oceania", aliases: [] },
 ];
-const ORDEM_REGIOES = ["Europe", "Americas", "Asia & Oceania", "Africa"];
+const ORDEM_REGIOES = ["Europe", "Americas", "Asia", "Africa & Oceania"];
 const CHAVE_PAISES = "circuitopadel.paises";
 let SELECAO_SALVA = null;
 
@@ -428,9 +429,9 @@ function montarSplash() {
   const grade = document.getElementById("grade-paises");
   const disponiveis = paisesDisponiveis();
   // Todas as regiões aparecem sempre; "Other" só quando houver país sem mapeamento
-  const regioes = [...ORDEM_REGIOES, ...(disponiveis.some(p => p.regiao === "Other") ? ["Other"] : [])];
-  grade.innerHTML = regioes.map(reg => {
-    const paises = disponiveis.filter(p => p.regiao === reg);
+  const grupoDe = p => (p.regiao === "Other" ? "Africa & Oceania" : p.regiao);
+  grade.innerHTML = ORDEM_REGIOES.map(reg => {
+    const paises = disponiveis.filter(p => grupoDe(p) === reg);
     const corpo = paises.length
       ? paises.map(p => {
           const sel = PAISES_SEL.includes(chaveDoPais(p));
@@ -448,7 +449,9 @@ function atualizarSplash() {
   document.querySelectorAll("#grade-paises .pais[data-chave]").forEach(b => {
     b.setAttribute("aria-pressed", PAISES_SEL.includes(b.dataset.chave) ? "true" : "false");
   });
-  document.getElementById("btn-ver").hidden = false;
+  const btn = document.getElementById("btn-ver");
+  btn.hidden = false;
+  btn.disabled = PAISES_SEL.length === 0;
 }
 
 function ligarSplash() {
@@ -460,7 +463,7 @@ function ligarSplash() {
     atualizarSplash();
   });
   document.getElementById("btn-ver").addEventListener("click", () => {
-    if (!PAISES_SEL.length) PAISES_SEL = paisesDisponiveis().map(chaveDoPais);
+    if (!PAISES_SEL.length) return;
     salvarSelecao();
     mostrarLista();
   });
@@ -718,7 +721,6 @@ async function carregar() {
   // Seleção salva vale; se não houver (ou não existir mais), marca todos os países disponíveis
   const disponiveis = paisesDisponiveis().map(chaveDoPais);
   PAISES_SEL = (SELECAO_SALVA || []).filter(c => disponiveis.includes(c));
-  if (!PAISES_SEL.length) PAISES_SEL = disponiveis.slice();
   montarSplash();
   atualizarSplash();
 
