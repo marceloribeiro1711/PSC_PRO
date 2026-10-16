@@ -89,9 +89,12 @@
   .bandeira-card { font-size: 22px; line-height: 1; }
   .coluna-direita { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
   .escolhas { display: flex; gap: 6px; }
-  .btn-escolha { background: var(--surface-2); color: #cbd5e1; border: 1px solid var(--line); border-radius: 8px;
-    padding: 4px 8px; font-size: 11px; font-weight: 700; letter-spacing: .03em; cursor: pointer; white-space: nowrap; }
-  .btn-escolha.ativo { background: #16a34a; border-color: #16a34a; color: #ffffff; }
+  .btn-escolha { background: transparent; color: #ffffff; border: 2px solid #ffffff; border-radius: 10px;
+    padding: 5px 10px; font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap; }
+  .btn-escolha:hover { filter: brightness(1.15); }
+  .btn-escolha.ativo { background: #16a34a; border-color: #16a34a; }   /* IN */
+  .btn-escolha.fora { background: #dc2626; border-color: #dc2626; }    /* OUT */
   .clube { color: #cbd5e1; font-size: 14px; font-weight: 600; }
   .local { color: var(--muted); font-size: 13px; }
 
@@ -562,10 +565,10 @@ function salvarEscolhas() {
   try { localStorage.setItem(CHAVE_ESCOLHAS, JSON.stringify(ESCOLHAS)); } catch (e) { /* sem armazenamento */ }
 }
 
-// Clicar na escolha já ativa desfaz a escolha
-function definirEscolha(id, valor) {
-  if (ESCOLHAS[id] === valor) delete ESCOLHAS[id];
-  else ESCOLHAS[id] = valor;
+// Um único botão: sem escolha -> IN (vermelho) -> IN (verde) -> OUT (vermelho) -> IN (verde) ...
+function ciclarEscolha(id) {
+  const atual = ESCOLHAS[id] || null;
+  ESCOLHAS[id] = atual === "in" ? "out" : "in";
   salvarEscolhas();
 }
 
@@ -658,12 +661,14 @@ function cartao(t, st) {
     : blocoAlerta(st);
   const contagem = blocoContagem(st);
   const escolha = ESCOLHAS[id] || null;
+  // Um único botão: "I’m IN" (vermelho, sem confirmar), verde quando IN, vermelho em "I’m OUT"
+  const rotuloEscolha = escolha === "out" ? "I’m OUT" : "I’m IN";
+  const classeEscolha = escolha === "in" ? "ativo" : escolha === "out" ? "fora" : "";
   const botoesEscolha = `<div class="escolhas">
-      <button class="btn-escolha ${escolha === "in" ? "ativo" : ""}" type="button" data-id="${escapar(id)}" data-escolha="in" aria-pressed="${escolha === "in"}">I’m IN</button>
-      <button class="btn-escolha ${escolha === "out" ? "ativo" : ""}" type="button" data-id="${escapar(id)}" data-escolha="out" aria-pressed="${escolha === "out"}">I’m OUT</button>
+      <button class="btn-escolha ${classeEscolha}" type="button" data-id="${escapar(id)}" aria-pressed="${escolha === "in"}">${rotuloEscolha}</button>
     </div>`;
-  // PAID vale para qualquer torneio marcado como I'm IN (a FIP cobra direto no clube, às vezes no check-in)
-  const botaoPagar = escolha === "in"
+  // PAID / NOT PAID aparece para IN e OUT, pois a FIP cobra direto no clube, às vezes no check-in
+  const botaoPagar = escolha
     ? `<button class="botao-pagar ${pagoMarcado ? "pago" : ""}" type="button" data-id="${escapar(id)}" aria-pressed="${pagoMarcado}">${pagoMarcado ? "PAID" : "NOT PAID"}</button>`
     : "";
   const inscricao = t.inscData
@@ -684,7 +689,7 @@ function cartao(t, st) {
         <h2>${escapar(t.torneio)}</h2>
         <div class="coluna-direita">
           ${bandeira}
-          ${botoesEscolha}
+          ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">View tournament</a>` : ""}
         </div>
       </div>
       ${t.clube ? `<div class="clube">${escapar(t.clube)}</div>` : ""}
@@ -703,9 +708,7 @@ function cartao(t, st) {
 
     <div class="rodape">
       <div class="acoes">${botaoPagar}</div>
-      <div class="acoes">
-        ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">View tournament</a>` : ""}
-      </div>
+      <div class="acoes">${botoesEscolha}</div>
     </div>
   </article>`;
 }
@@ -816,7 +819,7 @@ ESCOLHAS = carregarEscolhas();
 document.getElementById("lista").addEventListener("click", (e) => {
   const escolha = e.target.closest(".btn-escolha");
   if (escolha) {
-    definirEscolha(escolha.dataset.id, escolha.dataset.escolha);
+    ciclarEscolha(escolha.dataset.id);
     renderizar();
     return;
   }
