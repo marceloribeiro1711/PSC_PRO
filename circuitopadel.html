@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Torneios de Padel · Inscrições e Pagamentos</title>
+<title>Padel Tournaments · Registration and Payments</title>
 <style>
   :root {
     --bg: #0b1220;
@@ -24,8 +24,32 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  [hidden] { display: none !important; }
 
-  /* Barra fina de totais */
+  /* ---------- Splash de países ---------- */
+  #splash { min-height: 100vh; padding: 28px 16px 32px; max-width: 760px; margin: 0 auto; }
+  #splash h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -.01em; text-align: center; }
+  #splash .lead { color: var(--muted); text-align: center; margin: 0 0 8px; font-size: 15px; }
+  .regiao { margin-top: 16px; }
+  .regiao h2 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #9fb3d1;
+    font-weight: 600; margin: 0 0 8px 2px; }
+  .painel-bandeiras { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 6px;
+    padding: 8px 10px; background: #0f1d36; border: 1px solid #1f3a66; border-radius: 12px; }
+  .pais { background: transparent; border: 2px solid transparent; border-radius: 10px; padding: 4px 6px 3px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text); cursor: pointer;
+    min-width: 56px; font: inherit; transition: box-shadow .15s, border-color .15s; }
+  .pais .emoji { font-size: 26px; line-height: 1; }
+  .pais .nome { font-size: 10px; color: #c9d6ea; text-align: center; }
+  .pais[aria-pressed="true"] { border-color: #38bdf8; box-shadow: 0 0 16px rgba(56,189,248,.55); }
+  .pais.breve { opacity: .4; cursor: not-allowed; }
+  .pais .selo-breve { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+
+  .botao-ver { display: block; margin: 34px auto 0; background: var(--accent); color: #fff; border: 0;
+    border-radius: 14px; padding: 16px 44px; font-size: 15px; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; cursor: pointer; box-shadow: 0 14px 34px rgba(59,130,246,.45); }
+  .botao-ver:hover { filter: brightness(1.1); }
+
+  /* ---------- Lista de torneios ---------- */
   .barra { position: sticky; top: 0; z-index: 10; background: rgba(11,18,32,.92);
     backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
   .barra-interna { max-width: 1280px; margin: 0 auto; padding: 8px 24px; display: flex;
@@ -37,14 +61,13 @@
   .total.open { color: var(--open); } .total.open .ponto { background: var(--open); }
   .total.pay { color: var(--pay); } .total.pay .ponto { background: var(--pay); }
   .total b { font-size: 16px; font-variant-numeric: tabular-nums; }
+  .trocar { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px; cursor: pointer; }
 
   .meta { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; color: var(--muted); font-size: 12px; }
 
-  .filtros { max-width: 1280px; margin: 14px auto 4px; padding: 0 24px; display: flex;
-    flex-wrap: wrap; gap: 12px 24px; align-items: center; }
-  .grupo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .grupo label { color: var(--muted); font-size: 12px; text-transform: uppercase;
-    letter-spacing: .06em; margin-right: 4px; }
+  .filtros { max-width: 1280px; margin: 14px auto 4px; padding: 0 24px; display: flex; flex-direction: column; gap: 8px; }
+  .linha { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { background: var(--surface); color: var(--text); border: 1px solid var(--line);
     border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -58,14 +81,12 @@
   .card.destaque-open { border-color: rgba(34,197,94,.55); box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
 
   .topo { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .linha-circuito { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .circuito { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: .02em;
     text-transform: uppercase; line-height: 1.1; }
-  .linha-circuito { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-  .etiquetas { display: flex; gap: 6px; flex-wrap: wrap; }
-  .tag { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
-    padding: 4px 8px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
-  .tag.cat { background: rgba(59,130,246,.18); color: #93c5fd; }
+  .linha-nome { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   h2 { font-size: 17px; margin: 4px 0 0; line-height: 1.3; }
+  .bandeira-card { font-size: 22px; line-height: 1; flex: 0 0 auto; }
   .clube { color: #cbd5e1; font-size: 14px; font-weight: 600; }
   .local { color: var(--muted); font-size: 13px; }
 
@@ -81,7 +102,6 @@
   .alerta.closed .ponto { background: var(--closed); }
   @keyframes pisca { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
 
-  /* Sirene: disco vermelho com feixe giratório, sem áudio */
   .sirene { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; position: relative;
     overflow: hidden; background: radial-gradient(circle at 50% 35%, #fecaca 0, #ef4444 45%, #7f1d1d 100%);
     box-shadow: 0 0 10px rgba(239,68,68,.6); }
@@ -90,7 +110,6 @@
       transparent 90deg 180deg, rgba(255,255,255,.9) 190deg, transparent 210deg 360deg);
     animation: gira 1s linear infinite; }
   @keyframes gira { to { transform: rotate(360deg); } }
-  .alerta.pay .sirene { margin-left: -2px; }
 
   .contagem { margin: 12px 18px 0; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
   .contagem small { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
@@ -108,8 +127,7 @@
   .largo { grid-column: 1 / -1; }
 
   .rodape { margin-top: auto; padding: 14px 18px 16px; display: flex; justify-content: flex-end;
-    align-items: center; gap: 10px; border-top: 1px solid var(--line); margin-top: 16px; }
-  .fonte { font-size: 11px; color: var(--muted); }
+    border-top: 1px solid var(--line); margin-top: 16px; }
   .botao { background: var(--accent); color: #fff; text-decoration: none; font-weight: 600;
     font-size: 13px; padding: 9px 14px; border-radius: 10px; }
   .botao:hover { filter: brightness(1.1); }
@@ -120,60 +138,195 @@
 </head>
 <body>
 
-<div class="barra">
-  <div class="barra-interna">
-    <h1>Torneios de Padel</h1>
-    <div class="totais" aria-label="Totais">
-      <span class="total open"><span class="ponto"></span>Inscrições abertas <b id="k-abertas">0</b></span>
-      <span class="total pay"><span class="ponto"></span>Pagamentos a decorrer <b id="k-pagamento">0</b></span>
-    </div>
-  </div>
-</div>
-<div class="meta" id="atualizado">Carregando…</div>
-
-<section class="filtros" aria-label="Filtros">
-  <div class="grupo" id="f-circuito">
-    <label>Circuito</label>
-    <button class="chip" data-valor="todos" aria-pressed="true">Todos</button>
-    <button class="chip" data-valor="FPP Portugal" aria-pressed="false">FPP Portugal</button>
-    <button class="chip" data-valor="FIP Promises" aria-pressed="false">FIP Promises</button>
-    <button class="chip" data-valor="CUPRA FIP Tour" aria-pressed="false">CUPRA FIP Tour</button>
-  </div>
-  <div class="grupo" id="f-categoria">
-    <label>Categoria</label>
-    <button class="chip" data-valor="todas" aria-pressed="true">Todas</button>
-    <button class="chip" data-valor="ABS" aria-pressed="false">ABS</button>
-    <button class="chip" data-valor="VET" aria-pressed="false">VET</button>
-    <button class="chip" data-valor="JOV" aria-pressed="false">JOV</button>
-  </div>
-  <div class="grupo" id="f-status">
-    <label>Mostrar</label>
-    <button class="chip" data-valor="todos" aria-pressed="true">Todos</button>
-    <button class="chip" data-valor="abertas" aria-pressed="false">Inscrições abertas</button>
-    <button class="chip" data-valor="pagamento" aria-pressed="false">Pagamento a decorrer</button>
-  </div>
+<!-- ======================= SPLASH: escolha de países ======================= -->
+<section id="splash" aria-label="Choose countries">
+  <h1>Padel Tournaments</h1>
+  <p class="lead">Choose one or more countries</p>
+  <div id="grade-paises"></div>
+  <button class="botao-ver" id="btn-ver" type="button" hidden>See tournaments</button>
 </section>
 
-<main id="lista" aria-live="polite"></main>
+<!-- ======================= LISTA DE TORNEIOS ======================= -->
+<div id="lista-view" hidden>
+  <div class="barra">
+    <div class="barra-interna">
+      <h1>Padel Tournaments</h1>
+      <div class="totais" aria-label="Totals">
+        <span class="total open"><span class="ponto"></span>Registration open <b id="k-abertas">0</b></span>
+        <span class="total pay"><span class="ponto"></span>Payment open <b id="k-pagamento">0</b></span>
+      </div>
+      <button class="trocar" id="btn-trocar" type="button">Countries</button>
+    </div>
+  </div>
+  <div class="meta" id="atualizado">Loading…</div>
 
-<footer>
-  Informação complementar. A obrigação de confirmar prazos e regulamentos é sempre do atleta.
-  Os estados e contagens são calculados no seu dispositivo, com a hora local.
-</footer>
+  <section class="filtros" aria-label="Filters">
+    <div class="linha" id="f-circuito">
+      <button class="chip" data-valor="todos" aria-pressed="true">All</button>
+      <button class="chip" data-valor="FIP Promises" aria-pressed="false">FIP Promises</button>
+      <button class="chip" data-valor="CUPRA FIP Tour" aria-pressed="false">CUPRA FIP Tour</button>
+      <button class="chip" data-valor="FPP Portugal" aria-pressed="false">FPP</button>
+    </div>
+    <div class="linha" id="f-categoria">
+      <button class="chip" data-valor="todas" aria-pressed="true">All</button>
+      <button class="chip" data-valor="ABS" aria-pressed="false">ABS</button>
+      <button class="chip" data-valor="VET" aria-pressed="false">VET</button>
+      <button class="chip" data-valor="JOV" aria-pressed="false">JOV</button>
+    </div>
+    <div class="linha" id="f-status">
+      <button class="chip" data-valor="todos" aria-pressed="true">All</button>
+      <button class="chip" data-valor="abertas" aria-pressed="false">Registration open</button>
+      <button class="chip" data-valor="pagamento" aria-pressed="false">Payment open</button>
+    </div>
+  </section>
+
+  <main id="lista" aria-live="polite"></main>
+
+  <footer>
+    Complementary information. Athletes are always responsible for confirming deadlines and rules with the organizer.
+    Times are shown in your local time.
+  </footer>
+</div>
 
 <script>
 // ==========================================================
-// DADOS: arquivo JSON fixo, sem versão, publicado junto com a página no GitHub.
-// Gerado pelo robô (torneiosjson.json). Sem o arquivo, a página avisa no topo.
+// DADOS: arquivo JSON fixo, publicado junto com a página no GitHub.
+// Gerado pelo robô (torneiosjson.json).
 // ==========================================================
 const ARQUIVO_JSON = "torneiosjson.json";
-const DADOS_EMBUTIDOS = null; // sem cópia embutida: os dados vêm sempre do JSON
+
+// ==========================================================
+// PAÍSES: mapeamento de nome -> código (bandeira) e região.
+// A tela só mostra países que existem na planilha/JSON.
+// Países sem mapeamento aparecem em "Other" com globo.
+// ==========================================================
+const PAISES = [
+  { codigo: "pt", nome: "Portugal",      nomePt: "Portugal",       regiao: "Europe",   ativo: true  },
+  { codigo: "es", nome: "Spain",         nomePt: "Espanha",        regiao: "Europe",   ativo: false },
+  { codigo: "fr", nome: "France",        nomePt: "França",         regiao: "Europe",   ativo: false },
+  { codigo: "it", nome: "Italy",         nomePt: "Itália",         regiao: "Europe",   ativo: false },
+  { codigo: "de", nome: "Germany",       nomePt: "Alemanha",       regiao: "Europe",   ativo: false },
+  { codigo: "gb", nome: "United Kingdom",nomePt: "Reino Unido",    regiao: "Europe",   ativo: false },
+  { codigo: "br", nome: "Brazil",        nomePt: "Brasil",         regiao: "Americas", ativo: false },
+  { codigo: "ar", nome: "Argentina",     nomePt: "Argentina",      regiao: "Americas", ativo: false },
+  { codigo: "mx", nome: "Mexico",        nomePt: "México",         regiao: "Americas", ativo: false },
+  { codigo: "us", nome: "United States", nomePt: "Estados Unidos", regiao: "Americas", ativo: false },
+  { codigo: "jp", nome: "Japan",         nomePt: "Japão",          regiao: "Asia",     ativo: false },
+  { codigo: "kr", nome: "South Korea",   nomePt: "Coreia do Sul",  regiao: "Asia",     ativo: false },
+  { codigo: "ma", nome: "Morocco",       nomePt: "Marrocos",       regiao: "Africa",   ativo: false },
+  { codigo: "eg", nome: "Egypt",         nomePt: "Egito",          regiao: "Africa",   ativo: false },
+];
+const ORDEM_REGIOES = ["Europe", "Americas", "Asia", "Africa"];
+const CHAVE_PAISES = "circuitopadel.paises";
+let SELECAO_SALVA = null;
 
 const ESTADO = { circuito: "todos", categoria: "todas", status: "todos" };
+let PAISES_SEL = [];
 let TORNEIOS = [];
 
-const MESES_PT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const MESES_EN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+// ---------- países ----------
+function paisPorNome(nome) {
+  if (!nome) return null;
+  return PAISES.find(p => p.nome === nome || p.nomePt === nome) || null;
+}
+
+// Bandeira em emoji, gerada a partir do código do país (sem imagens externas)
+function bandeiraEmoji(codigo) {
+  if (!codigo) return "🌍";
+  return String.fromCodePoint(...codigo.toUpperCase().split("").map(c => 127397 + c.charCodeAt(0)));
+}
+
+function carregarSelecao() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHAVE_PAISES) || "null");
+    return Array.isArray(v) ? v : null;
+  } catch (e) { return null; }
+}
+
+// Chave única de cada país: código (quando mapeado) ou nome
+function chaveDoPais(p) { return p.codigo || p.nome; }
+
+// Países que existem nos torneios carregados, agrupados por região
+function paisesDisponiveis() {
+  const mapa = new Map();
+  TORNEIOS.forEach(t => {
+    if (!t.pais) return;
+    const cfg = paisPorNome(t.pais);
+    const chave = cfg ? cfg.codigo : t.pais;
+    if (!mapa.has(chave)) {
+      mapa.set(chave, cfg ? { ...cfg } : { codigo: null, nome: t.pais, nomePt: t.pais, regiao: "Other" });
+    }
+  });
+  return [...mapa.values()];
+}
+
+function salvarSelecao() {
+  try { localStorage.setItem(CHAVE_PAISES, JSON.stringify(PAISES_SEL)); } catch (e) { /* sem armazenamento */ }
+}
+
+function montarSplash() {
+  const grade = document.getElementById("grade-paises");
+  const disponiveis = paisesDisponiveis();
+  if (!disponiveis.length) {
+    grade.innerHTML = `<p class="lead">No countries available yet.</p>`;
+    return;
+  }
+  grade.innerHTML = [...ORDEM_REGIOES, "Other"].map(reg => {
+    const paises = disponiveis.filter(p => p.regiao === reg);
+    if (!paises.length) return "";
+    return `<section class="regiao"><h2>${reg}</h2><div class="painel-bandeiras">` +
+      paises.map(p => {
+        const sel = PAISES_SEL.includes(chaveDoPais(p));
+        return `<button class="pais" type="button" data-chave="${escapar(chaveDoPais(p))}" aria-pressed="${sel}">
+          <span class="emoji">${bandeiraEmoji(p.codigo)}</span>
+          <span class="nome">${escapar(p.nome)}</span>
+        </button>`;
+      }).join("") + `</div></section>`;
+  }).join("");
+}
+
+function atualizarSplash() {
+  document.querySelectorAll("#grade-paises .pais[data-chave]").forEach(b => {
+    b.setAttribute("aria-pressed", PAISES_SEL.includes(b.dataset.chave) ? "true" : "false");
+  });
+  document.getElementById("btn-ver").hidden = false;
+}
+
+function ligarSplash() {
+  document.getElementById("grade-paises").addEventListener("click", (e) => {
+    const b = e.target.closest(".pais[data-chave]");
+    if (!b) return;
+    const c = b.dataset.chave;
+    PAISES_SEL = PAISES_SEL.includes(c) ? PAISES_SEL.filter(x => x !== c) : [...PAISES_SEL, c];
+    atualizarSplash();
+  });
+  document.getElementById("btn-ver").addEventListener("click", () => {
+    if (!PAISES_SEL.length) PAISES_SEL = paisesDisponiveis().map(chaveDoPais);
+    salvarSelecao();
+    mostrarLista();
+  });
+  document.getElementById("btn-trocar").addEventListener("click", () => mostrarSplash());
+}
+
+function mostrarLista() {
+  document.getElementById("splash").hidden = true;
+  document.getElementById("btn-ver").hidden = true;
+  document.getElementById("lista-view").hidden = false;
+  renderizar();
+  window.scrollTo(0, 0);
+}
+
+function mostrarSplash() {
+  document.getElementById("lista-view").hidden = true;
+  document.getElementById("splash").hidden = false;
+  montarSplash();
+  atualizarSplash();
+  window.scrollTo(0, 0);
+}
+
+// ---------- datas ----------
 function dataLocal(iso, hora) {
   if (!iso) return null;
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
@@ -187,7 +340,7 @@ function dataLocal(iso, hora) {
 function formataData(iso) {
   if (!iso) return null;
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
-  return `${String(d).padStart(2, "0")} ${MESES_PT[m - 1]} ${a}`;
+  return `${d} ${MESES_EN[m - 1]} ${a}`;
 }
 
 function formataFaixa(i, f) {
@@ -196,26 +349,6 @@ function formataFaixa(i, f) {
   return formataData(i || f);
 }
 
-// Circuito de exibição: separa FIP Promises e CUPRA FIP Tour pelo nome do torneio/circuito
-function circuitoDe(t) {
-  const base = (t.circuito || "") + " " + (t.torneio || "");
-  if (!/FIP/i.test(base)) return t.circuito || "FPP Portugal";
-  if (/PROMISES/i.test(base)) return "FIP Promises";
-  if (/CUPRA|BRONZE|SILVER|GOLD|PLATINUM|STAR|RISE|PROMOTION/i.test(base)) return "CUPRA FIP Tour";
-  return "FIP (outros)";
-}
-
-// Categoria padrão por circuito FIP; JUV passa a ser JOV
-function categoriaDe(t) {
-  const c = circuitoDe(t);
-  if (c === "FIP Promises") return "JOV";
-  if (c === "CUPRA FIP Tour") return "ABS";
-  const cat = (t.categoria || "").toUpperCase();
-  if (!cat) return null;
-  return cat === "JUV" ? "JOV" : cat;
-}
-
-// Data e hora no formato dd-mm-aaaa hh:mm
 function formataDataHora(iso) {
   if (!iso) return null;
   const [dia, hora] = iso.split("T");
@@ -227,8 +360,25 @@ function escapar(t) {
   return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-// Status calculado com o relógio a partir das datas.
-// Quando não há data de inscrição, vale o status que o robô coletou.
+// ---------- circuito e categoria ----------
+function circuitoDe(t) {
+  const base = (t.circuito || "") + " " + (t.torneio || "");
+  if (!/FIP/i.test(base)) return t.circuito || "FPP";
+  if (/PROMISES/i.test(base)) return "FIP Promises";
+  if (/CUPRA|BRONZE|SILVER|GOLD|PLATINUM|STAR|RISE|PROMOTION/i.test(base)) return "CUPRA FIP Tour";
+  return "FIP (other)";
+}
+
+function categoriaDe(t) {
+  const c = circuitoDe(t);
+  if (c === "FIP Promises") return "JOV";
+  if (c === "CUPRA FIP Tour") return "ABS";
+  const cat = (t.categoria || "").toUpperCase();
+  if (!cat) return null;
+  return cat === "JUV" ? "JOV" : cat;
+}
+
+// ---------- status pelo relógio ----------
 function calcularStatus(t, agora) {
   const insc = dataLocal(t.inscData, t.inscHora);
   const pag  = dataLocal(t.pagData, t.pagHora);
@@ -236,30 +386,29 @@ function calcularStatus(t, agora) {
   const pagPassou  = pag  ? (pag.exata  ? agora >= pag.data  : agora > pag.data)  : null;
   const coleta = (t.statusColeta || "").toLowerCase();
 
-  if (inscPassou === false) return { chave: "abertas", rotulo: "Inscrições abertas", alvo: insc };
-
+  if (inscPassou === false) return { chave: "abertas", rotulo: "Registration open", alvo: insc };
   if (inscPassou === true && pagPassou === false)
-    return { chave: "pagamento", rotulo: "Pagamento a decorrer", alvo: pag };
+    return { chave: "pagamento", rotulo: "Payment open", alvo: pag };
 
   if (inscPassou === null && pagPassou === null) {
-    if (coleta.includes("abert")) return { chave: "abertas", rotulo: "Inscrições abertas", alvo: null };
-    if (coleta.includes("pagamentos")) return { chave: "pagamento", rotulo: "Pagamento a decorrer", alvo: null };
-    if (coleta.includes("decorrer")) return { chave: "curso", rotulo: "Torneio a decorrer", alvo: null };
+    if (coleta.includes("abert")) return { chave: "abertas", rotulo: "Registration open", alvo: null };
+    if (coleta.includes("pagamentos")) return { chave: "pagamento", rotulo: "Payment open", alvo: null };
+    if (coleta.includes("decorrer")) return { chave: "curso", rotulo: "In progress", alvo: null };
   }
-
   if (inscPassou === true && pagPassou === null && coleta.includes("decorrer"))
-    return { chave: "curso", rotulo: "Torneio a decorrer", alvo: null };
+    return { chave: "curso", rotulo: "In progress", alvo: null };
 
-  return { chave: "fechadas", rotulo: "Inscrições encerradas", alvo: null };
+  return { chave: "fechadas", rotulo: "Registration closed", alvo: null };
 }
 
+// ---------- cartão ----------
 function blocoAlerta(st) {
   if (st.chave === "pagamento")
     return `<div class="alerta pay"><span class="sirene" aria-hidden="true"></span>${st.rotulo}</div>`;
   const mapa = {
-    abertas:  ["open",   "Inscrições abertas"],
-    curso:    ["live",   "Torneio a decorrer"],
-    fechadas: ["closed", "Inscrições encerradas"],
+    abertas:  ["open",   "Registration open"],
+    curso:    ["live",   "In progress"],
+    fechadas: ["closed", "Registration closed"],
   };
   const [classe, texto] = mapa[st.chave];
   return `<div class="alerta ${classe}"><span class="ponto"></span>${texto}</div>`;
@@ -267,7 +416,7 @@ function blocoAlerta(st) {
 
 function blocoContagem(st) {
   if (!st.alvo) return "";
-  const rotulo = st.chave === "abertas" ? "Fecha as inscrições em" : "Fecha o pagamento em";
+  const rotulo = st.chave === "abertas" ? "Registration closes in" : "Payment closes in";
   return `<div class="contagem" data-alvo="${st.alvo.data.getTime()}" data-exata="${st.alvo.exata}">
     <small>${rotulo}</small>
     <div class="relogio"></div>
@@ -277,7 +426,7 @@ function blocoContagem(st) {
 function campo(rotulo, valor, largo = false) {
   const vazio = !valor;
   return `<div class="${largo ? "largo" : ""}"><dt>${rotulo}</dt>
-    <dd class="${vazio ? "vazio" : ""}">${vazio ? "Sem informação" : escapar(valor)}</dd></div>`;
+    <dd class="${vazio ? "vazio" : ""}">${vazio ? "No information" : escapar(valor)}</dd></div>`;
 }
 
 function cartao(t, st) {
@@ -286,14 +435,20 @@ function cartao(t, st) {
     ? `${formataData(t.inscData)}${t.inscHora ? " · " + t.inscHora : ""}` : null;
   const pagamento = t.pagData
     ? `${formataData(t.pagData)}${t.pagHora ? " · " + t.pagHora : ""}` : null;
+  const pais = paisPorNome(t.pais);
+  const bandeira = pais ? `<span class="bandeira-card" title="${escapar(pais.nome)}">${bandeiraEmoji(pais.codigo)}</span>` : "";
+  const cat = categoriaDe(t);
 
   return `<article class="card ${destaque}">
     <div class="topo">
       <div class="linha-circuito">
         <span class="circuito">${escapar(circuitoDe(t))}</span>
-        ${categoriaDe(t) ? `<span class="circuito">${escapar(categoriaDe(t))}</span>` : ""}
+        ${cat ? `<span class="circuito">${escapar(cat)}</span>` : ""}
       </div>
-      <h2>${escapar(t.torneio)}</h2>
+      <div class="linha-nome">
+        <h2>${escapar(t.torneio)}</h2>
+        ${bandeira}
+      </div>
       ${t.clube ? `<div class="clube">${escapar(t.clube)}</div>` : ""}
       <div class="local">${escapar([t.cidade, t.pais].filter(Boolean).join(" · "))}</div>
     </div>
@@ -302,18 +457,19 @@ function cartao(t, st) {
     ${blocoContagem(st)}
 
     <dl>
-      ${campo("Datas do torneio", formataFaixa(t.inicio, t.fim), true)}
-      ${campo("Inscrições até", inscricao)}
-      ${campo("Pagamento até", pagamento)}
-      ${campo("Gênero", t.genero)}
+      ${campo("Dates", formataFaixa(t.inicio, t.fim), true)}
+      ${campo("Registration until", inscricao)}
+      ${campo("Payment until", pagamento)}
+      ${campo("Gender", t.genero)}
     </dl>
 
     <div class="rodape">
-      ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">Ver torneio</a>` : ""}
+      ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">View tournament</a>` : ""}
     </div>
   </article>`;
 }
 
+// ---------- contagem regressiva ----------
 function formataRestante(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
   const d = Math.floor(total / 86400);
@@ -321,7 +477,7 @@ function formataRestante(ms) {
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   const bloco = (v, r) => `<div class="bloco-t"><b>${String(v).padStart(2, "0")}</b><span>${r}</span></div>`;
-  return bloco(d, "dias") + bloco(h, "horas") + bloco(m, "min") + bloco(s, "seg");
+  return bloco(d, "days") + bloco(h, "hours") + bloco(m, "min") + bloco(s, "sec");
 }
 
 function atualizarRelogios() {
@@ -331,11 +487,17 @@ function atualizarRelogios() {
     const cont = el.querySelector(".relogio");
     cont.innerHTML = alvo - agora > 0
       ? formataRestante(alvo - agora)
-      : `<span class="encerrado">Prazo encerrado</span>`;
+      : `<span class="encerrado">Deadline passed</span>`;
   });
 }
 
+// ---------- filtros e renderização ----------
 function passaFiltro(t, st) {
+  if (PAISES_SEL.length) {
+    const cfg = paisPorNome(t.pais);
+    const chave = cfg ? cfg.codigo : t.pais;
+    if (!PAISES_SEL.includes(chave)) return false;
+  }
   if (ESTADO.circuito !== "todos" && circuitoDe(t) !== ESTADO.circuito) return false;
   if (ESTADO.categoria !== "todas" && categoriaDe(t) !== ESTADO.categoria) return false;
   if (ESTADO.status === "abertas" && st.chave !== "abertas") return false;
@@ -361,17 +523,17 @@ function renderizar() {
   const visiveis = itens.filter(i => passaFiltro(i.t, i.st)).sort(ordenar);
   document.getElementById("lista").innerHTML = visiveis.length
     ? visiveis.map(i => cartao(i.t, i.st)).join("")
-    : `<div class="vazio-lista">Nenhum torneio com estes filtros.</div>`;
+    : `<div class="vazio-lista">No tournaments match these filters.</div>`;
 
   atualizarRelogios();
 }
 
 function ligarFiltros() {
-  document.querySelectorAll(".grupo").forEach(grupo => {
-    const chave = grupo.id.replace("f-", "");
-    grupo.querySelectorAll(".chip").forEach(botao => {
+  document.querySelectorAll(".filtros .linha").forEach(linha => {
+    const chave = linha.id.replace("f-", "");
+    linha.querySelectorAll(".chip").forEach(botao => {
       botao.addEventListener("click", () => {
-        grupo.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", "false"));
+        linha.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", "false"));
         botao.setAttribute("aria-pressed", "true");
         ESTADO[chave] = botao.dataset.valor;
         renderizar();
@@ -386,27 +548,36 @@ async function carregar() {
   try {
     const resp = await fetch(ARQUIVO_JSON, { cache: "no-store" });
     if (resp.ok) dados = await resp.json();
-    else erro = `resposta ${resp.status}`;
+    else erro = `response ${resp.status}`;
   } catch (e) {
-    erro = "o navegador bloqueou a leitura (abra a página pelo GitHub Pages ou por um servidor local, não pelo arquivo)";
+    erro = "the browser blocked the file (open the page from GitHub Pages or a local server, not from the file itself)";
   }
   if (!dados) {
-    document.getElementById("atualizado").textContent = `Dados não carregados (${ARQUIVO_JSON}): ${erro}`;
-    document.getElementById("lista").innerHTML = `<div class="vazio-lista">Nenhum torneio carregado.</div>`;
+    document.getElementById("atualizado").textContent = `Data not loaded (${ARQUIVO_JSON}): ${erro}`;
     return;
   }
   TORNEIOS = dados;
 
+  // Seleção salva vale; se não houver (ou não existir mais), marca todos os países disponíveis
+  const disponiveis = paisesDisponiveis().map(chaveDoPais);
+  PAISES_SEL = (SELECAO_SALVA || []).filter(c => disponiveis.includes(c));
+  if (!PAISES_SEL.length) PAISES_SEL = disponiveis.slice();
+  montarSplash();
+  atualizarSplash();
+
   const ultima = dados.map(t => t.coletadoEm).filter(Boolean).sort().pop();
   document.getElementById("atualizado").textContent =
-    ultima ? `Última atualização: ${formataDataHora(ultima)}` : "Última atualização: não informada";
-
-  renderizar();
+    ultima ? `Last update: ${formataDataHora(ultima)}` : "Last update: not available";
 }
 
+SELECAO_SALVA = carregarSelecao();
+document.getElementById("grade-paises").innerHTML = `<p class="lead">Loading…</p>`;
+ligarSplash();
 ligarFiltros();
 carregar();
+
 setInterval(() => {
+  if (document.getElementById("lista-view").hidden) return;
   const agora = new Date();
   const mudou = TORNEIOS.some(t => {
     const st = calcularStatus(t, agora);
