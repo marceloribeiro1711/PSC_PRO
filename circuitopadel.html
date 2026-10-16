@@ -54,17 +54,15 @@
   /* ---------- Lista de torneios ---------- */
   .barra { position: sticky; top: 0; z-index: 10; background: rgba(11,18,32,.92);
     backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  .barra-interna { max-width: 1280px; margin: 0 auto; padding: 8px 24px; display: flex;
-    align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .barra h1 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
-  .totais { display: flex; gap: 18px; align-items: center; font-size: 13px; font-weight: 600; }
+  .barra-interna { max-width: 1280px; margin: 0 auto; padding: 8px 16px; display: flex;
+    align-items: center; justify-content: space-between; gap: 12px; }
+  .barra h1 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; cursor: pointer; }
+  .totais { display: flex; gap: 12px; align-items: center; font-size: 12px; font-weight: 600; flex-wrap: wrap; justify-content: flex-end; }
   .total { display: flex; align-items: center; gap: 7px; }
   .total .ponto { width: 8px; height: 8px; border-radius: 50%; }
   .total.open { color: var(--open); } .total.open .ponto { background: var(--open); }
   .total.pay { color: var(--pay); } .total.pay .ponto { background: var(--pay); }
   .total b { font-size: 16px; font-variant-numeric: tabular-nums; }
-  .trocar { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 999px;
-    padding: 6px 12px; font-size: 12px; cursor: pointer; }
 
   .meta { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; color: var(--muted); font-size: 12px; }
 
@@ -161,12 +159,11 @@
 <div id="lista-view" hidden>
   <div class="barra">
     <div class="barra-interna">
-      <h1>Padel Tournaments</h1>
+      <h1 id="titulo-barra">Padel Tournaments</h1>
       <div class="totais" aria-label="Totals">
         <span class="total open"><span class="ponto"></span>Registration open <b id="k-abertas">0</b></span>
         <span class="total pay"><span class="ponto"></span>Payment open <b id="k-pagamento">0</b></span>
       </div>
-      <button class="trocar" id="btn-trocar" type="button">Countries</button>
     </div>
   </div>
   <div class="meta" id="atualizado">Loading…</div>
@@ -476,7 +473,7 @@ function ligarSplash() {
     salvarSelecao();
     mostrarLista();
   });
-  document.getElementById("btn-trocar").addEventListener("click", () => mostrarSplash());
+  document.getElementById("titulo-barra").addEventListener("click", () => mostrarSplash());
 }
 
 function mostrarLista() {
