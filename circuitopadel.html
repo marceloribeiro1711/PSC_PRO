@@ -566,10 +566,20 @@ function salvarEscolhas() {
 }
 
 // Um único botão: sem escolha -> IN (vermelho) -> IN (verde) -> OUT (vermelho) -> IN (verde) ...
+function definirEscolha(id, valor) {
+  ESCOLHAS[id] = valor;
+  // Ao ir para OUT, o PAID volta a NOT PAID (o botão PAID só existe com IN)
+  if (valor === "out") {
+    PAGOS = PAGOS.filter(x => x !== id);
+    salvarPagos();
+  }
+  salvarEscolhas();
+}
+
+// Depois da primeira escolha: IN (verde) <-> OUT (vermelho)
 function ciclarEscolha(id) {
   const atual = ESCOLHAS[id] || null;
-  ESCOLHAS[id] = atual === "in" ? "out" : "in";
-  salvarEscolhas();
+  definirEscolha(id, atual === "in" ? "out" : "in");
 }
 
 function alternarPago(id) {
@@ -662,13 +672,22 @@ function cartao(t, st) {
   const contagem = blocoContagem(st);
   const escolha = ESCOLHAS[id] || null;
   // Um único botão: "I’m IN" (vermelho, sem confirmar), verde quando IN, vermelho em "I’m OUT"
-  const rotuloEscolha = escolha === "out" ? "I’m OUT" : "I’m IN";
-  const classeEscolha = escolha === "in" ? "ativo" : escolha === "out" ? "fora" : "";
-  const botoesEscolha = `<div class="escolhas">
-      <button class="btn-escolha ${classeEscolha}" type="button" data-id="${escapar(id)}" aria-pressed="${escolha === "in"}">${rotuloEscolha}</button>
+  // Sem escolha: dois botões (IN e OUT). Depois da primeira escolha: um único botão que alterna.
+  let botoesEscolha;
+  if (!escolha) {
+    botoesEscolha = `<div class="escolhas">
+      <button class="btn-escolha neutro" type="button" data-id="${escapar(id)}" data-escolha="in">I’m IN</button>
+      <button class="btn-escolha neutro" type="button" data-id="${escapar(id)}" data-escolha="out">I’m OUT</button>
     </div>`;
+  } else {
+    const rotuloEscolha = escolha === "out" ? "I’m OUT" : "I’m IN";
+    const classeEscolha = escolha === "in" ? "ativo" : "fora";
+    botoesEscolha = `<div class="escolhas">
+      <button class="btn-escolha ${classeEscolha}" type="button" data-id="${escapar(id)}">${rotuloEscolha}</button>
+    </div>`;
+  }
   // PAID / NOT PAID aparece para IN e OUT, pois a FIP cobra direto no clube, às vezes no check-in
-  const botaoPagar = escolha
+  const botaoPagar = escolha === "in"
     ? `<button class="botao-pagar ${pagoMarcado ? "pago" : ""}" type="button" data-id="${escapar(id)}" aria-pressed="${pagoMarcado}">${pagoMarcado ? "PAID" : "NOT PAID"}</button>`
     : "";
   const inscricao = t.inscData
@@ -817,9 +836,10 @@ SELECAO_SALVA = carregarSelecao();
 PAGOS = carregarPagos();
 ESCOLHAS = carregarEscolhas();
 document.getElementById("lista").addEventListener("click", (e) => {
-  const escolha = e.target.closest(".btn-escolha");
-  if (escolha) {
-    ciclarEscolha(escolha.dataset.id);
+  const botaoEscolha = e.target.closest(".btn-escolha");
+  if (botaoEscolha) {
+    if (botaoEscolha.dataset.escolha) definirEscolha(botaoEscolha.dataset.id, botaoEscolha.dataset.escolha);
+    else ciclarEscolha(botaoEscolha.dataset.id);
     renderizar();
     return;
   }
