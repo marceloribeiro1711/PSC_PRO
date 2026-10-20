@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.26';
+    const APP_VERSION = '3.10.28';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -99,8 +99,44 @@
     function updateVersionLabels() {
         var cfgVerEl = document.getElementById('config-version-label');
         if (cfgVerEl) cfgVerEl.textContent = 'V ' + APP_VERSION;
+        bindHiddenCircuitAccess();
     }
-    updateVersionLabels();
+
+    // ── Acesso oculto ao circuitopadel: 3 toques seguidos na versão ──
+    // Só conta toques (não chama preventDefault nem stopPropagation),
+    // por isso não interfere nos botões da tela de configuração.
+    var _verTapCount = 0;
+    var _verTapTimer = null;
+    function bindHiddenCircuitAccess() {
+        var el = document.getElementById('config-version-label');
+        if (!el || el.getAttribute('data-circuit-bound')) return;
+        el.setAttribute('data-circuit-bound', '1');
+        el.addEventListener('click', function () {
+            _verTapCount++;
+            if (_verTapTimer) clearTimeout(_verTapTimer);
+            _verTapTimer = setTimeout(function () { _verTapCount = 0; }, 700);
+            if (_verTapCount >= 3) {
+                _verTapCount = 0;
+                clearTimeout(_verTapTimer);
+                openCircuitOverlay();
+            }
+        });
+    }
+    // Overlay sobre a tela atual: não recarrega o app nem toca no estado da partida
+    function openCircuitOverlay() {
+        var ov = document.getElementById('circuit-overlay');
+        var fr = document.getElementById('circuit-frame');
+        if (!ov || !fr) return;
+        fr.setAttribute('src', 'circuitopadel.html');
+        ov.classList.add('show');
+    }
+    function closeCircuitOverlay() {
+        var ov = document.getElementById('circuit-overlay');
+        var fr = document.getElementById('circuit-frame');
+        if (ov) ov.classList.remove('show');
+        if (fr) fr.setAttribute('src', 'about:blank'); // libera a página do circuito
+    }
+    updateVersionLabels(); // liga o toque triplo depois que as funções acima estão definidas
 
     // ── Painel de diagnóstico de tela (oculto) ────────────────────────────────
     // 5 toques seguidos na linha de versão do Setup mostram as medidas reais da tela
@@ -178,8 +214,10 @@
             o.appendChild(pre); o.appendChild(b1); o.appendChild(b2);
             document.body.appendChild(o);
         }
+        // Desativado por enquanto (reativar junto com a chamada oficial do circuito)
+        var DIAG_ENABLED = false;
         var el = document.getElementById('config-version-label');
-        if (el) el.addEventListener('click', function () {
+        if (DIAG_ENABLED && el) el.addEventListener('click', function () {
             taps++; clearTimeout(timer);
             timer = setTimeout(function () { taps = 0; }, 2500);
             if (taps >= 5) { taps = 0; show(); }
@@ -4462,6 +4500,7 @@
         checkForUpdates,
         ngConfirm, ngCancel,
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
+        closeCircuitOverlay,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,
