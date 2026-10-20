@@ -492,9 +492,19 @@
             <rect x="29" y="18" width="6" height="20" rx="3" fill="#1f2937"/>
             <circle cx="32" cy="45" r="3.4" fill="#1f2937"/>
         </svg>
-        <div class="ng-message">Nome e foto não poderão ser atualizados após o início da partida</div>
+        <div class="ng-message">Name and photo cannot be updated after the match starts</div>
         <div class="ng-buttons">
             <button class="ng-btn ng-confirm" onclick="closeLockInfo()">OK</button>
+        </div>
+    </div>
+</div>
+<div class="ng-overlay" id="close-set-confirm-overlay">
+    <div class="ng-modal">
+        <div class="ng-title">Padel Coaching Pro</div>
+        <div class="ng-message">Close this Set?</div>
+        <div class="ng-buttons">
+            <button class="ng-btn ng-cancel" onclick="declineCloseSet()">No</button>
+            <button class="ng-btn ng-confirm" onclick="confirmCloseSet()">Yes</button>
         </div>
     </div>
 </div>

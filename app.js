@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.23';
+    const APP_VERSION = '3.10.24';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2093,18 +2093,22 @@
     }
 
     function removeSetPoint(teamIndex, setIndex) {
+        if (setIndex < state.currentSet) return; // set já encerrado: bloqueado
         if (setIndex > state.currentSet) return;
         if (state.matchOver) return;
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
         if (state.sets[setIndex][idx] > 0) {
+            const wasDecidedRemove = isOpenSetFinished();
             state.sets[setIndex][idx]--;
             reconcileOpenSet();
             updateScreen();
+            if (!wasDecidedRemove && setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
 
     function addSetPoint(teamIndex, setIndex) {
+        if (setIndex < state.currentSet) return; // set já encerrado: bloqueado
         if (setIndex > state.currentSet) return;
         if (state.matchOver) return;
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
@@ -2114,9 +2118,11 @@
         // Set aberto já decidido: só é possível corrigir para baixo (evita 7-4 etc.)
         if (setIndex === state.currentSet && isOpenSetFinished()) { renderCloseSetBtn(); return; }
         if (state.sets[setIndex][idx] < limit) {
+            const wasDecidedAdd = isOpenSetFinished();
             state.sets[setIndex][idx]++;
             reconcileOpenSet();
             updateScreen();
+            if (!wasDecidedAdd && setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
 
@@ -4008,6 +4014,21 @@
         winSet();
         updateScreen();
     }
+    function showCloseSetConfirm() {
+        const el = document.getElementById('close-set-confirm-overlay');
+        if (el) el.classList.add('show');
+    }
+    function hideCloseSetConfirm() {
+        const el = document.getElementById('close-set-confirm-overlay');
+        if (el) el.classList.remove('show');
+    }
+    function confirmCloseSet() {
+        hideCloseSetConfirm();
+        closeOpenSet();
+    }
+    function declineCloseSet() {
+        hideCloseSetConfirm();
+    }
     function renderCloseSetBtn() {
         const btn = document.getElementById('close-set-btn');
         if (!btn) return;
@@ -4445,7 +4466,7 @@
         askResetMatch, carouselNav,
         checkForUpdates,
         ngConfirm, ngCancel,
-        closeLockInfo, closeOpenSet,
+        closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,
