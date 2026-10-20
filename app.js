@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.24';
+    const APP_VERSION = '3.10.26';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1444,7 +1444,7 @@
     function updateScreen() {
         saveGameState(); // persistir estado a cada alteração
         applyPlayerEditLock();
-        renderCloseSetBtn();
+        renderSetLockedLabel();
         for (let i = 0; i < 3; i++) {
             const [s1id, s2id, c1id, c2id, tb1id, tb2id] =
                 [`t1-s${i+1}`, `t2-s${i+1}`, `t1-s${i+1}-cell`, `t2-s${i+1}-cell`, `t1-s${i+1}-tb`, `t2-s${i+1}-tb`];
@@ -1975,7 +1975,7 @@
     function addPoint(teamIndex) {
         if (state.matchOver) return;
         // Set decidido por ajuste manual aguarda encerramento explícito
-        if (isOpenSetFinished()) { renderCloseSetBtn(); return; }
+        if (isOpenSetFinished()) { renderSetLockedLabel(); return; }
         // No modo PROSET, saltar directamente para o 3º set (índice 2)
         if (prosetMode && state.currentSet < 2) {
             state.currentSet = 2;
@@ -2099,11 +2099,10 @@
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
         if (state.sets[setIndex][idx] > 0) {
-            const wasDecidedRemove = isOpenSetFinished();
             state.sets[setIndex][idx]--;
             reconcileOpenSet();
             updateScreen();
-            if (!wasDecidedRemove && setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
+            if (setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
 
@@ -2116,13 +2115,12 @@
         const isThirdSetSuperTie = (setIndex === 2 && superTieMode);
         const limit = isThirdSetSuperTie ? Infinity : 7;
         // Set aberto já decidido: só é possível corrigir para baixo (evita 7-4 etc.)
-        if (setIndex === state.currentSet && isOpenSetFinished()) { renderCloseSetBtn(); return; }
+        if (setIndex === state.currentSet && isOpenSetFinished()) { showCloseSetConfirm(); return; }
         if (state.sets[setIndex][idx] < limit) {
-            const wasDecidedAdd = isOpenSetFinished();
             state.sets[setIndex][idx]++;
             reconcileOpenSet();
             updateScreen();
-            if (!wasDecidedAdd && setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
+            if (setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
 
@@ -4002,7 +4000,7 @@
     }
     // Encerra o set aberto decidido por ajuste manual
     function closeOpenSet() {
-        if (!isOpenSetFinished()) { renderCloseSetBtn(); return; }
+        if (!isOpenSetFinished()) { renderSetLockedLabel(); return; }
         state.pts = [0, 0];
         state.isTieBreakMode = false;
         currentGamePoints = [];
@@ -4029,12 +4027,9 @@
     function declineCloseSet() {
         hideCloseSetConfirm();
     }
-    function renderCloseSetBtn() {
-        const btn = document.getElementById('close-set-btn');
-        if (!btn) return;
-        const open = isOpenSetFinished();
-        btn.classList.toggle('show', open);
-        if (open) btn.textContent = 'CLOSE SET ' + (state.currentSet + 1);
+    function renderSetLockedLabel() {
+        const label = document.getElementById('set-locked-label');
+        if (label) label.classList.toggle('show', isOpenSetFinished());
     }
 
     function askResetMatch() {
