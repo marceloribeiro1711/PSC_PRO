@@ -25,6 +25,14 @@
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   [hidden] { display: none !important; }
+  /* Área reservada ao botão BACK: o conteúdo rola acima dela */
+  body { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 88px); }
+
+  .botao-back { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 40;
+    background: #1e293b; color: #ffffff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 12px 22px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    cursor: pointer; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
+  .botao-back:hover { filter: brightness(1.15); }
 
   /* ---------- Splash de países ---------- */
   #splash { min-height: 100vh; padding: 28px 16px 32px; max-width: 760px; margin: 0 auto; }
@@ -164,6 +172,7 @@
   <p class="lead">Choose one or more countries</p>
   <div id="grade-paises"></div>
   <button class="botao-ver" id="btn-ver" type="button" hidden>See tournaments</button>
+<button class="botao-back" id="btn-back" type="button">Back</button>
 </section>
 
 <!-- ======================= LISTA DE TORNEIOS ======================= -->
@@ -922,6 +931,13 @@ document.getElementById("lista").addEventListener("click", (e) => {
 });
 document.getElementById("grade-paises").innerHTML = `<p class="lead">Loading…</p>`;
 ligarSplash();
+document.getElementById("btn-back").addEventListener("click", () => {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ origem: "circuitopadel", acao: "voltar" }, "*");
+  } else if (window.history.length > 1) {
+    window.history.back();
+  }
+});
 ligarFiltros();
 carregar();
 
