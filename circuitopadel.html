@@ -85,7 +85,7 @@
   .circuito { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: .02em;
     text-transform: uppercase; line-height: 1.1; }
   .linha-nome { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  h2 { font-size: 17px; margin: 4px 0 0; line-height: 1.3; }
+  h2 { font-size: 14px; font-weight: 600; color: #cbd5e1; margin: 4px 0 0; line-height: 1.3; }
   .bandeira-card { font-size: 22px; line-height: 1; }
   .coluna-direita { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
   .escolhas { display: flex; gap: 6px; }
@@ -133,6 +133,7 @@
   dd { margin: 2px 0 0; font-size: 14px; word-break: break-word; }
   dd.vazio { color: #4b5b78; font-style: italic; }
   .largo { grid-column: 1 / -1; }
+  .direita { text-align: right; }
 
   .rodape { margin-top: auto; padding: 14px 18px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
     border-top: 1px solid var(--line); margin-top: 16px; }
@@ -180,7 +181,7 @@
   <section class="filtros" aria-label="Filters">
     <div class="linha" id="f-circuito">
       <button class="chip" data-valor="todos" aria-pressed="true">All</button>
-      <button class="chip" data-valor="Promise" aria-pressed="false">Promise</button>
+      <button class="chip" data-valor="Promises" aria-pressed="false">Promises</button>
       <button class="chip" data-valor="CUPRA Tour" aria-pressed="false">CUPRA Tour</button>
       <button class="chip" data-valor="FPP Portugal" aria-pressed="false">FPP</button>
     </div>
@@ -384,7 +385,9 @@ const ORDEM_REGIOES = ["Europe", "Americas", "Asia", "Africa & Oceania"];
 const CHAVE_PAISES = "circuitopadel.paises";
 let SELECAO_SALVA = null;
 
-const ESTADO = { circuito: "todos", categoria: "todas", status: "todos" };
+// Cada linha de filtro aceita mais de uma opção. "All" é a opção que limpa a própria linha.
+const ESTADO = { circuito: ["todos"], categoria: ["todas"], status: ["todos"] };
+const TODOS_DA_LINHA = { circuito: "todos", categoria: "todas", status: "todos" };
 let PAISES_SEL = [];
 let TORNEIOS = [];
 
@@ -628,14 +631,14 @@ function escapar(t) {
 function circuitoDe(t) {
   const base = (t.circuito || "") + " " + (t.torneio || "");
   if (!/FIP|PROMISE|CUPRA/i.test(base)) return t.circuito || "FPP Portugal";
-  if (/PROMISE/i.test(base)) return "Promise";
+  if (/PROMISE/i.test(base)) return "Promises";
   if (/CUPRA|BRONZE|SILVER|GOLD|PLATINUM|STAR|RISE|PROMOTION/i.test(base)) return "CUPRA Tour";
   return "FIP (other)";
 }
 
 function categoriaDe(t) {
   const c = circuitoDe(t);
-  if (c === "Promise") return "JUNIOR";
+  if (c === "Promises") return "JUNIOR";
   if (c === "CUPRA Tour") return "MAIN";
   const cat = (t.categoria || "").toUpperCase();
   if (!cat) return null;
@@ -651,7 +654,10 @@ function calcularStatus(t, agora) {
   const pagPassou  = pag  ? (pag.exata  ? agora >= pag.data  : agora > pag.data)  : null;
   const coleta = (t.statusColeta || "").toLowerCase();
 
-  if (inscPassou === false) return { chave: "abertas", rotulo: "Registration open", alvo: insc };
+  if (inscPassou === false) {
+    const urgente = insc.exata && (insc.data - agora) < 24 * 60 * 60 * 1000;
+    return { chave: "abertas", rotulo: "Registration open", alvo: insc, urgente };
+  }
   if (inscPassou === true && pagPassou === false)
     return { chave: "pagamento", rotulo: "Payment open", alvo: pag };
 
@@ -670,6 +676,8 @@ function calcularStatus(t, agora) {
 function blocoAlerta(st) {
   if (st.chave === "pagamento")
     return `<div class="alerta pay"><span class="sirene" aria-hidden="true"></span>${st.rotulo}</div>`;
+  if (st.chave === "abertas" && st.urgente)
+    return `<div class="alerta open"><span class="sirene" aria-hidden="true"></span>${st.rotulo}</div>`;
   const mapa = {
     abertas:  ["open",   "Registration open"],
     curso:    ["live",   "In progress"],
@@ -755,6 +763,7 @@ function cartao(t, st) {
       ${campo("Registration until", inscricao)}
       ${campo("Payment until", pagamento)}
       ${campo("Gender", t.genero)}
+      ${t.pontos ? `<div class="direita"><dt>Points</dt><dd>${escapar(t.pontos)}</dd></div>` : ""}
     </dl>
 
     <div class="rodape">
@@ -793,10 +802,9 @@ function passaFiltro(t, st) {
     const chave = cfg ? cfg.codigo : t.pais;
     if (!PAISES_SEL.includes(chave)) return false;
   }
-  if (ESTADO.circuito !== "todos" && circuitoDe(t) !== ESTADO.circuito) return false;
-  if (ESTADO.categoria !== "todas" && categoriaDe(t) !== ESTADO.categoria) return false;
-  if (ESTADO.status === "abertas" && st.chave !== "abertas") return false;
-  if (ESTADO.status === "pagamento" && st.chave !== "pagamento") return false;
+  if (!ESTADO.circuito.includes("todos") && !ESTADO.circuito.includes(circuitoDe(t))) return false;
+  if (!ESTADO.categoria.includes("todas") && !ESTADO.categoria.includes(categoriaDe(t))) return false;
+  if (!ESTADO.status.includes("todos") && !ESTADO.status.includes(st.chave)) return false;
   return true;
 }
 
@@ -809,6 +817,7 @@ function ordenar(a, b) {
 }
 
 function renderizar() {
+  atualizarChips();
   const agora = new Date();
   const itens = TORNEIOS.map(t => ({ t, st: calcularStatus(t, agora) }));
 
@@ -828,13 +837,40 @@ function ligarFiltros() {
     const chave = linha.id.replace("f-", "");
     linha.querySelectorAll(".chip").forEach(botao => {
       botao.addEventListener("click", () => {
-        linha.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", "false"));
-        botao.setAttribute("aria-pressed", "true");
-        ESTADO[chave] = botao.dataset.valor;
+        const valor = botao.dataset.valor;
+        const todos = TODOS_DA_LINHA[chave];
+        let lista = ESTADO[chave];
+        if (valor === todos) {
+          lista = [todos];
+        } else {
+          lista = lista.filter(x => x !== todos);
+          lista = lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor];
+          if (!lista.length) lista = [todos];
+        }
+        ESTADO[chave] = lista;
+        atualizarChips();
         renderizar();
       });
     });
   });
+}
+
+function atualizarChips() {
+  document.querySelectorAll(".filtros .linha").forEach(linha => {
+    const chave = linha.id.replace("f-", "");
+    linha.querySelectorAll(".chip").forEach(b => {
+      b.setAttribute("aria-pressed", ESTADO[chave].includes(b.dataset.valor) ? "true" : "false");
+    });
+  });
+  // Filtro FPP só existe quando Portugal está marcado nos países
+  const chipFPP = document.querySelector('#f-circuito .chip[data-valor="FPP Portugal"]');
+  const temPortugal = PAISES_SEL.includes("pt");
+  chipFPP.hidden = !temPortugal;
+  if (!temPortugal && ESTADO.circuito.includes("FPP Portugal")) {
+    ESTADO.circuito = ESTADO.circuito.filter(x => x !== "FPP Portugal");
+    if (!ESTADO.circuito.length) ESTADO.circuito = ["todos"];
+    atualizarChips();
+  }
 }
 
 async function carregar() {
