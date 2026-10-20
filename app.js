@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.17';
+    const APP_VERSION = '3.10.18';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -705,7 +705,7 @@
 
         if (state.isTieBreakMode || state.isSuperTieBreak) {
             SERVE.phase = 'tb';
-            const nextNormal = calcNextServer(SERVE.gamesThisSet);
+            const nextNormal = calcNextServer(SERVE.gamesThisSet + 1);
             SERVE.current = nextNormal;
             SERVE.tbFirst = nextNormal;
             SERVE.tbPoints = 0;
