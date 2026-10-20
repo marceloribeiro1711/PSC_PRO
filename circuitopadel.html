@@ -81,7 +81,8 @@
   .card.destaque-open { border-color: rgba(34,197,94,.55); box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
 
   .topo { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 6px; }
-  .linha-circuito { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .linha-circuito { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .circuito-com-bandeira { display: flex; align-items: center; gap: 8px; }
   .circuito { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: .02em;
     text-transform: uppercase; line-height: 1.1; }
   .linha-nome { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -677,7 +678,7 @@ function blocoAlerta(st) {
   if (st.chave === "pagamento")
     return `<div class="alerta pay"><span class="sirene" aria-hidden="true"></span>${st.rotulo}</div>`;
   if (st.chave === "abertas" && st.urgente)
-    return `<div class="alerta open"><span class="sirene" aria-hidden="true"></span>${st.rotulo}</div>`;
+    return `<div class="alerta open"><span class="sirene" aria-hidden="true"></span>Registration Open. LAST DAY</div>`;
   const mapa = {
     abertas:  ["open",   "Registration open"],
     curso:    ["live",   "In progress"],
@@ -741,14 +742,17 @@ function cartao(t, st) {
   return `<article class="card ${destaque}">
     <div class="topo">
       <div class="linha-circuito">
-        <span class="circuito">${escapar(circuitoDe(t))}</span>
+        <div class="circuito-com-bandeira">
+          ${bandeira}
+          <span class="circuito">${escapar(circuitoDe(t))}</span>
+        </div>
         ${cat ? `<span class="circuito">${escapar(cat)}</span>` : ""}
       </div>
       <div class="linha-nome">
         <h2>${escapar(t.torneio)}</h2>
         <div class="coluna-direita">
-          ${bandeira}
-          ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">View tournament</a>` : ""}
+          ${t.pontos ? `<span class="circuito">${escapar(t.pontos)}</span>` : ""}
+          ${t.link ? `<a class="botao" href="${escapar(t.link)}" target="_blank" rel="noopener">Go to event</a>` : ""}
         </div>
       </div>
       ${t.clube ? `<div class="clube">${escapar(t.clube)}</div>` : ""}
@@ -763,7 +767,6 @@ function cartao(t, st) {
       ${campo("Registration until", inscricao)}
       ${campo("Payment until", pagamento)}
       ${campo("Gender", t.genero)}
-      ${t.pontos ? `<div class="direita"><dt>Points</dt><dd>${escapar(t.pontos)}</dd></div>` : ""}
     </dl>
 
     <div class="rodape">
