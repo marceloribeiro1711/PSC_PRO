@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.18';
+    const APP_VERSION = '3.10.22';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -218,7 +218,7 @@
     }
 
     function renderServeBalls() {
-        var showWS = (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2');
+        var showWS = (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2' || SERVE.phase === 'pick-tb');
 
         SERVE_IDS.forEach((id, i) => {
             const ball = document.getElementById('serve-ball-' + id);
@@ -228,7 +228,7 @@
                 b.classList.remove('active', 'pending');
             });
 
-            if (SERVE.phase === 'pick-any') {
+            if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-tb') {
                 if (ball) ball.classList.add('pending'); // todas piscam
                 if (lsBall) lsBall.classList.add('pending');
             } else if (SERVE.phase === 'pick-t2') {
@@ -808,6 +808,15 @@
             return;
         }
 
+        if (SERVE.phase === 'pick-tb') {
+            SERVE.current = playerIdx;
+            SERVE.tbFirst = playerIdx;
+            SERVE.tbPoints = 0;
+            SERVE.phase = 'tb';
+            renderServeBalls();
+            return;
+        }
+
         if (SERVE.phase === 'pick-t2') {
             if (playerIdx < 2) return;
             SERVE.t2FirstServer = playerIdx - 2;
@@ -1103,6 +1112,7 @@
         input.addEventListener('change', function() {
             const file = this.files && this.files[0];
             if (!file) return;
+            if (isMatchLocked()) { try { input.value = ''; } catch(e) {} return; }
             _processImageFile(file, 480, function(dataUrl) {
                 applyPhoto(id, dataUrl);
                 hideToast();
@@ -1433,6 +1443,8 @@
 
     function updateScreen() {
         saveGameState(); // persistir estado a cada alteração
+        applyPlayerEditLock();
+        renderCloseSetBtn();
         for (let i = 0; i < 3; i++) {
             const [s1id, s2id, c1id, c2id, tb1id, tb2id] =
                 [`t1-s${i+1}`, `t2-s${i+1}`, `t1-s${i+1}-cell`, `t2-s${i+1}-cell`, `t1-s${i+1}-tb`, `t2-s${i+1}-tb`];
@@ -1962,12 +1974,14 @@
 
     function addPoint(teamIndex) {
         if (state.matchOver) return;
+        // Set decidido por ajuste manual aguarda encerramento explícito
+        if (isOpenSetFinished()) { renderCloseSetBtn(); return; }
         // No modo PROSET, saltar directamente para o 3º set (índice 2)
         if (prosetMode && state.currentSet < 2) {
             state.currentSet = 2;
         }
         // Bloquear pontos enquanto o servidor não estiver definido
-        if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2') {
+        if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2' || SERVE.phase === 'pick-tb') {
             blinkServeLabel();
             return;
         }
@@ -2085,6 +2099,7 @@
         const idx = teamIndex - 1;
         if (state.sets[setIndex][idx] > 0) {
             state.sets[setIndex][idx]--;
+            reconcileOpenSet();
             updateScreen();
         }
     }
@@ -2096,8 +2111,11 @@
         const idx = teamIndex - 1;
         const isThirdSetSuperTie = (setIndex === 2 && superTieMode);
         const limit = isThirdSetSuperTie ? Infinity : 7;
+        // Set aberto já decidido: só é possível corrigir para baixo (evita 7-4 etc.)
+        if (setIndex === state.currentSet && isOpenSetFinished()) { renderCloseSetBtn(); return; }
         if (state.sets[setIndex][idx] < limit) {
             state.sets[setIndex][idx]++;
+            reconcileOpenSet();
             updateScreen();
         }
     }
@@ -3886,6 +3904,118 @@
         });
     }
 
+    // ============================================================
+    // BLOQUEIO DE NOMES E FOTOS DURANTE A PARTIDA
+    // ============================================================
+    // Bloqueio derivado do placar: ativo enquanto houver qualquer ponto
+    // (automático ou manual, em pontos ou sets) e a partida não tiver terminado.
+    // Voltar a 0-0 libera a edição de nomes e fotos.
+    function hasMatchScore() {
+        if (!state) return false;
+        if (state.currentSet > 0) return true;
+        if (state.pts[0] || state.pts[1]) return true;
+        return state.sets.some(function (s) { return s[0] || s[1]; });
+    }
+    function isMatchLocked() {
+        return !!(state && !state.matchOver && hasMatchScore());
+    }
+    function applyPlayerEditLock() {
+        const locked = isMatchLocked();
+        ['t1-p1','t1-p2','t2-p1','t2-p2'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.setAttribute('contenteditable', locked ? 'false' : 'true');
+            el.classList.toggle('name-locked', locked);
+        });
+        ['t1-img1','t1-img2','t2-img1','t2-img2'].forEach(function (id) {
+            const lbl = document.querySelector('label[for="fi-' + id + '"]');
+            if (!lbl) return;
+            lbl.classList.toggle('photo-locked', locked);
+            lbl.setAttribute('aria-disabled', locked ? 'true' : 'false');
+        });
+    }
+    function showLockInfo() {
+        document.getElementById('lock-info-overlay').classList.add('show');
+    }
+    function closeLockInfo() {
+        document.getElementById('lock-info-overlay').classList.remove('show');
+    }
+
+    // ============================================================
+    // CONTROLE DO SET ABERTO APÓS AJUSTE MANUAL
+    // ============================================================
+    // Regra de vitória de set (sem contar o set em curso no winGame)
+    function setWinnerByGames(g1, g2) {
+        if (prosetMode) {
+            if ((g1 >= 9 || g2 >= 9) && Math.abs(g1 - g2) >= 2) return g1 > g2 ? 0 : 1;
+            return -1;
+        }
+        if ((g1 === 7 && g2 === 6) || (g1 === 6 && g2 === 7)) return g1 > g2 ? 0 : 1;
+        if ((g1 >= 6 || g2 >= 6) && Math.abs(g1 - g2) >= 2) return g1 > g2 ? 0 : 1;
+        return -1;
+    }
+    // Verdadeiro quando o set aberto já está decidido pelo placar (ex.: 6-3 após ajuste manual)
+    function isOpenSetFinished() {
+        if (!state || state.matchOver || state.isSuperTieBreak) return false;
+        if (state.currentSet > 2) return false;
+        const g = state.sets[state.currentSet];
+        return setWinnerByGames(g[0], g[1]) !== -1;
+    }
+    // Após qualquer ajuste manual de games: entra ou sai do tie-break conforme o placar
+    function reconcileOpenSet() {
+        if (!state || state.matchOver || state.isSuperTieBreak || state.currentSet > 2) return;
+        const i = state.currentSet;
+        const g1 = state.sets[i][0], g2 = state.sets[i][1];
+        const tbAt = prosetMode ? 8 : 6;
+        const atTiebreak = (g1 === tbAt && g2 === tbAt);
+
+        if (atTiebreak && !state.isTieBreakMode) {
+            // Ajuste manual para 6-6: entra no tie-break e pede quem saca (4 bolinhas)
+            state.isTieBreakMode = true;
+            state.pts = [0, 0];
+            currentGamePoints = [];
+            currentGameBreakPoints = [0, 0];
+            currentGameBpPeak = 0;
+            currentGameServingTeam = null;
+            currentGameServingPlayer = null;
+            SERVE.gamesThisSet = g1 + g2;
+            SERVE.tbPoints = 0;
+            SERVE.phase = 'pick-tb';
+            SERVE.current = null;
+            renderServeBalls();
+        } else if (!atTiebreak && state.isTieBreakMode && !isOpenSetFinished()) {
+            // Saiu do 6-6 por ajuste manual: volta ao game normal, saque pela alternância
+            state.isTieBreakMode = false;
+            state.pts = [0, 0];
+            SERVE.gamesThisSet = g1 + g2;
+            SERVE.tbPoints = 0;
+            SERVE.phase = 'auto';
+            SERVE.current = calcNextServer(SERVE.gamesThisSet + 1);
+            renderServeBalls();
+        }
+    }
+    // Encerra o set aberto decidido por ajuste manual
+    function closeOpenSet() {
+        if (!isOpenSetFinished()) { renderCloseSetBtn(); return; }
+        state.pts = [0, 0];
+        state.isTieBreakMode = false;
+        currentGamePoints = [];
+        currentGameBreakPoints = [0, 0];
+        currentGameBpPeak = 0;
+        currentGameServingTeam = null;
+        currentGameServingPlayer = null;
+        _serveStatCounted = false;
+        winSet();
+        updateScreen();
+    }
+    function renderCloseSetBtn() {
+        const btn = document.getElementById('close-set-btn');
+        if (!btn) return;
+        const open = isOpenSetFinished();
+        btn.classList.toggle('show', open);
+        if (open) btn.textContent = 'CLOSE SET ' + (state.currentSet + 1);
+    }
+
     function askResetMatch() {
         document.getElementById('ng-overlay').classList.add('show');
     }
@@ -3893,6 +4023,9 @@
     function ngConfirm() {
         document.getElementById('ng-overlay').classList.remove('show');
         forceClear();
+        applyPlayerEditLock();
+        saveGameState();
+        showLockInfo();
     }
 
     function ngCancel() {
@@ -4293,6 +4426,7 @@
 
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
+    applyPlayerEditLock();
 
     updateScreen();
     applyStatsVisibility();

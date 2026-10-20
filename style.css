@@ -537,6 +537,19 @@
         }
         .gs-card-btn.show { opacity: 1; pointer-events: auto; }
 
+        /* Encerrar set decidido por ajuste manual — mesma faixa do botão Show Match Card */
+        .close-set-btn {
+            position: fixed; left: 50%; transform: translateX(-50%);
+            bottom: calc(calc(4 * var(--vh, 1vh)) + env(safe-area-inset-bottom, 16px));
+            background: #e03030; color: #fff;
+            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1px;
+            padding: calc(1 * var(--vh, 1vh)) 5vw; border: none; border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            opacity: 0; pointer-events: none; z-index: 310;
+            transition: opacity 0.3s;
+        }
+        .close-set-btn.show { opacity: 1; pointer-events: auto; }
+
         /* WHO'S SERVE? — portrait, mesma posição e formato do game-over-banner (faixa de avisos do rodapé) */
         .whos-serve-badge {
             position: fixed; left: 50%;
@@ -1591,6 +1604,11 @@
             align-items: center; justify-content: center;
         }
         .ng-overlay.show { display: flex; }
+        .lock-info-modal { border: 1.5px solid #facc15; }
+        .lock-info-icon { width: calc(9 * var(--vh, 1vh)); height: auto; }
+        label.photo-label.photo-locked { pointer-events: none; cursor: default; }
+        label.photo-label.photo-locked .photo-edit-hint { display: none; }
+        .player-name.name-locked { cursor: default; }
         .ng-modal {
             background: var(--panel-bg); border: 1.5px solid var(--border-card);
             border-radius: 16px; padding: calc(3 * var(--vh, 1vh)) 6vw calc(2.5 * var(--vh, 1vh));
