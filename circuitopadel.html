@@ -172,7 +172,6 @@
   <p class="lead">Choose one or more countries</p>
   <div id="grade-paises"></div>
   <button class="botao-ver" id="btn-ver" type="button" hidden>See tournaments</button>
-<button class="botao-back" id="btn-back" type="button">Back</button>
 </section>
 
 <!-- ======================= LISTA DE TORNEIOS ======================= -->
@@ -215,6 +214,8 @@
     Times are shown in your local time.
   </footer>
 </div>
+
+<button class="botao-back" id="btn-back" type="button">Back</button>
 
 <script>
 // ==========================================================
@@ -936,6 +937,8 @@ document.getElementById("btn-back").addEventListener("click", () => {
     window.parent.postMessage({ origem: "circuitopadel", acao: "voltar" }, "*");
   } else if (window.history.length > 1) {
     window.history.back();
+  } else {
+    window.location.href = "padelmanager.html";
   }
 });
 ligarFiltros();
