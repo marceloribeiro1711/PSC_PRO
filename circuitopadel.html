@@ -936,9 +936,12 @@ ligarSplash();
 document.getElementById("btn-back").addEventListener("click", () => {
   if (window.parent && window.parent !== window) {
     window.parent.postMessage({ origem: "circuitopadel", acao: "voltar" }, "*");
-  } else {
-    window.location.href = "index.html";
+    return;
   }
+  // Confere se o PSC PRO (index.html) está nesta mesma pasta antes de sair
+  fetch("index.html", { method: "HEAD", cache: "no-store" })
+    .then(r => { if (r.ok) window.location.href = "index.html"; else alert("PSC PRO (index.html) not found in this folder."); })
+    .catch(() => alert("PSC PRO (index.html) not found in this folder."));
 });
 ligarFiltros();
 carregar();
