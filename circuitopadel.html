@@ -117,6 +117,8 @@
   .alerta.live { background: rgba(168,85,247,.16); color: #d8b4fe; }
   .alerta.live .ponto { background: var(--live); animation: pisca 1.4s infinite; }
   .alerta.closed { background: var(--surface-2); color: var(--muted); }
+  .alerta.soon { background: rgba(59,130,246,.14); color: #93c5fd; }
+  .alerta.soon .ponto { background: #93c5fd; }
   .alerta.closed .ponto { background: var(--closed); }
   @keyframes pisca { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
 
@@ -665,6 +667,9 @@ function calcularStatus(t, agora) {
   const inscPassou = insc ? (insc.exata ? agora >= insc.data : agora > insc.data) : null;
   const pagPassou  = pag  ? (pag.exata  ? agora >= pag.data  : agora > pag.data)  : null;
   const coleta = (t.statusColeta || "").toLowerCase();
+  // Inscrições ainda não abriram (vem do site): tem prioridade sobre as datas
+  if (coleta.includes("nao abriram") || coleta.includes("não abriram"))
+    return { chave: "futuro", rotulo: "Registration opens soon", alvo: null };
 
   if (inscPassou === false) {
     const urgente = insc.exata && (insc.data - agora) < 24 * 60 * 60 * 1000;
@@ -694,6 +699,7 @@ function blocoAlerta(st) {
     abertas:  ["open",   "Registration open"],
     curso:    ["live",   "In progress"],
     fechadas: ["closed", "Registration closed"],
+    futuro:   ["soon",   "Registration opens soon"],
   };
   const [classe, texto] = mapa[st.chave];
   return `<div class="alerta ${classe}"><span class="ponto"></span>${texto}</div>`;
@@ -823,7 +829,7 @@ function passaFiltro(t, st) {
 }
 
 function ordenar(a, b) {
-  const peso = { pagamento: 0, abertas: 1, curso: 2, fechadas: 3 };
+  const peso = { pagamento: 0, abertas: 1, futuro: 2, curso: 3, fechadas: 4 };
   if (peso[a.st.chave] !== peso[b.st.chave]) return peso[a.st.chave] - peso[b.st.chave];
   const ta = a.st.alvo ? a.st.alvo.data.getTime() : Infinity;
   const tb = b.st.alvo ? b.st.alvo.data.getTime() : Infinity;
