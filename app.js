@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.29';
+    const APP_VERSION = '3.10.30';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -122,20 +122,39 @@
             }
         });
     }
-    // Overlay sobre a tela atual: não recarrega o app nem toca no estado da partida
+    // Sobreposição do circuitopadel: criada ao abrir e removida ao fechar.
+    // Não recarrega o app nem toca no estado da partida.
     function openCircuitOverlay() {
-        var ov = document.getElementById('circuit-overlay');
-        var fr = document.getElementById('circuit-frame');
-        if (!ov || !fr) return;
-        fr.setAttribute('src', 'circuitopadel.html');
-        ov.classList.add('show');
+        if (document.getElementById('circuit-overlay')) return;
+        var ov = document.createElement('div');
+        ov.id = 'circuit-overlay';
+        ov.className = 'circuit-overlay show';
+        ov.setAttribute('role', 'dialog');
+        ov.setAttribute('aria-label', 'Circuit');
+        var fr = document.createElement('iframe');
+        fr.id = 'circuit-frame';
+        fr.className = 'circuit-frame';
+        fr.title = 'Circuit';
+        fr.src = 'circuitopadel.html';
+        ov.appendChild(fr);
+        document.body.appendChild(ov);
     }
-    function closeCircuitOverlay() {
+    // Remove o iframe e a sobreposição e volta à tela de jogo
+    function fecharCircuitoPadel() {
         var ov = document.getElementById('circuit-overlay');
-        var fr = document.getElementById('circuit-frame');
-        if (ov) ov.classList.remove('show');
-        if (fr) fr.setAttribute('src', 'about:blank'); // libera a página do circuito
+        if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
     }
+    // Compatibilidade: o circuito pode chamar window.parent.closeCircuitOverlay()
+    function closeCircuitOverlay() { fecharCircuitoPadel(); }
+
+    // Mensagem enviada pelo circuitopadel ao tocar em Fechar/BACK
+    window.addEventListener('message', function (e) {
+        if (e.origin !== location.origin) return;
+        if (e.data && e.data.origem === 'circuitopadel' && e.data.acao === 'voltar') {
+            fecharCircuitoPadel();
+        }
+    });
+
     updateVersionLabels(); // liga o toque triplo depois que as funções acima estão definidas
 
     // ── Painel de diagnóstico de tela (oculto) ────────────────────────────────
@@ -4500,7 +4519,7 @@
         checkForUpdates,
         ngConfirm, ngCancel,
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
-        closeCircuitOverlay,
+        closeCircuitOverlay, fecharCircuitoPadel,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,

@@ -937,7 +937,7 @@ document.getElementById("btn-back").addEventListener("click", (e) => {
   // Dentro de outra tela (ex.: sobreposição do PSC PRO), avisa o app-pai em vez de navegar
   if (window.parent && window.parent !== window) {
     e.preventDefault();
-    window.parent.postMessage({ origem: "circuitopadel", acao: "voltar" }, "*");
+    window.parent.postMessage({ origem: "circuitopadel", acao: "voltar" }, location.origin);
   }
 });
 ligarFiltros();
