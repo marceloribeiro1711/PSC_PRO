@@ -669,7 +669,7 @@ function calcularStatus(t, agora) {
   const coleta = (t.statusColeta || "").toLowerCase();
   // Inscrições ainda não abriram (vem do site): tem prioridade sobre as datas
   if (coleta.includes("nao abriram") || coleta.includes("não abriram"))
-    return { chave: "futuro", rotulo: "Registration opens soon", alvo: null };
+    return { chave: "futuro", rotulo: "Check registration and payment on the federation website", alvo: null };
 
   if (inscPassou === false) {
     const urgente = insc.exata && (insc.data - agora) < 24 * 60 * 60 * 1000;
@@ -699,7 +699,7 @@ function blocoAlerta(st) {
     abertas:  ["open",   "Registration open"],
     curso:    ["live",   "In progress"],
     fechadas: ["closed", "Registration closed"],
-    futuro:   ["soon",   "Registration opens soon"],
+    futuro:   ["soon",   "Check registration and payment on the federation website"],
   };
   const [classe, texto] = mapa[st.chave];
   return `<div class="alerta ${classe}"><span class="ponto"></span>${texto}</div>`;
