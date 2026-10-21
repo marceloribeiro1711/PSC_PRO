@@ -30,7 +30,7 @@
   .barra-back { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bg);
     border-top: 1px solid var(--line); display: flex; justify-content: flex-end; align-items: center;
     padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px); height: calc(72px + env(safe-area-inset-bottom, 0px)); }
-  .botao-back { background: #1e293b; color: #ffffff; border: 1px solid var(--line); border-radius: 999px;
+  .botao-back { display: inline-block; text-decoration: none; background: #1e293b; color: #ffffff; border: 1px solid var(--line); border-radius: 999px;
     padding: 12px 22px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
     cursor: pointer; }
   .botao-back:hover { filter: brightness(1.15); }
@@ -216,7 +216,7 @@
   </footer>
 </div>
 
-<div class="barra-back"><button class="botao-back" id="btn-back" type="button">Back</button></div>
+<nav class="barra-back"><a class="botao-back" id="btn-back" href="index.html">Back</a></nav>
 
 <script>
 // ==========================================================
@@ -933,15 +933,12 @@ document.getElementById("lista").addEventListener("click", (e) => {
 });
 document.getElementById("grade-paises").innerHTML = `<p class="lead">Loading…</p>`;
 ligarSplash();
-document.getElementById("btn-back").addEventListener("click", () => {
+document.getElementById("btn-back").addEventListener("click", (e) => {
+  // Dentro de outra tela (ex.: sobreposição do PSC PRO), avisa o app-pai em vez de navegar
   if (window.parent && window.parent !== window) {
+    e.preventDefault();
     window.parent.postMessage({ origem: "circuitopadel", acao: "voltar" }, "*");
-    return;
   }
-  // Confere se o PSC PRO (index.html) está nesta mesma pasta antes de sair
-  fetch("index.html", { method: "HEAD", cache: "no-store" })
-    .then(r => { if (r.ok) window.location.href = "index.html"; else alert("PSC PRO (index.html) not found in this folder."); })
-    .catch(() => alert("PSC PRO (index.html) not found in this folder."));
 });
 ligarFiltros();
 carregar();
