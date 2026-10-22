@@ -213,7 +213,7 @@
   <main id="lista" aria-live="polite"></main>
 
   <footer>
-    Data sources: FPP (Portugal) and FIP (Promise and CUPRA Tour).
+    <span id="fontes">Data sources: FPP (Portugal) and FIP (Promise and CUPRA Tour).</span>
     Complementary information. Athletes are always responsible for confirming deadlines and rules with the organizer.
     Times are shown in your local time.
   </footer>
@@ -876,6 +876,15 @@ function ligarFiltros() {
   });
 }
 
+// Fontes do rodapé: a FPP aparece só quando Portugal está marcado
+function atualizarFontes() {
+  const el = document.getElementById("fontes");
+  if (!el) return;
+  el.textContent = PAISES_SEL.includes("pt")
+    ? "Data sources: FPP (Portugal) and FIP (Promise and CUPRA Tour)."
+    : "Data source: FIP (Promise and CUPRA Tour).";
+}
+
 function atualizarChips() {
   document.querySelectorAll(".filtros .linha").forEach(linha => {
     const chave = linha.id.replace("f-", "");
@@ -887,6 +896,7 @@ function atualizarChips() {
   const chipFPP = document.querySelector('#f-circuito .chip[data-valor="FPP Portugal"]');
   const temPortugal = PAISES_SEL.includes("pt");
   chipFPP.hidden = !temPortugal;
+  atualizarFontes();
   if (!temPortugal && ESTADO.circuito.includes("FPP Portugal")) {
     ESTADO.circuito = ESTADO.circuito.filter(x => x !== "FPP Portugal");
     if (!ESTADO.circuito.length) ESTADO.circuito = ["todos"];
