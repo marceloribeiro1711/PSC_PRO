@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.37';
+    const APP_VERSION = '3.10.38';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3910,6 +3910,20 @@
                     tb: g.isTiebreakGame ? 'Yes' : 'No'
                 });
             });
+            // Linha de resultado do game: qual dupla venceu
+            const resultRow = logWs.addRow({
+                set: setLabel,
+                game: g.gameNumber,
+                point: 'Result',
+                server: g.servingPlayer || '',
+                won: 'Game won by ' + pairOf(g.winner),
+                score: '',
+                tb: g.isTiebreakGame ? 'Yes' : 'No'
+            });
+            resultRow.font = { bold: true };
+            resultRow.eachCell(function (cell) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
+            });
         });
         logWs.autoFilter = { from: 'A1', to: 'G1' };
 
@@ -3918,14 +3932,42 @@
         const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
+        const xlsxFile = new File([blob], `padel_${stamp}.xlsx`, { type: blob.type });
+        showExportResult(xlsxFile);
+    }
+
+    // ── Tela de confirmação da exportação Excel ─────────────────
+    let _pendingExportFile = null;
+    function showExportResult(file) {
+        _pendingExportFile = file;
+        document.getElementById('export-result-name').textContent = file.name;
+        const shareBtn = document.getElementById('export-result-share');
+        const canShareFile = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+        shareBtn.textContent = canShareFile ? 'Share / Save' : 'Download';
+        document.getElementById('export-result-overlay').classList.add('show');
+    }
+    function closeExportResult() {
+        document.getElementById('export-result-overlay').classList.remove('show');
+        _pendingExportFile = null;
+    }
+    async function shareExportResult() {
+        const file = _pendingExportFile;
+        if (!file) return;
+        try {
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: file.name });
+                closeExportResult();
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return; // operador cancelou; mantém a tela
+        }
+        const url = URL.createObjectURL(file);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `padel_${stamp}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        closeExportResult();
     }
 
     function renderCarousel() {
@@ -4711,6 +4753,7 @@
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
         closeCircuitOverlay, fecharCircuitoPadel,
         openAiViewer, closeAiViewer,
+        closeExportResult, shareExportResult,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,
