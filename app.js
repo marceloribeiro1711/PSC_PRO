@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.30';
+    const APP_VERSION = '3.10.31';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2581,6 +2581,8 @@
     const AI_WORKER_URL = 'https://psc-ai-analysis.marceloribeiro1711.workers.dev/analyze';
     const AI_TIMEOUT_MS = 30000;  // 30s — recalibrado após MAX_OUTPUT_TOKENS subir de 900 p/ 1600 no worker (5 parágrafos podem levar bem mais que os 8s antigos para gerar)
     const AI_ANALYSIS_MARKER = '\n\n✨ AI Analysis:\n';
+    // Armazenamento próprio da análise de IA, separado do Notes (chave = data da partida)
+    const AI_STORE_KEY = 'padel_ai_analysis';
 
     function buildPlayerStatsForAi() {
         const ids = ['t1-p1', 't1-p2', 't2-p1', 't2-p2'];
@@ -2729,6 +2731,64 @@
 
     // `replace`: quando true (regeneração manual/retry), substitui uma
     // análise anterior em vez de recusar por já existir uma.
+    // ── Armazenamento da análise de IA (separado do Notes) ──────────────
+    function loadAiStore() {
+        try {
+            const raw = localStorage.getItem(AI_STORE_KEY);
+            const obj = raw ? JSON.parse(raw) : {};
+            return (obj && typeof obj === 'object') ? obj : {};
+        } catch (e) { return {}; }
+    }
+    function saveAiStore(store) {
+        try { localStorage.setItem(AI_STORE_KEY, JSON.stringify(store)); } catch (e) {}
+    }
+    function saveAiAnalysisRecord(date, text, language) {
+        if (!date || !text) return;
+        const store = loadAiStore();
+        store[date] = { text: text, language: language || 'en', generatedAt: new Date().toISOString() };
+        saveAiStore(store);
+    }
+    function deleteAiAnalysisRecord(date) {
+        if (!date) return;
+        const store = loadAiStore();
+        if (store[date]) { delete store[date]; saveAiStore(store); }
+    }
+    // Texto da análise: primeiro o armazenamento novo; se não existir, o texto legado após o marcador
+    function getAiAnalysisText(entry) {
+        if (!entry) return null;
+        const rec = loadAiStore()[entry.date];
+        if (rec && rec.text) return rec.text;
+        const notes = entry.notes || '';
+        const pos = notes.indexOf(AI_ANALYSIS_MARKER);
+        if (pos !== -1) return notes.slice(pos + AI_ANALYSIS_MARKER.length).trim() || null;
+        return null;
+    }
+    // Copia (sem apagar nada do Notes) a análise já existente para o armazenamento novo.
+    // Idempotente: partidas que já têm registro são ignoradas.
+    function migrateAiAnalysisToStore() {
+        try {
+            const history = loadHistory();
+            const store = loadAiStore();
+            let copied = 0, lost = 0, changed = false;
+            history.forEach(function (entry) {
+                if (!entry || !entry.date || store[entry.date]) return;
+                const notes = entry.notes || '';
+                const pos = notes.indexOf(AI_ANALYSIS_MARKER);
+                if (pos !== -1) {
+                    const text = notes.slice(pos + AI_ANALYSIS_MARKER.length).trim();
+                    if (text) {
+                        store[entry.date] = { text: text, language: 'en', generatedAt: null, migrated: true };
+                        copied++; changed = true;
+                    }
+                } else if (entry.aiAnalysisGenerated) {
+                    lost++; // flag antiga sem texto: análise já tinha sido apagada do Notes antes
+                }
+            });
+            if (changed) saveAiStore(store);
+            return { copied: copied, lost: lost };
+        } catch (e) { return { copied: 0, lost: 0 }; }
+    }
+
     function appendAiAnalysisToHistory(entryDate, analysisText, replace) {
         try {
             let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
@@ -2746,6 +2806,7 @@
             // não (o Coach pode apagar/editar o texto livremente depois).
             history[idx].aiAnalysisGenerated = true;
             localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            saveAiAnalysisRecord(entryDate, analysisText, aiAnalysisLanguage);
             if (idx === 0) currentNotes = history[idx].notes; // reflecte se ainda for a partida mais recente
         } catch (e) { /* falha silenciosa */ }
     }
@@ -2842,7 +2903,7 @@
         hideAiWaitOverlay();
         if (analysis) {
             appendAiAnalysisToHistory(entry.date, analysis, true);
-            showToast('✨ AI analysis ready — check Notes');
+            showToast('✨ AI analysis ready — open it from History');
         } else {
             showAiRetryPopup(entry.date);
         }
@@ -3412,7 +3473,7 @@
         const entry = history[idx];
         if (!entry) return;
         if (isAiAnalysisGenerated(entry)) {
-            openNotesFs(idx);
+            openAiViewer(idx);
         } else {
             regenerateAiAnalysisForEntry(idx, true);
         }
@@ -3422,6 +3483,20 @@
     // partida actualmente visível no carrossel (carouselIdx), mesmo padrão
     // já usado por openPointLogFromHistoryCurrent().
     function handleAiButtonForEntryCurrent() { handleAiButtonForEntry(carouselIdx); }
+
+    // Visualizador somente leitura da análise de IA (texto não editável)
+    function openAiViewer(idx) {
+        const history = loadHistory();
+        const entry = history[idx];
+        const text = getAiAnalysisText(entry);
+        if (!text) { showToast('AI analysis not available for this match'); return; }
+        document.getElementById('ai-view-text').textContent = text;
+        document.getElementById('ai-view-overlay').classList.add('show');
+    }
+    function closeAiViewer() {
+        document.getElementById('ai-view-overlay').classList.remove('show');
+        document.getElementById('ai-view-text').textContent = '';
+    }
     function openNotesFsCurrent() { openNotesFs(carouselIdx); }
 
     function buildGameSlide(entry, idx) {
@@ -3840,6 +3915,7 @@
     function deleteMatch(idx) {
         if (!confirm('Delete this game from history?')) return;
         let history = loadHistory();
+        if (history[idx]) deleteAiAnalysisRecord(history[idx].date);
         history.splice(idx, 1);
         try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
         carouselIdx = Math.max(0, Math.min(carouselIdx, history.length - 1));
@@ -4500,6 +4576,7 @@
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
     applyPlayerEditLock();
+    migrateAiAnalysisToStore();
 
     updateScreen();
     applyStatsVisibility();
@@ -4520,6 +4597,7 @@
         ngConfirm, ngCancel,
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
         closeCircuitOverlay, fecharCircuitoPadel,
+        openAiViewer, closeAiViewer,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,

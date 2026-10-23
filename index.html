@@ -690,5 +690,14 @@
     }).catch(function(err) { console.warn('[PWA] SW falhou:', err); });
   }
 </script>
+<div class="ng-overlay ai-view-overlay" id="ai-view-overlay">
+    <div class="ng-modal ai-view-modal">
+        <div class="ng-title">AI Analysis</div>
+        <div class="ai-view-text" id="ai-view-text"></div>
+        <div class="ng-buttons">
+            <button class="ng-btn ng-confirm" onclick="closeAiViewer()">Close</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
