@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.34';
+    const APP_VERSION = '3.10.37';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2770,6 +2770,31 @@
         if (rec && rec.text) return rec.text;
         return extractLegacyAiText(entry.notes || '');
     }
+    // Fase 2: remove a análise do Notes SOMENTE quando o armazenamento novo tem exatamente
+    // o mesmo texto extraído daquele Notes. Entradas em que o texto não bate (ex.: fallback
+    // de Notes completo) não são tocadas. Idempotente.
+    function removeAiFromNotesMigrated() {
+        try {
+            const history = loadHistory();
+            const store = loadAiStore();
+            let removed = 0, changed = false;
+            history.forEach(function (entry) {
+                if (!entry || !entry.date) return;
+                const rec = store[entry.date];
+                const notes = entry.notes || '';
+                if (!rec || !rec.text) return;
+                const m = /✨?\s*AI Analysis:\s*/.exec(notes);
+                if (!m) return;
+                if (extractLegacyAiText(notes) !== rec.text) return; // trava: texto precisa bater
+                const before = notes.slice(0, m.index).replace(/[\s✨]+$/, '');
+                entry.notes = before;
+                removed++; changed = true;
+            });
+            if (changed) localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            return removed;
+        } catch (e) { return 0; }
+    }
+
     // Copia (sem apagar nada do Notes) a análise já existente para o armazenamento novo.
     // Idempotente: partidas que já têm registro são ignoradas.
     function migrateAiAnalysisToStore() {
@@ -2803,13 +2828,9 @@
             let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
             const idx = history.findIndex(function (h) { return h.date === entryDate; });
             if (idx === -1) return;
-            let existing = history[idx].notes || '';
-            const markerPos = existing.indexOf(AI_ANALYSIS_MARKER);
-            if (markerPos !== -1) {
-                if (!replace) return; // já preenchido, não sobrescreve por padrão
-                existing = existing.slice(0, markerPos); // remove análise antiga antes de recolocar
-            }
-            history[idx].notes = existing + AI_ANALYSIS_MARKER + analysisText;
+            // A análise não é mais escrita no Notes: vive só no armazenamento próprio
+            const already = isAiAnalysisGenerated(history[idx]);
+            if (already && !replace) return; // já preenchido, não sobrescreve por padrão
             // Flag permanente: uma vez gerada, a partida fica marcada como já
             // analisada para sempre — independe do texto continuar no Notes ou
             // não (o Coach pode apagar/editar o texto livremente depois).
@@ -3553,7 +3574,6 @@
     // Botões diretos no footer do histórico; usam sempre o jogo
     // actualmente visível no carousel (carouselIdx).
     // ============================================================
-    const EMAIL_LAST_KEY = 'padel_last_email';
 
     // Alinha texto à direita dentro de uma largura fixa (para colunas monoespaçadas)
     function padLeft(str, width) {
@@ -3681,48 +3701,110 @@
             lines.push('');
             lines.push(matchStatsText);
         }
-        const userNotes = getUserNotes(entry.notes || '');
-        if (userNotes) {
-            lines.push('');
-            lines.push('Notes:');
-            lines.push(userNotes);
-        }
         return lines.join('\n');
     }
 
-    function sendGameByEmail() {
-        const input = document.getElementById('email-recipient-input');
-        let lastEmail = '';
-        try { lastEmail = localStorage.getItem(EMAIL_LAST_KEY) || ''; } catch(e) {}
-        input.value = lastEmail;
-        document.getElementById('email-prompt-overlay').classList.add('show');
-        setTimeout(() => input.focus(), 100);
+    // Texto das Notes do Coach, sem a análise de IA (que vai no anexo próprio)
+    function getPersonalNotesText(entry) {
+        let t = getUserNotes(entry.notes || '');
+        const ai = getAiAnalysisText(entry);
+        if (ai && t.indexOf(ai) !== -1) t = t.split(ai).join('');
+        return t.replace(/✨?\s*AI Analysis:\s*/g, '').trim();
     }
 
-    function closeEmailPrompt(e) {
-        if (e && e.target.id !== 'email-prompt-overlay') return;
-        document.getElementById('email-prompt-overlay').classList.remove('show');
+    // Anexos do e-mail: Notes e análise de IA, em .txt (só os que existem)
+    function buildGameEmailFiles(entry) {
+        const stamp = (entry.date || '').slice(0, 10) || 'match';
+        const files = [];
+        const notes = getPersonalNotesText(entry);
+        if (notes) files.push(new File([notes], 'Notes_' + stamp + '.txt', { type: 'text/plain' }));
+        const ai = getAiAnalysisText(entry);
+        if (ai) files.push(new File([ai], 'AI_Analysis_' + stamp + '.txt', { type: 'text/plain' }));
+        return files;
     }
 
-    function confirmSendEmail() {
-        const input = document.getElementById('email-recipient-input');
-        const email = input.value.trim();
-        if (!email || !email.includes('@')) {
-            showToast('⚠️ Enter a valid email', '#b45309');
-            return;
+    // ── Card final em PNG (anexo do e-mail) ─────────────────────
+    const HTML2CANVAS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    const _cardPngCache = {};
+    function loadHtml2Canvas() {
+        if (window.html2canvas) return Promise.resolve(window.html2canvas);
+        return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = HTML2CANVAS_URL;
+            s.onload = function () { window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas')); };
+            s.onerror = function () { reject(new Error('html2canvas load')); };
+            document.head.appendChild(s);
+        });
+    }
+    function cardCacheKey(entry) {
+        return entry.date + '|' + JSON.stringify(entry.sets) + '|' + JSON.stringify(entry.players) + '|' + entry.winner;
+    }
+    async function renderCardPngFile(entry) {
+        const key = cardCacheKey(entry);
+        if (_cardPngCache[key]) return _cardPngCache[key];
+        const h2c = await loadHtml2Canvas();
+        const html = await buildGrandSlamCardHtml(entry);
+        const host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:660px;padding:30px;box-sizing:border-box;background:#0b1220;';
+        host.innerHTML = '<div class="gs-card" style="width:600px;max-width:none;">' + html + '</div>';
+        document.body.appendChild(host);
+        try {
+            const imgs = Array.prototype.slice.call(host.querySelectorAll('img'));
+            await Promise.all(imgs.map(function (im) {
+                return im.complete ? Promise.resolve() : new Promise(function (r) { im.onload = im.onerror = r; });
+            }));
+            const canvas = await h2c(host, { scale: 2, backgroundColor: '#0b1220', useCORS: true });
+            const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
+            if (!blob) return null;
+            const file = new File([blob], 'Card_' + (entry.date || '').slice(0, 10) + '.png', { type: 'image/png' });
+            _cardPngCache[key] = file;
+            return file;
+        } finally {
+            host.parentNode.removeChild(host);
         }
-        try { localStorage.setItem(EMAIL_LAST_KEY, email); } catch(e) {}
+    }
+    // Pré-gera o card ao navegar no histórico, para o envio não depender de tempo (iOS exige gesto do usuário)
+    function prefetchCardPng(idx) {
+        const history = loadHistory();
+        const entry = history[idx];
+        if (!entry) return;
+        renderCardPngFile(entry).catch(function () {});
+    }
 
+    function downloadTextFile(file) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    // Envio pelo compartilhamento nativo do aparelho: o operador escolhe o destinatário
+    async function sendGameByEmail() {
         const history = loadHistory();
         const entry = history[carouselIdx];
-        if (!entry) { closeEmailPrompt(); return; }
-
+        if (!entry) return;
         const subject = `Padel Match Report — ${formatDate(entry.date)}`;
         const body = buildGameEmailText(entry);
-        const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-        document.getElementById('email-prompt-overlay').classList.remove('show');
-        window.location.href = mailtoUrl;
+        const files = buildGameEmailFiles(entry);
+        try {
+            const card = await renderCardPngFile(entry);
+            if (card) files.push(card);
+        } catch (e) { /* envia sem o card */ }
+        const data = { title: subject, text: body };
+        if (files.length) data.files = files;
+        try {
+            if (navigator.share && (!files.length || (navigator.canShare && navigator.canShare({ files: files })))) {
+                await navigator.share(data);
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return; // operador cancelou
+        }
+        // Sem compartilhamento de arquivos: baixa os .txt e abre o e-mail só com o texto
+        files.forEach(downloadTextFile);
+        window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        if (files.length) showToast('Attach the downloaded files in your mail app');
     }
 
     async function exportHistoryGameToExcel() {
@@ -3799,20 +3881,37 @@
         ws.addRow([]);
         ws.addRow([]);
 
-        // ---- 3. ANÁLISE POR IA — texto simples ----
-        const aiHeaderRow = ws.addRow(['AI ANALYSIS & NOTES']);
-        styleHeaderRow(aiHeaderRow);
-        const notesText = getUserNotes(entry.notes || '') || '(no notes for this match)';
-        notesText.split('\n').forEach(line => {
-            ws.addRow([line]);
+        // ---- Aba Match Log: uma linha por ponto ----
+        const logWs = wb.addWorksheet('Match Log');
+        logWs.columns = [
+            { header: 'Set', key: 'set', width: 16 },
+            { header: 'Game', key: 'game', width: 8 },
+            { header: 'Point', key: 'point', width: 8 },
+            { header: 'Server', key: 'server', width: 26 },
+            { header: 'Point won by', key: 'won', width: 26 },
+            { header: 'Score after', key: 'score', width: 14 },
+            { header: 'Tie-break', key: 'tb', width: 11 }
+        ];
+        styleHeaderRow(logWs.getRow(1));
+        logWs.views = [{ state: 'frozen', ySplit: 1 }];
+        const pairOf = function (team) {
+            return team === 'team1' ? duplaName(entry.players[0], entry.players[1]) : duplaName(entry.players[2], entry.players[3]);
+        };
+        buildMatchLogForAiFromEntry(entry).forEach(function (g) {
+            const setLabel = g.isSuperTie ? 'Super Tie-break' : 'Set ' + (g.set + 1);
+            (g.points || []).forEach(function (p) {
+                logWs.addRow({
+                    set: setLabel,
+                    game: g.gameNumber,
+                    point: p.point,
+                    server: p.server || g.servingPlayer || '',
+                    won: pairOf(p.wonBy),
+                    score: p.scoreAfter ? (p.scoreAfter.team1 + ' - ' + p.scoreAfter.team2) : '',
+                    tb: g.isTiebreakGame ? 'Yes' : 'No'
+                });
+            });
         });
-        // Mesclar as células de texto pra não ficarem cortadas por A:E
-        const notesStartRow = aiHeaderRow.number + 1;
-        const notesEndRow = notesStartRow + notesText.split('\n').length - 1;
-        for (let r = notesStartRow; r <= notesEndRow; r++) {
-            ws.mergeCells(`A${r}:E${r}`);
-            ws.getRow(r).alignment = { wrapText: true, vertical: 'top' };
-        }
+        logWs.autoFilter = { from: 'A1', to: 'G1' };
 
         // ---- Download ----
         const d = new Date(entry.date);
@@ -3874,6 +3973,7 @@
     }
 
     function updateNavBtns() {
+        if (typeof carouselIdx === 'number') prefetchCardPng(carouselIdx);
         // Navegação por swipe mantida; setas são só indicador visual (sem
         // acção de navegação), acesas conforme houver mais jogos pro lado.
         const leftArrow = document.getElementById('h-nav-arrow-left');
@@ -4588,6 +4688,7 @@
     const hadSavedGame = restoreGameState();
     applyPlayerEditLock();
     const aiMigration = migrateAiAnalysisToStore();
+    removeAiFromNotesMigrated();
     if (aiMigration.copied > 0) showToast('AI analyses saved: ' + aiMigration.copied);
 
     updateScreen();
@@ -4619,7 +4720,7 @@
         updateNotesCounter, updateNotesFsCounter,
         // Histórico (chamadas dinâmicas em buildGameSlide)
         deleteMatch, openNotesFs, openPointLogFromHistory, openPointLogFromHistoryCurrent,
-        sendGameByEmail, closeEmailPrompt, confirmSendEmail,
+        sendGameByEmail,
         exportHistoryGameToExcel,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
