@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.31';
+    const APP_VERSION = '3.10.34';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2753,15 +2753,22 @@
         const store = loadAiStore();
         if (store[date]) { delete store[date]; saveAiStore(store); }
     }
+    // Extrai a análise legada do campo notes. Tolerante a variações de espaço/quebra
+    // e à ausência do emoji (o trim() das notas remove as quebras iniciais do marcador).
+    function extractLegacyAiText(notes) {
+        if (!notes) return null;
+        const m = /✨?\s*AI Analysis:\s*/.exec(notes);
+        if (!m) return null;
+        const text = notes.slice(m.index + m[0].length).trim();
+        return text || null;
+    }
+
     // Texto da análise: primeiro o armazenamento novo; se não existir, o texto legado após o marcador
     function getAiAnalysisText(entry) {
         if (!entry) return null;
         const rec = loadAiStore()[entry.date];
         if (rec && rec.text) return rec.text;
-        const notes = entry.notes || '';
-        const pos = notes.indexOf(AI_ANALYSIS_MARKER);
-        if (pos !== -1) return notes.slice(pos + AI_ANALYSIS_MARKER.length).trim() || null;
-        return null;
+        return extractLegacyAiText(entry.notes || '');
     }
     // Copia (sem apagar nada do Notes) a análise já existente para o armazenamento novo.
     // Idempotente: partidas que já têm registro são ignoradas.
@@ -2773,15 +2780,17 @@
             history.forEach(function (entry) {
                 if (!entry || !entry.date || store[entry.date]) return;
                 const notes = entry.notes || '';
-                const pos = notes.indexOf(AI_ANALYSIS_MARKER);
-                if (pos !== -1) {
-                    const text = notes.slice(pos + AI_ANALYSIS_MARKER.length).trim();
-                    if (text) {
-                        store[entry.date] = { text: text, language: 'en', generatedAt: null, migrated: true };
-                        copied++; changed = true;
-                    }
+                // Caso normal: texto após o marcador. Se o marcador não for reconhecido mas a
+                // partida tem análise (flag ou o termo no Notes), copia o Notes como está.
+                let text = extractLegacyAiText(notes);
+                if (!text && (entry.aiAnalysisGenerated || /AI Analysis/i.test(notes))) {
+                    text = notes.trim();
+                }
+                if (text) {
+                    store[entry.date] = { text: text, language: 'en', generatedAt: null, migrated: true };
+                    copied++; changed = true;
                 } else if (entry.aiAnalysisGenerated) {
-                    lost++; // flag antiga sem texto: análise já tinha sido apagada do Notes antes
+                    lost++;
                 }
             });
             if (changed) saveAiStore(store);
@@ -2903,7 +2912,8 @@
         hideAiWaitOverlay();
         if (analysis) {
             appendAiAnalysisToHistory(entry.date, analysis, true);
-            showToast('✨ AI analysis ready — open it from History');
+            updateNavBtns();      // atualiza o ícone da IA no rodapé do histórico
+            openAiViewer(idx);    // abre o resultado automaticamente
         } else {
             showAiRetryPopup(entry.date);
         }
@@ -3492,6 +3502,7 @@
         if (!text) { showToast('AI analysis not available for this match'); return; }
         document.getElementById('ai-view-text').textContent = text;
         document.getElementById('ai-view-overlay').classList.add('show');
+        document.getElementById('ai-view-text').scrollTop = 0; // sempre do início
     }
     function closeAiViewer() {
         document.getElementById('ai-view-overlay').classList.remove('show');
@@ -4576,7 +4587,8 @@
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
     applyPlayerEditLock();
-    migrateAiAnalysisToStore();
+    const aiMigration = migrateAiAnalysisToStore();
+    if (aiMigration.copied > 0) showToast('AI analyses saved: ' + aiMigration.copied);
 
     updateScreen();
     applyStatsVisibility();
