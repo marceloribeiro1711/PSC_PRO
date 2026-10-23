@@ -638,6 +638,23 @@ function alternarPago(id) {
   salvarPagos();
 }
 
+// Rótulos de exibição (o código e os filtros continuam usando os valores originais)
+function rotuloGenero(g) {
+  if (!g) return g;
+  const faixas = [...g.matchAll(/([MF])(\d+)\s*-\s*[MF]?(\d+)/g)];
+  if (!faixas.length) return g;
+  const m = [], f = [];
+  faixas.forEach(x => (x[1] === "M" ? m : f).push(`${x[1]}${x[2]} to ${x[1]}${x[3]}`));
+  return [...m, ...f].join(" and ");
+}
+
+// Linha "Category" do card: Promises, veteranos ou as faixas M/F
+function rotuloCategoriaDetalhe(t) {
+  if (circuitoDe(t) === "Promises") return "U12B to U18B and U12G to U18G";
+  if (categoriaDe(t) === "MASTERS") return "Senior +35 to +60";
+  return rotuloGenero(t.genero);
+}
+
 function escapar(t) {
   return String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
@@ -784,7 +801,7 @@ function cartao(t, st) {
       ${campo("Dates", formataFaixa(t.inicio, t.fim), true)}
       ${campo("Registration until", inscricao)}
       ${campo("Payment until", pagamento)}
-      ${campo("Gender", t.genero)}
+      ${campo("Category", rotuloCategoriaDetalhe(t))}
     </dl>
 
     <div class="rodape">
