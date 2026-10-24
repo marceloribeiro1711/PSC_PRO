@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.38';
+    const APP_VERSION = '3.10.43';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1499,6 +1499,7 @@
     }
 
     function updateScreen() {
+        if (!state.startedAt && hasMatchScore()) state.startedAt = new Date().toISOString();
         saveGameState(); // persistir estado a cada alteração
         applyPlayerEditLock();
         renderSetLockedLabel();
@@ -2011,6 +2012,11 @@
         document.getElementById('game-over-p').classList.add('show');
         document.getElementById('gs-card-btn').classList.add('show');
         updateScreen();
+        // Captura da tela final após o render (a data da partida é a do registro recém-salvo)
+        setTimeout(function () {
+            const hist = loadHistory();
+            if (hist[0] && hist[0].date) captureFinalScreen(hist[0].date).catch(function () {});
+        }, 1500);
     }
 
     // Contagem automática de Serve Won / Broken Serve para o servidor actual
@@ -3132,6 +3138,7 @@
 
         const entry = {
             date: new Date().toISOString(),
+            startedAt: state.startedAt || null,
             players: [p1, p2, p3, p4],
             winner,
             sets: JSON.parse(JSON.stringify(state.sets)),
@@ -3704,6 +3711,15 @@
         return lines.join('\n');
     }
 
+    // Data e hora de INÍCIO do jogo, em horário local (partidas antigas sem startedAt usam o registro)
+    function matchStartParts(entry) {
+        const d = new Date(entry.startedAt || entry.date);
+        const p = function (n) { return String(n).padStart(2, '0'); };
+        const date = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+        const time = p(d.getHours()) + ':' + p(d.getMinutes());
+        return { date: date, time: time, stamp: date + '_' + time.replace(':', '-') };
+    }
+
     // Texto das Notes do Coach, sem a análise de IA (que vai no anexo próprio)
     function getPersonalNotesText(entry) {
         let t = getUserNotes(entry.notes || '');
@@ -3714,13 +3730,70 @@
 
     // Anexos do e-mail: Notes e análise de IA, em .txt (só os que existem)
     function buildGameEmailFiles(entry) {
-        const stamp = (entry.date || '').slice(0, 10) || 'match';
+        const stamp = matchStartParts(entry).stamp;
         const files = [];
         const notes = getPersonalNotesText(entry);
-        if (notes) files.push(new File([notes], 'Notes_' + stamp + '.txt', { type: 'text/plain' }));
+        if (notes) files.push(new File([notes], 'PSC_PRO_Notes_' + stamp + '.txt', { type: 'text/plain' }));
         const ai = getAiAnalysisText(entry);
-        if (ai) files.push(new File([ai], 'AI_Analysis_' + stamp + '.txt', { type: 'text/plain' }));
+        if (ai) files.push(new File([ai], 'PSC_PRO_AI_Analysis_' + stamp + '.txt', { type: 'text/plain' }));
         return files;
+    }
+
+    // ── Tela final do jogo em PNG (IndexedDB: imagens não cabem no localStorage) ──
+    const SHOT_DB = 'padel-screens', SHOT_STORE = 'shots';
+    const _shotCache = {};
+    function openShotDb() {
+        return new Promise(function (resolve, reject) {
+            const req = indexedDB.open(SHOT_DB, 1);
+            req.onupgradeneeded = function () { req.result.createObjectStore(SHOT_STORE); };
+            req.onsuccess = function () { resolve(req.result); };
+            req.onerror = function () { reject(req.error); };
+        });
+    }
+    async function saveMatchScreenshot(date, blob) {
+        _shotCache[date] = blob;
+        const db = await openShotDb();
+        await new Promise(function (resolve, reject) {
+            const tx = db.transaction(SHOT_STORE, 'readwrite');
+            tx.objectStore(SHOT_STORE).put(blob, date);
+            tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); };
+        });
+        db.close();
+    }
+    async function getMatchScreenshot(date) {
+        if (_shotCache[date]) return _shotCache[date];
+        try {
+            const db = await openShotDb();
+            const blob = await new Promise(function (resolve, reject) {
+                const req = db.transaction(SHOT_STORE, 'readonly').objectStore(SHOT_STORE).get(date);
+                req.onsuccess = function () { resolve(req.result || null); };
+                req.onerror = function () { reject(req.error); };
+            });
+            db.close();
+            if (blob) _shotCache[date] = blob;
+            return blob;
+        } catch (e) { return null; }
+    }
+    async function deleteMatchScreenshot(date) {
+        delete _shotCache[date];
+        try {
+            const db = await openShotDb();
+            await new Promise(function (resolve) {
+                const tx = db.transaction(SHOT_STORE, 'readwrite');
+                tx.objectStore(SHOT_STORE).delete(date);
+                tx.oncomplete = resolve; tx.onerror = resolve;
+            });
+            db.close();
+        } catch (e) {}
+    }
+    // Captura a tela principal (placar, sets, fotos, estatísticas e menu) logo após o fim da partida
+    async function captureFinalScreen(date) {
+        const el = document.getElementById('layout-portrait');
+        if (!el || el.offsetParent === null) return; // tela não visível (ex.: landscape): não captura
+        const h2c = await loadHtml2Canvas();
+        const canvas = await h2c(el, { scale: 2, backgroundColor: '#0b1220', useCORS: true, logging: false });
+        const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
+        if (blob) await saveMatchScreenshot(date, blob);
     }
 
     // ── Card final em PNG (anexo do e-mail) ─────────────────────
@@ -3756,7 +3829,7 @@
             const canvas = await h2c(host, { scale: 2, backgroundColor: '#0b1220', useCORS: true });
             const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
             if (!blob) return null;
-            const file = new File([blob], 'Card_' + (entry.date || '').slice(0, 10) + '.png', { type: 'image/png' });
+            const file = new File([blob], 'PSC_PRO_Card_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' });
             _cardPngCache[key] = file;
             return file;
         } finally {
@@ -3769,6 +3842,8 @@
         const entry = history[idx];
         if (!entry) return;
         renderCardPngFile(entry).catch(function () {});
+        getMatchXlsxFile(entry).catch(function () {});
+        getMatchScreenshot(entry.date).catch(function () {});
     }
 
     function downloadTextFile(file) {
@@ -3784,13 +3859,21 @@
         const history = loadHistory();
         const entry = history[carouselIdx];
         if (!entry) return;
-        const subject = `Padel Match Report — ${formatDate(entry.date)}`;
+        const endp = matchStartParts(entry);
+        const subject = `PSC_PRO - Match result played on ${endp.date} ${endp.time}`; // início do jogo
         const body = buildGameEmailText(entry);
         const files = buildGameEmailFiles(entry);
         try {
             const card = await renderCardPngFile(entry);
             if (card) files.push(card);
         } catch (e) { /* envia sem o card */ }
+        try {
+            files.unshift(await getMatchXlsxFile(entry));
+        } catch (e) { /* envia sem o Excel */ }
+        try {
+            const shot = await getMatchScreenshot(entry.date);
+            if (shot) files.push(new File([shot], 'PSC_PRO_Final_Screen_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' }));
+        } catch (e) { /* envia sem a tela final */ }
         const data = { title: subject, text: body };
         if (files.length) data.files = files;
         try {
@@ -3807,11 +3890,7 @@
         if (files.length) showToast('Attach the downloaded files in your mail app');
     }
 
-    async function exportHistoryGameToExcel() {
-        const history = loadHistory();
-        const entry = history[carouselIdx];
-        if (!entry) return;
-
+    function buildMatchWorkbook(entry) {
         const [p1, p2, p3, p4] = entry.players;
         const isProset = entry.setMode === 'proset';
 
@@ -3834,6 +3913,28 @@
             });
         }
 
+        // ---- 0. CABEÇALHO INFORMATIVO ----
+        const sModeTxt = entry.setMode === 'proset' ? 'ProSet' : (entry.setMode === 'supertie' ? 'Supertie' : '3 Sets');
+        const pModeTxt = entry.pointMode === 'star' ? 'Star Point' : 'Golden Point';
+        const dt = new Date(entry.startedAt || entry.date);
+        const timeTxtStart = String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+        const infoRows = [
+            ['PADEL MATCH REPORT'],
+            ['Start', formatDate(entry.startedAt || entry.date) + ' ' + timeTxtStart],
+            ['Duration', entry.duration || '—'],
+            ['Mode', sModeTxt + ' · ' + pModeTxt],
+            ['Pair 1', p1 + ' / ' + p2],
+            ['Pair 2', p3 + ' / ' + p4],
+            ['Winner', entry.winner === 0 ? (p1 + ' / ' + p2) : (p3 + ' / ' + p4)],
+            ['Final score', formatScore(entry)]
+        ];
+        infoRows.forEach(function (r, i) {
+            const row = ws.addRow(r);
+            if (i === 0) row.font = { bold: true, size: 14 };
+            else row.getCell(1).font = { bold: true };
+        });
+        ws.addRow([]);
+
         // ---- 1. RESULTADO (igual ao que já existia) ----
         const setHeaders = [
             '',
@@ -3843,18 +3944,30 @@
         ];
         const resultHeaderRow = ws.addRow(setHeaders);
         styleHeaderRow(resultHeaderRow);
-        ws.addRow([
+        const resRow1 = ws.addRow([
             p1 + ' / ' + p2,
             isProset ? '—' : entry.sets[0][0],
             isProset ? '—' : entry.sets[1][0],
             entry.sets[2][0]
         ]);
-        ws.addRow([
+        const resRow2 = ws.addRow([
             p3 + ' / ' + p4,
             isProset ? '—' : entry.sets[0][1],
             isProset ? '—' : entry.sets[1][1],
             entry.sets[2][1]
         ]);
+        // Célula do vencedor de cada set em destaque (dourado)
+        const WIN_FILL = 'FFFFE699';
+        const setCols = isProset ? [4] : [2, 3, 4];
+        const setIdxs = isProset ? [2] : [0, 1, 2];
+        setCols.forEach(function (col, k) {
+            const gs = entry.sets[setIdxs[k]];
+            if (!gs || typeof gs[0] !== 'number' || typeof gs[1] !== 'number' || gs[0] === gs[1]) return;
+            const winRow = gs[0] > gs[1] ? resRow1 : resRow2;
+            const cell = winRow.getCell(col);
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: WIN_FILL } };
+            cell.font = { bold: true };
+        });
 
         // ---- 2 linhas em branco ----
         ws.addRow([]);
@@ -3897,10 +4010,18 @@
         const pairOf = function (team) {
             return team === 'team1' ? duplaName(entry.players[0], entry.players[1]) : duplaName(entry.players[2], entry.players[3]);
         };
-        buildMatchLogForAiFromEntry(entry).forEach(function (g) {
+        // Cores alternadas por game (azul claro / cinza claro), para separar visualmente os games
+        const paintGameRow = function (row, gi, isResult) {
+            const even = gi % 2 === 0;
+            const argb = isResult ? (even ? 'FFCFE2F9' : 'FFD9D9D9') : (even ? 'FFE8F1FB' : 'FFF5F5F5');
+            row.eachCell(function (cell) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+            });
+        };
+        buildMatchLogForAiFromEntry(entry).forEach(function (g, gi) {
             const setLabel = g.isSuperTie ? 'Super Tie-break' : 'Set ' + (g.set + 1);
             (g.points || []).forEach(function (p) {
-                logWs.addRow({
+                const pRow = logWs.addRow({
                     set: setLabel,
                     game: g.gameNumber,
                     point: p.point,
@@ -3909,6 +4030,7 @@
                     score: p.scoreAfter ? (p.scoreAfter.team1 + ' - ' + p.scoreAfter.team2) : '',
                     tb: g.isTiebreakGame ? 'Yes' : 'No'
                 });
+                paintGameRow(pRow, gi, false);
             });
             // Linha de resultado do game: qual dupla venceu
             const resultRow = logWs.addRow({
@@ -3921,19 +4043,32 @@
                 tb: g.isTiebreakGame ? 'Yes' : 'No'
             });
             resultRow.font = { bold: true };
-            resultRow.eachCell(function (cell) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
-            });
+            paintGameRow(resultRow, gi, true);
         });
         logWs.autoFilter = { from: 'A1', to: 'G1' };
 
-        // ---- Download ----
-        const d = new Date(entry.date);
-        const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+        return wb;
+    }
+
+    // Arquivo .xlsx da partida, com cache (pré-gerado ao navegar, para o envio não depender de tempo)
+    const _xlsxCache = {};
+    async function getMatchXlsxFile(entry) {
+        const key = cardCacheKey(entry) + '|' + (entry.pointLog ? entry.pointLog.length : 0) + '|' + (entry.duration || '') + '|' + JSON.stringify(entry.stats || {});
+        if (_xlsxCache[key]) return _xlsxCache[key];
+        const wb = buildMatchWorkbook(entry);
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const xlsxFile = new File([blob], `padel_${stamp}.xlsx`, { type: blob.type });
-        showExportResult(xlsxFile);
+        const file = new File([blob], `PSC_PRO_Match_Report_${matchStartParts(entry).stamp}.xlsx`, { type: blob.type });
+        _xlsxCache[key] = file;
+        return file;
+    }
+
+    async function exportHistoryGameToExcel() {
+        const history = loadHistory();
+        const entry = history[carouselIdx];
+        if (!entry) return;
+        const file = await getMatchXlsxFile(entry);
+        showExportResult(file);
     }
 
     // ── Tela de confirmação da exportação Excel ─────────────────
@@ -4068,7 +4203,7 @@
     function deleteMatch(idx) {
         if (!confirm('Delete this game from history?')) return;
         let history = loadHistory();
-        if (history[idx]) deleteAiAnalysisRecord(history[idx].date);
+        if (history[idx]) { deleteAiAnalysisRecord(history[idx].date); deleteMatchScreenshot(history[idx].date); }
         history.splice(idx, 1);
         try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
         carouselIdx = Math.max(0, Math.min(carouselIdx, history.length - 1));
