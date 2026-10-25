@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.44';
+    const APP_VERSION = '3.10.45';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3761,7 +3761,7 @@
         db.close();
     }
     async function getMatchScreenshot(date) {
-        if (_shotCache[date]) return _shotCache[date];
+        if (date in _shotCache) return _shotCache[date];
         try {
             const db = await openShotDb();
             const blob = await new Promise(function (resolve, reject) {
@@ -3770,7 +3770,7 @@
                 req.onerror = function () { reject(req.error); };
             });
             db.close();
-            if (blob) _shotCache[date] = blob;
+            _shotCache[date] = blob || null; // null = partida sem tela final salva
             return blob;
         } catch (e) { return null; }
     }
@@ -3786,6 +3786,15 @@
             db.close();
         } catch (e) {}
     }
+    // Prepara todos os anexos em segundo plano, para o envio poder ser síncrono no toque
+    async function prepareEmailAttachments(entry) {
+        await Promise.all([
+            getMatchXlsxFile(entry).catch(function () {}),
+            renderCardPngFile(entry).catch(function () {}),
+            renderPairStatsPngFile(entry).catch(function () {}),
+            getMatchScreenshot(entry.date).catch(function () {})
+        ]);
+    }
     // Captura a tela principal (placar, sets, fotos, estatísticas e menu) logo após o fim da partida
     async function captureFinalScreen(date) {
         const el = document.getElementById('layout-portrait');
@@ -3794,12 +3803,17 @@
         const canvas = await h2c(el, { scale: 2, backgroundColor: '#0b1220', useCORS: true, logging: false });
         const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
         if (blob) await saveMatchScreenshot(date, blob);
+        const e = loadHistory().find(function (h) { return h.date === date; });
+        if (e) prepareEmailAttachments(e);
     }
 
     // ── Estatísticas por dupla em PNG (mesmo bloco abaixo do card no histórico) ──
     const _pairsPngCache = {};
+    function pairsPngKey(entry) {
+        return cardCacheKey(entry) + '|' + JSON.stringify(entry.stats || {}) + '|' + (entry.notes || '').length;
+    }
     async function renderPairStatsPngFile(entry) {
-        const key = cardCacheKey(entry) + '|' + JSON.stringify(entry.stats || {}) + '|' + (entry.notes || '').length;
+        const key = pairsPngKey(entry);
         if (_pairsPngCache[key]) return _pairsPngCache[key];
         const h2c = await loadHtml2Canvas();
         const host = document.createElement('div');
@@ -3886,29 +3900,27 @@
         const endp = matchStartParts(entry);
         const subject = `PSC_PRO - Match result played on ${endp.date} ${endp.time}`; // início do jogo
         const body = buildGameEmailText(entry);
+        // Tudo abaixo é síncrono: o compartilhamento precisa do gesto do toque (Android/iOS)
+        const xl = _xlsxCache[matchXlsxKey(entry)];
+        const card = _cardPngCache[cardCacheKey(entry)];
+        const pairs = _pairsPngCache[pairsPngKey(entry)];
+        const shot = _shotCache[entry.date];
+        if (!xl || !card || !pairs || shot === undefined) {
+            prepareEmailAttachments(entry);
+            showToast('Preparing attachments — tap Send again in a few seconds');
+            return;
+        }
         const files = buildGameEmailFiles(entry);
-        try {
-            const card = await renderCardPngFile(entry);
-            if (card) files.push(card);
-        } catch (e) { /* envia sem o card */ }
-        try {
-            const pairs = await renderPairStatsPngFile(entry);
-            if (pairs) files.push(pairs);
-        } catch (e) { /* envia sem as estatísticas por dupla */ }
-        try {
-            files.unshift(await getMatchXlsxFile(entry));
-        } catch (e) { /* envia sem o Excel */ }
-        try {
-            const shot = await getMatchScreenshot(entry.date);
-            if (shot) files.push(new File([shot], 'PSC_PRO_Final_Screen_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' }));
-        } catch (e) { /* envia sem a tela final */ }
-        const data = { title: subject, text: body };
-        if (files.length) data.files = files;
+        files.unshift(xl);
+        files.push(card);
+        files.push(pairs);
+        if (shot) files.push(new File([shot], 'PSC_PRO_Final_Screen_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' }));
+        const data = { title: subject, text: body, files: files };
         if (!navigator.share) {
             showShareFallback(files, 'This browser cannot share files');
             return;
         }
-        if (files.length && !(navigator.canShare && navigator.canShare({ files: files }))) {
+        if (!(navigator.canShare && navigator.canShare({ files: files }))) {
             showShareFallback(files, 'This device cannot share these files');
             return;
         }
@@ -4100,8 +4112,11 @@
 
     // Arquivo .xlsx da partida, com cache (pré-gerado ao navegar, para o envio não depender de tempo)
     const _xlsxCache = {};
+    function matchXlsxKey(entry) {
+        return cardCacheKey(entry) + '|' + (entry.pointLog ? entry.pointLog.length : 0) + '|' + (entry.duration || '') + '|' + JSON.stringify(entry.stats || {});
+    }
     async function getMatchXlsxFile(entry) {
-        const key = cardCacheKey(entry) + '|' + (entry.pointLog ? entry.pointLog.length : 0) + '|' + (entry.duration || '') + '|' + JSON.stringify(entry.stats || {});
+        const key = matchXlsxKey(entry);
         if (_xlsxCache[key]) return _xlsxCache[key];
         const wb = buildMatchWorkbook(entry);
         const buffer = await wb.xlsx.writeBuffer();
