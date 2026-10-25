@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.43';
+    const APP_VERSION = '3.10.44';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3796,6 +3796,29 @@
         if (blob) await saveMatchScreenshot(date, blob);
     }
 
+    // ── Estatísticas por dupla em PNG (mesmo bloco abaixo do card no histórico) ──
+    const _pairsPngCache = {};
+    async function renderPairStatsPngFile(entry) {
+        const key = cardCacheKey(entry) + '|' + JSON.stringify(entry.stats || {}) + '|' + (entry.notes || '').length;
+        if (_pairsPngCache[key]) return _pairsPngCache[key];
+        const h2c = await loadHtml2Canvas();
+        const host = document.createElement('div');
+        host.className = 'h-individual-details';
+        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:680px;padding:24px;box-sizing:border-box;background:#0b1220;';
+        host.innerHTML = buildPairBlock(entry, 0, entry.winner === 0) + buildPairBlock(entry, 1, entry.winner === 1) + buildMatchStatsTable(entry);
+        document.body.appendChild(host);
+        try {
+            const canvas = await h2c(host, { scale: 2, backgroundColor: '#0b1220', useCORS: true, logging: false });
+            const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
+            if (!blob) return null;
+            const file = new File([blob], 'PSC_PRO_Pairs_Stats_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' });
+            _pairsPngCache[key] = file;
+            return file;
+        } finally {
+            host.parentNode.removeChild(host);
+        }
+    }
+
     // ── Card final em PNG (anexo do e-mail) ─────────────────────
     const HTML2CANVAS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     const _cardPngCache = {};
@@ -3842,6 +3865,7 @@
         const entry = history[idx];
         if (!entry) return;
         renderCardPngFile(entry).catch(function () {});
+        renderPairStatsPngFile(entry).catch(function () {});
         getMatchXlsxFile(entry).catch(function () {});
         getMatchScreenshot(entry.date).catch(function () {});
     }
@@ -3868,6 +3892,10 @@
             if (card) files.push(card);
         } catch (e) { /* envia sem o card */ }
         try {
+            const pairs = await renderPairStatsPngFile(entry);
+            if (pairs) files.push(pairs);
+        } catch (e) { /* envia sem as estatísticas por dupla */ }
+        try {
             files.unshift(await getMatchXlsxFile(entry));
         } catch (e) { /* envia sem o Excel */ }
         try {
@@ -3876,18 +3904,38 @@
         } catch (e) { /* envia sem a tela final */ }
         const data = { title: subject, text: body };
         if (files.length) data.files = files;
+        if (!navigator.share) {
+            showShareFallback(files, 'This browser cannot share files');
+            return;
+        }
+        if (files.length && !(navigator.canShare && navigator.canShare({ files: files }))) {
+            showShareFallback(files, 'This device cannot share these files');
+            return;
+        }
         try {
-            if (navigator.share && (!files.length || (navigator.canShare && navigator.canShare({ files: files })))) {
-                await navigator.share(data);
-                return;
-            }
+            await navigator.share(data);
         } catch (e) {
             if (e && e.name === 'AbortError') return; // operador cancelou
+            showShareFallback(files, (e && e.name ? e.name : 'Error') + (e && e.message ? ': ' + e.message : ''));
         }
-        // Sem compartilhamento de arquivos: baixa os .txt e abre o e-mail só com o texto
-        files.forEach(downloadTextFile);
-        window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-        if (files.length) showToast('Attach the downloaded files in your mail app');
+    }
+
+    // Tela de fallback: lista os arquivos e permite baixá-los, sem enviar e-mail sem anexos
+    let _fallbackFiles = [];
+    function showShareFallback(files, reason) {
+        _fallbackFiles = files || [];
+        document.getElementById('share-fallback-reason').textContent = 'Sharing did not work (' + reason + ').';
+        document.getElementById('share-fallback-list').textContent = _fallbackFiles.map(function (f) { return f.name; }).join('\n');
+        document.getElementById('share-fallback-overlay').classList.add('show');
+    }
+    function closeShareFallback() {
+        document.getElementById('share-fallback-overlay').classList.remove('show');
+        _fallbackFiles = [];
+    }
+    function downloadShareFallback() {
+        _fallbackFiles.forEach(function (f, i) {
+            setTimeout(function () { downloadTextFile(f); }, i * 300);
+        });
     }
 
     function buildMatchWorkbook(entry) {
@@ -4889,6 +4937,7 @@
         closeCircuitOverlay, fecharCircuitoPadel,
         openAiViewer, closeAiViewer,
         closeExportResult, shareExportResult,
+        closeShareFallback, downloadShareFallback,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,
