@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.45';
+    const APP_VERSION = '3.10.45-dev';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -4959,7 +4959,7 @@
     // Exporta e importa todas as chaves padel_* do localStorage (histórico,
     // jogo em andamento, nomes, fotos, logos, análises de IA, tutorial).
     // Não altera nenhum formato de dado: apenas copia o que já está gravado.
-    const APP_BUILD_VERSION = '3.10.45-dev';
+    const APP_BUILD_VERSION = APP_VERSION;
     const BACKUP_FORMAT = 'psc-pro-backup';
     const BACKUP_PREFIX = 'padel_';
 
@@ -4972,7 +4972,8 @@
         return data;
     }
 
-    function backupAllData() {
+    // Retorna true se o backup foi entregue (compartilhado ou baixado), false se o usuário cancelou.
+    async function backupAllData() {
         const createdAt = new Date().toISOString();
         const payload = {
             format: BACKUP_FORMAT,
@@ -4982,7 +4983,19 @@
         };
         const stamp = createdAt.slice(0, 16).replace(/[:T]/g, '-');
         const file = new File([JSON.stringify(payload)], 'psc_backup_' + stamp + '.json', { type: 'application/json' });
+
+        // Mesmo caminho do envio de partidas: compartilhamento nativo primeiro (funciona no iOS e no Android)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: file.name });
+                return true;
+            } catch (e) {
+                if (e && e.name === 'AbortError') return false;
+                // outro erro: segue para o download
+            }
+        }
         downloadTextFile(file);
+        return true;
     }
 
     function restoreAllDataPrompt() {
@@ -4995,7 +5008,7 @@
         input.value = '';
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = function () {
+        reader.onload = async function () {
             let payload;
             try { payload = JSON.parse(reader.result); } catch (e) { alert('Arquivo inválido.'); return; }
             if (!payload || payload.format !== BACKUP_FORMAT || !payload.data || typeof payload.data !== 'object') {
@@ -5014,7 +5027,11 @@
                 + 'Os dados atuais serão substituídos. Antes, será baixado um backup automático dos dados atuais.';
             if (!confirm(msg)) return;
 
-            backupAllData(); // salvaguarda do estado atual antes de qualquer escrita
+            const saved = await backupAllData(); // salvaguarda do estado atual antes de qualquer escrita
+            if (!saved) {
+                alert('Restauração cancelada: o backup de segurança não foi salvo.');
+                return;
+            }
             try {
                 Object.keys(collectLocalData()).forEach(function (k) { localStorage.removeItem(k); });
                 keys.forEach(function (k) { localStorage.setItem(k, payload.data[k]); });
@@ -5042,8 +5059,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const label = document.getElementById('config-version-label');
-        if (label) label.innerText = 'V ' + APP_BUILD_VERSION;
         applySidesProjection();
     });
 
