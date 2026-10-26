@@ -4416,10 +4416,20 @@
         return state.sets.some(function (s) { return s[0] || s[1]; });
     }
     function isMatchLocked() {
-        return !!(state && !state.matchOver && hasMatchScore());
+        return !!(state && hasMatchScore());   // aberta ou encerrada; libera só em New Game (forceClear)
+    }
+    // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
+    // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
+    function updateSwitchSidesBtn() {
+        const btn = document.getElementById('switch-sides-btn');
+        if (!btn || !state) return;
+        const tbStarted = !!(state.isTieBreakMode && state.tiebreakPts && (state.tiebreakPts[0] || state.tiebreakPts[1]));
+        const gameStart = !state.matchOver && state.pts[0] === 0 && state.pts[1] === 0 && !tbStarted;
+        btn.classList.toggle('is-hidden', !gameStart);
     }
     function applyPlayerEditLock() {
         const locked = isMatchLocked();
+        updateSwitchSidesBtn();
         ['t1-p1','t1-p2','t2-p1','t2-p2'].forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
@@ -5056,8 +5066,8 @@
     }
     // Duração e tempo máximo de segurança da animação de virada (3b).
     // Se o fim não disparar, a finalização acontece sozinha e em silêncio.
-    const SWAP_ANIM_MS = 600;
-    const SWAP_FAILSAFE_MS = 1500;
+    const SWAP_ANIM_MS = 1000;
+    const SWAP_FAILSAFE_MS = 2000;   // sempre acima de SWAP_ANIM_MS
     let swapAnimating = false;
     let swapFailsafe = null;
 
