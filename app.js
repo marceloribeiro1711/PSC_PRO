@@ -5054,11 +5054,80 @@
     function swCancel() {
         document.getElementById('sw-overlay').classList.remove('show');
     }
+    // Duração e tempo máximo de segurança da animação de virada (3b).
+    // Se o fim não disparar, a finalização acontece sozinha e em silêncio.
+    const SWAP_ANIM_MS = 600;
+    const SWAP_FAILSAFE_MS = 1500;
+    let swapAnimating = false;
+    let swapFailsafe = null;
+
+    function setSwapLock(on) {
+        let lock = document.getElementById('sw-lock');
+        if (on) {
+            if (!lock) {
+                lock = document.createElement('div');
+                lock.id = 'sw-lock';
+                document.body.appendChild(lock);
+            }
+        } else if (lock) {
+            lock.remove();
+        }
+    }
+
+    function finishSwap() {
+        if (!swapAnimating) return;        // idempotente: pode ser chamada pelo fim ou pelo tempo máximo
+        swapAnimating = false;
+        clearTimeout(swapFailsafe);
+        document.querySelectorAll('.p-team-panel').forEach(function (el) {
+            el.style.transition = '';
+            el.style.transform = '';
+        });
+        setSwapLock(false);
+        const sw = document.getElementById('switch-sides-btn');
+        if (sw) sw.disabled = false;
+        saveGameState();                   // estado gravado só ao fim da virada
+    }
+
     function swConfirm() {
         document.getElementById('sw-overlay').classList.remove('show');
-        sidesSwapped = !sidesSwapped;   // mesmo botão desfaz (D4)
+        if (swapAnimating) return;
+
+        const t1 = document.querySelector('.p-team-panel.team1');
+        const t2 = document.querySelector('.p-team-panel.team2');
+        if (!t1 || !t2) {                  // sem a tela de jogo: só alterna
+            sidesSwapped = !sidesSwapped;
+            applySidesProjection();
+            saveGameState();
+            return;
+        }
+
+        // FLIP: mede a posição antes, aplica o estado final, e anima do ponto antigo para o novo
+        const before1 = t1.getBoundingClientRect().top;
+        const before2 = t2.getBoundingClientRect().top;
+        sidesSwapped = !sidesSwapped;      // mesmo botão desfaz (D4)
         applySidesProjection();
-        saveGameState();
+        const dy1 = before1 - t1.getBoundingClientRect().top;
+        const dy2 = before2 - t2.getBoundingClientRect().top;
+
+        swapAnimating = true;
+        setSwapLock(true);
+        const sw = document.getElementById('switch-sides-btn');
+        if (sw) sw.disabled = true;
+
+        if (Math.abs(dy1) < 1 && Math.abs(dy2) < 1) { finishSwap(); return; }
+
+        [[t1, dy1], [t2, dy2]].forEach(function (pair) {
+            pair[0].style.transition = 'none';
+            pair[0].style.transform = 'translateY(' + pair[1] + 'px)';
+        });
+        void t1.offsetHeight;              // força o reflow antes de iniciar a transição
+        [t1, t2].forEach(function (el) {
+            el.style.transition = 'transform ' + SWAP_ANIM_MS + 'ms ease-in-out';
+            el.style.transform = 'translateY(0)';
+        });
+        t1.addEventListener('transitionend', finishSwap, { once: true });
+        t2.addEventListener('transitionend', finishSwap, { once: true });
+        swapFailsafe = setTimeout(finishSwap, SWAP_FAILSAFE_MS);
     }
 
     // ── PROJEÇÃO DE LADOS (Virada de campo, Fase 1) ───────────────
@@ -5069,8 +5138,9 @@
     function applySidesProjection() {
         const teams = document.querySelector('.p-teams');
         if (teams) teams.classList.toggle('is-swapped', sidesSwapped);
-        const ls = document.querySelector('.ls-body');
-        if (ls) ls.classList.toggle('is-swapped', sidesSwapped);
+        // TV (paisagem) não reflete a virada: decisão D9 revisada, sem rotação na paisagem.
+        const swBtn = document.getElementById('switch-sides-btn');
+        if (swBtn) swBtn.classList.toggle('is-active', sidesSwapped);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
