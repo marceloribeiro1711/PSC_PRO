@@ -2240,6 +2240,8 @@
     // ============================================================
     // PERSISTÊNCIA DO ESTADO DO JOGO EM CURSO
     // ============================================================
+    // Virada de campo: estado de lados (false = posição original)
+    let sidesSwapped = false;
     const GAME_STATE_KEY = 'padel_game_state';
 
     function saveGameState() {
@@ -2282,6 +2284,9 @@
                 t2AnchorTurn: SERVE.t2AnchorTurn,
             }
         };
+        // Virada de campo: campo gravado só quando true, para que o snapshot sem virada
+        // continue idêntico ao da versão anterior.
+        if (sidesSwapped) snapshot.sidesSwapped = true;
         try { localStorage.setItem(GAME_STATE_KEY, JSON.stringify(snapshot)); } catch(e) {}
     }
 
@@ -2289,6 +2294,10 @@
         let snap;
         try { snap = JSON.parse(localStorage.getItem(GAME_STATE_KEY)); } catch(e) {}
         if (!snap) return false;
+
+        // Virada de campo: campo ausente em snapshots antigos = false
+        sidesSwapped = snap.sidesSwapped === true;
+        applySidesProjection();
 
         // Restaurar estado do jogo
         state = snap.state;
@@ -4344,6 +4353,8 @@
     }
 
     function forceClear() {
+        sidesSwapped = false; // nova partida sempre começa sem virada
+        applySidesProjection();
         clearGameState();
         state = { sets:[[0,0],[0,0],[0,0]], currentSet:0, pts:[0,0], isSuperTieBreak:false, isTieBreakMode:false, matchOver:false, tiebreakPts:[null,null,null], deuceCount:0 };
         currentNotes = '';
@@ -4943,7 +4954,101 @@
     if (!hadSavedGame) setTimeout(tutMaybeStart, 2600);
 
     // ── Expor funções públicas no window (chamadas por onclick no HTML) ──────
+
+    // ── BACKUP / RESTORE DOS DADOS LOCAIS ─────────────────────────
+    // Exporta e importa todas as chaves padel_* do localStorage (histórico,
+    // jogo em andamento, nomes, fotos, logos, análises de IA, tutorial).
+    // Não altera nenhum formato de dado: apenas copia o que já está gravado.
+    const APP_BUILD_VERSION = '3.10.45-dev';
+    const BACKUP_FORMAT = 'psc-pro-backup';
+    const BACKUP_PREFIX = 'padel_';
+
+    function collectLocalData() {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(BACKUP_PREFIX)) data[key] = localStorage.getItem(key);
+        }
+        return data;
+    }
+
+    function backupAllData() {
+        const createdAt = new Date().toISOString();
+        const payload = {
+            format: BACKUP_FORMAT,
+            appVersion: APP_BUILD_VERSION,
+            createdAt: createdAt,
+            data: collectLocalData(),
+        };
+        const stamp = createdAt.slice(0, 16).replace(/[:T]/g, '-');
+        const file = new File([JSON.stringify(payload)], 'psc_backup_' + stamp + '.json', { type: 'application/json' });
+        downloadTextFile(file);
+    }
+
+    function restoreAllDataPrompt() {
+        document.getElementById('restore-file-input').click();
+    }
+
+    function restoreAllDataFile(event) {
+        const input = event.target;
+        const file = input.files && input.files[0];
+        input.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function () {
+            let payload;
+            try { payload = JSON.parse(reader.result); } catch (e) { alert('Arquivo inválido.'); return; }
+            if (!payload || payload.format !== BACKUP_FORMAT || !payload.data || typeof payload.data !== 'object') {
+                alert('Este arquivo não é um backup do PSC Pro. Nada foi alterado.');
+                return;
+            }
+            const keys = Object.keys(payload.data);
+            const valid = keys.every(function (k) {
+                return k.startsWith(BACKUP_PREFIX) && typeof payload.data[k] === 'string';
+            });
+            if (!valid) {
+                alert('Conteúdo do backup inesperado. Nada foi alterado.');
+                return;
+            }
+            const msg = 'Restaurar backup de ' + payload.createdAt + ' (' + keys.length + ' itens)?\n'
+                + 'Os dados atuais serão substituídos. Antes, será baixado um backup automático dos dados atuais.';
+            if (!confirm(msg)) return;
+
+            backupAllData(); // salvaguarda do estado atual antes de qualquer escrita
+            try {
+                Object.keys(collectLocalData()).forEach(function (k) { localStorage.removeItem(k); });
+                keys.forEach(function (k) { localStorage.setItem(k, payload.data[k]); });
+            } catch (e) {
+                alert('Falha ao restaurar. Use o backup automático baixado antes desta operação.');
+                return;
+            }
+            alert('Backup restaurado. A página será recarregada.');
+            location.reload();
+        };
+        reader.readAsText(file);
+    }
+
+
+    // ── PROJEÇÃO DE LADOS (Virada de campo, Fase 1) ───────────────
+    // Estado de lados: false = posição original. Nesta fase nada muda visualmente:
+    // a classe 'is-swapped' é aplicada, mas nenhuma regra CSS depende dela ainda.
+    // A rotação 180° (D2) será feita por CSS a partir dessa classe (Fase 3/4).
+
+    function applySidesProjection() {
+        const teams = document.querySelector('.p-teams');
+        if (teams) teams.classList.toggle('is-swapped', sidesSwapped);
+        const ls = document.querySelector('.ls-body');
+        if (ls) ls.classList.toggle('is-swapped', sidesSwapped);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const label = document.getElementById('config-version-label');
+        if (label) label.innerText = 'V ' + APP_BUILD_VERSION;
+        applySidesProjection();
+    });
+
     Object.assign(window, {
+        backupAllData, restoreAllDataPrompt, restoreAllDataFile,
         addPoint, removePoint,
         askResetMatch, carouselNav,
         checkForUpdates,

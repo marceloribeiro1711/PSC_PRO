@@ -414,6 +414,13 @@
         </div>
 
         <div class="config-row">
+            <div class="config-row-label">DATA</div>
+            <button class="config-tut-btn" onclick="backupAllData()">Backup</button>
+            <button class="config-tut-btn" onclick="restoreAllDataPrompt()">Restore</button>
+            <input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="restoreAllDataFile(event)">
+        </div>
+
+        <div class="config-row">
             <div class="config-row-label">TUTORIAL</div>
             <button class="config-tut-btn" onclick="startTutorialFromConfig()">Show Tutorial</button>
         </div>
