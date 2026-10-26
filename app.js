@@ -4420,12 +4420,30 @@
     }
     // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
     // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
+    // Switch Sides, por estado:
+    //  - partida encerrada: sem botão e sem troca (fica como terminou)
+    //  - tie-break e super tie-break: botão sempre disponível, para o coach corrigir trocas erradas
+    //  - demais games: 0 pontos = botão ("Switch Sides", ou "⚠ SIDES SWITCHED" piscando se virada);
+    //    1 ponto = só aparece se virada, como "⚠ SIDES SWITCHED" piscando;
+    //    2 ou mais pontos = some sem aviso
+    // Com a partida virada, o próprio botão/alerta desfaz a virada, com confirmação.
     function updateSwitchSidesBtn() {
         const btn = document.getElementById('switch-sides-btn');
         if (!btn || !state) return;
-        const tbStarted = !!(state.isTieBreakMode && state.tiebreakPts && (state.tiebreakPts[0] || state.tiebreakPts[1]));
-        const gameStart = !state.matchOver && state.pts[0] === 0 && state.pts[1] === 0 && !tbStarted;
-        btn.classList.toggle('is-hidden', !gameStart);
+        const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
+        const played = state.pts[0] + state.pts[1];
+        let visible, blink;
+        if (state.matchOver) {
+            visible = false; blink = false;
+        } else if (special) {
+            visible = true; blink = false;                 // sempre disponível, sem piscar
+        } else {
+            visible = played < 2 && (played === 0 || sidesSwapped);
+            blink = visible && sidesSwapped;               // piscar só na janela dos dois primeiros pontos
+        }
+        btn.classList.toggle('is-hidden', !visible);
+        btn.classList.toggle('is-alert', blink);
+        btn.textContent = sidesSwapped ? '⚠ SIDES SWITCHED' : 'Switch Sides';
     }
     function applyPlayerEditLock() {
         const locked = isMatchLocked();
@@ -5151,6 +5169,7 @@
         // TV (paisagem) não reflete a virada: decisão D9 revisada, sem rotação na paisagem.
         const swBtn = document.getElementById('switch-sides-btn');
         if (swBtn) swBtn.classList.toggle('is-active', sidesSwapped);
+        updateSwitchSidesBtn();
     }
 
     document.addEventListener('DOMContentLoaded', function () {

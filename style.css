@@ -2278,3 +2278,5 @@
 #sw-lock { position: fixed; inset: 0; z-index: 200; background: transparent; touch-action: none; }
 
 .sw-btn.is-hidden { display: none; }
+.sw-btn.is-alert { color: #f5c518; border-color: #f5c518; animation: swBlink 1s steps(2, start) infinite; }
+@keyframes swBlink { to { opacity: 0.2; } }
