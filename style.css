@@ -2282,5 +2282,5 @@
 
 /* Break Point ao lado do Golden Point, na mesma linha do divisor (corrige posição no fim da tela) */
 .gp-divider-wrap { display: flex; justify-content: flex-end; align-items: center; gap: 2vw; padding-right: 3vw; height: 0; }
-.gp-divider-wrap .gp-divider-badge { position: static; right: auto; top: auto; transform: translateY(-50%); }
-.gp-divider-wrap .bp-center-badge { position: static; left: auto; bottom: auto; transform: translateY(-50%); }
+.gp-divider-wrap .gp-divider-badge { position: static; right: auto; top: auto; transform: none; }
+.gp-divider-wrap .bp-center-badge { position: static; left: auto; bottom: auto; transform: none; }
