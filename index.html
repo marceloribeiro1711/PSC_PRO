@@ -162,6 +162,7 @@
                 <div class="timer-label">Time</div>
                 <div class="timer-display" id="timer-display-p">00:00</div>
             </div>
+            <button class="sw-btn" id="switch-sides-btn" onclick="askSwitchSides()">Switch Sides</button>
         </div>
 
         <!-- EQUIPA 2: scores em cima, fotos em baixo -->
@@ -503,6 +504,16 @@
         <div class="ng-buttons">
             <button class="ng-btn ng-cancel" onclick="declineCloseSet()">No</button>
             <button class="ng-btn ng-confirm" onclick="confirmCloseSet()">Yes</button>
+        </div>
+    </div>
+</div>
+<div class="ng-overlay" id="sw-overlay">
+    <div class="ng-modal">
+        <div class="ng-title">Padel Coaching Pro</div>
+        <div class="ng-message">Switch sides?</div>
+        <div class="ng-buttons">
+            <button class="ng-btn ng-cancel" onclick="swCancel()">No</button>
+            <button class="ng-btn ng-confirm" onclick="swConfirm()">Yes</button>
         </div>
     </div>
 </div>

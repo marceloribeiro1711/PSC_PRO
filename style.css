@@ -2237,3 +2237,26 @@
     white-space: pre-wrap; line-height: 1.5; margin: 10px 0;
     font-size: calc(1.5 * var(--vh, 1vh)); user-select: text; -webkit-user-select: text;
 }
+
+
+/* ── VIRADA DE CAMPO (Fase 3a) ─────────────────────────────────
+   Rotação de 180° feita só por CSS, a partir de .p-teams.is-swapped.
+   Nenhum dado ou ID é trocado. O timer, o divisor e o botão são
+   ancorados ao topo da faixa da equipe 1 quando ela está embaixo. */
+.p-teams.is-swapped .team1.p-team-panel { order: 2; flex: 1.18; padding-top: calc(2.5 * var(--vh, 1vh)); padding-bottom: calc(0.3 * var(--vh, 1vh)); border-bottom: none; }
+.p-teams.is-swapped .team2.p-team-panel { order: 1; flex: 0.82; padding-top: calc(0.3 * var(--vh, 1vh)); padding-bottom: calc(2.5 * var(--vh, 1vh)); border-bottom: 2px solid var(--divider); }
+.p-teams.is-swapped .p-players-col { flex-direction: column-reverse; }
+.p-teams.is-swapped .p-photos-row,
+.p-teams.is-swapped .stats-panel { flex-direction: row-reverse; }
+.p-teams.is-swapped .team1 .match-timer,
+.p-teams.is-swapped .team1 .gp-divider-wrap,
+.p-teams.is-swapped .team1 .sw-btn { bottom: auto; top: 0; transform: translateY(-50%); }
+
+.sw-btn {
+    position: absolute; right: 5vw; bottom: 0; transform: translateY(50%);
+    background: #0e2040; border: 1.5px solid #1e3a6e; border-radius: 7px;
+    padding: calc(0.35 * var(--vh, 1vh)) 2.5vw; color: var(--text, #fff);
+    font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.4px;
+    cursor: pointer; z-index: 101; white-space: nowrap;
+}
+.sw-btn:active { background: #1e3a6e; }

@@ -5046,6 +5046,21 @@
     }
 
 
+
+    // ── VIRADA DE CAMPO (Fase 3a): botão, confirmação e alternância ──
+    function askSwitchSides() {
+        document.getElementById('sw-overlay').classList.add('show');
+    }
+    function swCancel() {
+        document.getElementById('sw-overlay').classList.remove('show');
+    }
+    function swConfirm() {
+        document.getElementById('sw-overlay').classList.remove('show');
+        sidesSwapped = !sidesSwapped;   // mesmo botão desfaz (D4)
+        applySidesProjection();
+        saveGameState();
+    }
+
     // ── PROJEÇÃO DE LADOS (Virada de campo, Fase 1) ───────────────
     // Estado de lados: false = posição original. Nesta fase nada muda visualmente:
     // a classe 'is-swapped' é aplicada, mas nenhuma regra CSS depende dela ainda.
@@ -5064,6 +5079,7 @@
 
     Object.assign(window, {
         backupAllData, restoreAllDataPrompt, restoreAllDataFile,
+        askSwitchSides, swCancel, swConfirm,
         addPoint, removePoint,
         askResetMatch, carouselNav,
         checkForUpdates,
