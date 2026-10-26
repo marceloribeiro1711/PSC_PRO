@@ -2266,3 +2266,8 @@
 .p-teams:not(.is-swapped) .team2 .scores-labels { display: none; }
 .p-teams.is-swapped .team1 .scores-labels { display: none; }
 .p-teams.is-swapped .team2 .scores-labels { display: flex; }
+
+/* Rótulo Points: mesma regra dos Set 1 / Set 2 / SUPERTIE, uma cópia por faixa */
+.p-teams:not(.is-swapped) .team2 .pts-label { display: none; }
+.p-teams.is-swapped .team1 .pts-label { display: none; }
+.p-teams.is-swapped .team2 .pts-label { display: block; }
