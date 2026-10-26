@@ -2245,7 +2245,7 @@
    ancorados ao topo da faixa da equipe 1 quando ela está embaixo. */
 .p-teams.is-swapped .team1.p-team-panel { order: 2; flex: 1.18; padding-top: calc(2.5 * var(--vh, 1vh)); padding-bottom: calc(0.3 * var(--vh, 1vh)); border-bottom: none; }
 .p-teams.is-swapped .team2.p-team-panel { order: 1; flex: 0.82; padding-top: calc(0.3 * var(--vh, 1vh)); padding-bottom: calc(2.5 * var(--vh, 1vh)); border-bottom: 2px solid var(--divider); }
-.p-teams.is-swapped .p-players-col { flex-direction: column-reverse; }
+.p-teams.is-swapped .p-players-col { flex-direction: column-reverse; justify-content: flex-end; }
 .p-teams.is-swapped .p-photos-row,
 .p-teams.is-swapped .stats-panel { flex-direction: row-reverse; }
 .p-teams.is-swapped .team1 .match-timer,
