@@ -2242,6 +2242,8 @@
     // ============================================================
     // Virada de campo: estado de lados (false = posição original)
     let sidesSwapped = false;
+    let sideNoticeLeft = 0;     // pontos restantes do aviso após cada troca (evento, não estado)
+    let sideLastPlayed = 0;     // pontos do game já contabilizados pelo aviso
     const GAME_STATE_KEY = 'padel_game_state';
 
     function saveGameState() {
@@ -4354,6 +4356,7 @@
 
     function forceClear() {
         sidesSwapped = false; // nova partida sempre começa sem virada
+        sideNoticeLeft = 0; sideLastPlayed = 0;
         applySidesProjection();
         clearGameState();
         state = { sets:[[0,0],[0,0],[0,0]], currentSet:0, pts:[0,0], isSuperTieBreak:false, isTieBreakMode:false, matchOver:false, tiebreakPts:[null,null,null], deuceCount:0 };
@@ -4420,30 +4423,26 @@
     }
     // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
     // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
-    // Switch Sides, por estado:
-    //  - partida encerrada: sem botão e sem troca (fica como terminou)
-    //  - tie-break e super tie-break: botão sempre disponível, para o coach corrigir trocas erradas
-    //  - demais games: 0 pontos = botão ("Switch Sides", ou "⚠ SIDES SWITCHED" piscando se virada);
-    //    1 ponto = só aparece se virada, como "⚠ SIDES SWITCHED" piscando;
-    //    2 ou mais pontos = some sem aviso
-    // Com a partida virada, o próprio botão/alerta desfaz a virada, com confirmação.
+    // Switch Sides: o texto do botão é sempre o mesmo. O aviso "⚠ SIDES SWITCHED" aparece
+    // só durante os dois pontos seguintes a cada troca (inclusive ao desfazer) e some sem aviso.
+    // Visibilidade do botão: início de game, tie-break e super tie-break; partida encerrada, nunca.
     function updateSwitchSidesBtn() {
         const btn = document.getElementById('switch-sides-btn');
         if (!btn || !state) return;
-        const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
         const played = state.pts[0] + state.pts[1];
-        let visible, blink;
-        if (state.matchOver) {
-            visible = false; blink = false;
-        } else if (special) {
-            visible = true; blink = false;                 // sempre disponível, sem piscar
-        } else {
-            visible = played < 2 && (played === 0 || sidesSwapped);
-            blink = visible && sidesSwapped;               // piscar só na janela dos dois primeiros pontos
+        if (played !== sideLastPlayed) {
+            // ponto novo: avança a janela; se o game acabou (contagem zerou), conta como 1 ponto
+            const gained = played > sideLastPlayed ? played - sideLastPlayed : 1;
+            sideNoticeLeft = Math.max(0, sideNoticeLeft - gained);
+            sideLastPlayed = played;
         }
-        btn.classList.toggle('is-hidden', !visible);
-        btn.classList.toggle('is-alert', blink);
-        btn.textContent = sidesSwapped ? '⚠ SIDES SWITCHED' : 'Switch Sides';
+        const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
+        if (special) sideNoticeLeft = 0;   // tie-break e super tie-break: sem aviso, e o aviso não vaza para o game seguinte
+        const notice = !state.matchOver && !special && sideNoticeLeft > 0;
+        const showBtn = !state.matchOver && (notice || special || played === 0);
+        btn.textContent = notice ? '⚠ SIDES SWITCHED' : 'Switch Sides';
+        btn.classList.toggle('is-hidden', !showBtn);
+        btn.classList.toggle('is-alert', notice);
     }
     function applyPlayerEditLock() {
         const locked = isMatchLocked();
@@ -5134,6 +5133,8 @@
         const before2 = t2.getBoundingClientRect().top;
         sidesSwapped = !sidesSwapped;      // mesmo botão desfaz (D4)
         applySidesProjection();
+        sideNoticeLeft = 2;                // nova troca: aviso nos próximos dois pontos
+        updateSwitchSidesBtn();
         const dy1 = before1 - t1.getBoundingClientRect().top;
         const dy2 = before2 - t2.getBoundingClientRect().top;
 
@@ -5167,8 +5168,6 @@
         const teams = document.querySelector('.p-teams');
         if (teams) teams.classList.toggle('is-swapped', sidesSwapped);
         // TV (paisagem) não reflete a virada: decisão D9 revisada, sem rotação na paisagem.
-        const swBtn = document.getElementById('switch-sides-btn');
-        if (swBtn) swBtn.classList.toggle('is-active', sidesSwapped);
         updateSwitchSidesBtn();
     }
 
