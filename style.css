@@ -2260,3 +2260,9 @@
     cursor: pointer; z-index: 101; white-space: nowrap;
 }
 .sw-btn:active { background: #1e3a6e; }
+
+/* Rótulos Set 1 / Set 2 / SUPERTIE: sempre na faixa de cima, sem girar com a equipe.
+   Cada faixa tem a sua cópia; só a que está em cima aparece. */
+.p-teams:not(.is-swapped) .team2 .scores-labels { display: none; }
+.p-teams.is-swapped .team1 .scores-labels { display: none; }
+.p-teams.is-swapped .team2 .scores-labels { display: flex; }
