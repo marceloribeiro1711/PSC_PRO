@@ -2254,12 +2254,12 @@
 
 .sw-btn {
     position: absolute; right: 5vw; bottom: 0; transform: translateY(50%);
-    background: #0e2040; border: 1.5px solid #1e3a6e; border-radius: 7px;
-    padding: calc(0.35 * var(--vh, 1vh)) 2.5vw; color: var(--text, #fff);
+    background: #e03030; border: 1.5px solid #e03030; border-radius: 7px;
+    padding: calc(0.35 * var(--vh, 1vh)) 2.5vw; color: #fff;
     font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.4px;
     cursor: pointer; z-index: 101; white-space: nowrap;
 }
-.sw-btn:active { background: #1e3a6e; }
+.sw-btn:active { background: #b02424; border-color: #b02424; }
 
 /* Rótulos Set 1 / Set 2 / SUPERTIE: sempre na faixa de cima, sem girar com a equipe.
    Cada faixa tem a sua cópia; só a que está em cima aparece. */
@@ -2294,7 +2294,7 @@
 .p-teams.sw-dip { opacity: 0.25; }
 
 /* Aviso centralizado no divisor, separado do botão: não bloqueia a troca */
-.sw-notice { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: #e03030; color: #fff; font-size: calc(1.0 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.2px; padding: calc(0.25 * var(--vh, 1vh)) 1.6vw; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 101; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.sw-notice { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: #e03030; color: #fff; font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 1.2px; padding: calc(0.3 * var(--vh, 1vh)) 2vw; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 101; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
 .sw-notice.is-hidden { display: none; }
 .sw-notice .sw-text { animation: swBlink 1s steps(2, start) infinite; }
 .p-teams.is-swapped .team1 .sw-notice { bottom: auto; top: 0; transform: translate(-50%, -50%); }
