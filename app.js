@@ -4442,10 +4442,10 @@
         const noticeOn = !state.matchOver && !special && sideNoticeLeft > 0;
         // o botão continua disponível durante o aviso, para permitir desfazer a troca
         const showBtn = !state.matchOver && (special || played === 0 || noticeOn);
-        btn.textContent = 'Switch Sides';
+        btn.textContent = 'To change Sides';
         btn.classList.toggle('is-hidden', !showBtn);
         if (notice) {
-            if (noticeOn && !notice.firstChild) notice.innerHTML = '<span class="sw-text">⚠ SIDES SWITCHED</span>';
+            if (noticeOn && !notice.firstChild) notice.innerHTML = '<span class="sw-text">⚠ Sides changed</span>';
             notice.classList.toggle('is-hidden', !noticeOn);
         }
     }
@@ -5145,7 +5145,7 @@
 
         const target = !sidesSwapped;
         sidesSwapped = target;             // D4: o mesmo botão desfaz
-        sideNoticeLeft = 2;                // aviso nos próximos dois pontos (após cada troca)
+        sideNoticeLeft = 1;                // botão e aviso permanecem até o primeiro ponto após a troca
         updateSwitchSidesBtn();
 
         const teams = document.querySelector('.p-teams');
