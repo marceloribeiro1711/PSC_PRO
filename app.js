@@ -4440,7 +4440,8 @@
         if (special) sideNoticeLeft = 0;   // tie-break e super tie-break: sem aviso, e o aviso não vaza para o game seguinte
         const notice = !state.matchOver && !special && sideNoticeLeft > 0;
         const showBtn = !state.matchOver && (notice || special || played === 0);
-        btn.textContent = notice ? '⚠ SIDES SWITCHED' : 'Switch Sides';
+        if (notice) btn.innerHTML = '<span class="sw-text">⚠ SIDES SWITCHED</span>';
+        else btn.textContent = 'Switch Sides';
         btn.classList.toggle('is-hidden', !showBtn);
         btn.classList.toggle('is-alert', notice);
     }
@@ -5081,12 +5082,15 @@
     function swCancel() {
         document.getElementById('sw-overlay').classList.remove('show');
     }
-    // Duração e tempo máximo de segurança da animação de virada (3b).
-    // Se o fim não disparar, a finalização acontece sozinha e em silêncio.
-    const SWAP_ANIM_MS = 1000;
-    const SWAP_FAILSAFE_MS = 2000;   // sempre acima de SWAP_ANIM_MS
+    // Animação em X (3b): cada jogador (foto, nome e bolinha) cruza na diagonal até o canto oposto.
+    // Números e placares ficam parados e trocam de posição no centro, com um leve esmaecimento.
+    // O fundo é escurecido para destacar quem se move.
+    const SWAP_ANIM_MS = 1000;      // duração total
+    const SWAP_MID_MS = 500;        // cruzamento no centro: troca dos dados
     let swapAnimating = false;
-    let swapFailsafe = null;
+    let swapTimers = [];
+    let swapClones = [];
+    let swapCards = [];
 
     function setSwapLock(on) {
         let lock = document.getElementById('sw-lock');
@@ -5101,62 +5105,119 @@
         }
     }
 
+    // Copia o estilo computado de cada elemento para o clone, para manter a aparência da equipe
+    function copyComputedStyle(from, to) {
+        const cs = getComputedStyle(from);
+        for (let i = 0; i < cs.length; i++) {
+            const p = cs[i];
+            to.style.setProperty(p, cs.getPropertyValue(p), cs.getPropertyPriority(p));
+        }
+    }
+
+    // Finalização única: estado final no layout, limpeza dos clones e liberação da tela
     function finishSwap() {
-        if (!swapAnimating) return;        // idempotente: pode ser chamada pelo fim ou pelo tempo máximo
+        if (!swapAnimating) return;
         swapAnimating = false;
-        clearTimeout(swapFailsafe);
-        document.querySelectorAll('.p-team-panel').forEach(function (el) {
-            el.style.transition = '';
-            el.style.transform = '';
-        });
+        swapTimers.forEach(clearTimeout);
+        swapTimers = [];
+        applySidesProjection();            // garante o estado final (idempotente)
+        swapClones.forEach(function (c) { c.remove(); });
+        swapClones = [];
+        swapCards.forEach(function (c) { c.style.visibility = ''; });
+        swapCards = [];
+        const dim = document.getElementById('sw-dim');
+        if (dim) dim.classList.remove('on');
+        const teams = document.querySelector('.p-teams');
+        if (teams) teams.classList.remove('sw-dip');
         setSwapLock(false);
         const sw = document.getElementById('switch-sides-btn');
         if (sw) sw.disabled = false;
-        saveGameState();                   // estado gravado só ao fim da virada
+        saveGameState();                   // estado gravado só ao fim
     }
 
     function swConfirm() {
         document.getElementById('sw-overlay').classList.remove('show');
         if (swapAnimating) return;
 
-        const t1 = document.querySelector('.p-team-panel.team1');
-        const t2 = document.querySelector('.p-team-panel.team2');
-        if (!t1 || !t2) {                  // sem a tela de jogo: só alterna
-            sidesSwapped = !sidesSwapped;
+        const target = !sidesSwapped;
+        sidesSwapped = target;             // D4: o mesmo botão desfaz
+        sideNoticeLeft = 2;                // aviso nos próximos dois pontos (após cada troca)
+        updateSwitchSidesBtn();
+
+        const teams = document.querySelector('.p-teams');
+        const cards = teams ? Array.prototype.slice.call(teams.querySelectorAll('.player-card')) : [];
+        if (cards.length !== 4) {          // sem a tela de jogo: aplica direto
             applySidesProjection();
             saveGameState();
             return;
         }
 
-        // FLIP: mede a posição antes, aplica o estado final, e anima do ponto antigo para o novo
-        const before1 = t1.getBoundingClientRect().top;
-        const before2 = t2.getBoundingClientRect().top;
-        sidesSwapped = !sidesSwapped;      // mesmo botão desfaz (D4)
-        applySidesProjection();
-        sideNoticeLeft = 2;                // nova troca: aviso nos próximos dois pontos
-        updateSwitchSidesBtn();
-        const dy1 = before1 - t1.getBoundingClientRect().top;
-        const dy2 = before2 - t2.getBoundingClientRect().top;
+        // Mede a posição antiga (layout atual) e a nova (aplicada e desfeita sem pintar a tela)
+        const before = cards.map(function (c) { return c.getBoundingClientRect(); });
+        teams.classList.toggle('is-swapped', target);
+        const after = cards.map(function (c) { return c.getBoundingClientRect(); });
+        teams.classList.toggle('is-swapped', !target);
 
         swapAnimating = true;
         setSwapLock(true);
         const sw = document.getElementById('switch-sides-btn');
         if (sw) sw.disabled = true;
 
-        if (Math.abs(dy1) < 1 && Math.abs(dy2) < 1) { finishSwap(); return; }
+        // Véu escuro para destacar os jogadores
+        let dim = document.getElementById('sw-dim');
+        if (!dim) {
+            dim = document.createElement('div');
+            dim.id = 'sw-dim';
+            dim.className = 'sw-dim';
+            document.body.appendChild(dim);
+        }
+        void dim.offsetWidth;
+        dim.classList.add('on');
 
-        [[t1, dy1], [t2, dy2]].forEach(function (pair) {
-            pair[0].style.transition = 'none';
-            pair[0].style.transform = 'translateY(' + pair[1] + 'px)';
+        // Clones dos jogadores: cada um percorre a diagonal até o canto oposto
+        swapCards = cards;
+        swapClones = [];
+        cards.forEach(function (card, i) {
+            const b = before[i], f = after[i];
+            const clone = card.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
+            copyComputedStyle(card, clone);
+            clone.style.position = 'fixed';      // deve vencer o estilo copiado
+            clone.style.margin = '0';
+            clone.style.zIndex = '160';
+            clone.style.pointerEvents = 'none';
+            clone.style.transform = 'none';
+            const cardEls = card.querySelectorAll('*');
+            const cloneEls = clone.querySelectorAll('*');
+            for (let k = 0; k < cardEls.length && k < cloneEls.length; k++) {
+                copyComputedStyle(cardEls[k], cloneEls[k]);
+            }
+            clone.classList.add('sw-clone');
+            clone.style.left = b.left + 'px';
+            clone.style.top = b.top + 'px';
+            clone.style.width = b.width + 'px';
+            clone.style.height = b.height + 'px';
+            document.body.appendChild(clone);
+            swapClones.push(clone);
+            card.style.visibility = 'hidden';
+
+            const dx = f.left - b.left, dy = f.top - b.top;
+            const sx = f.width / b.width, sy = f.height / b.height;
+            const hl = 1.06;               // leve destaque no cruzamento
+            clone.animate([
+                { transform: 'translate(0px, 0px) scale(1, 1)' },
+                { transform: 'translate(' + (dx / 2) + 'px, ' + (dy / 2) + 'px) scale(' + (((1 + sx) / 2) * hl) + ', ' + (((1 + sy) / 2) * hl) + ')', offset: 0.5 },
+                { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + sx + ', ' + sy + ')' }
+            ], { duration: SWAP_ANIM_MS, easing: 'ease-in-out', fill: 'forwards' });
         });
-        void t1.offsetHeight;              // força o reflow antes de iniciar a transição
-        [t1, t2].forEach(function (el) {
-            el.style.transition = 'transform ' + SWAP_ANIM_MS + 'ms ease-in-out';
-            el.style.transform = 'translateY(0)';
-        });
-        t1.addEventListener('transitionend', finishSwap, { once: true });
-        t2.addEventListener('transitionend', finishSwap, { once: true });
-        swapFailsafe = setTimeout(finishSwap, SWAP_FAILSAFE_MS);
+
+        // No centro: esmaece os números, troca os dados e reaparece
+        swapTimers.push(setTimeout(function () { teams.classList.add('sw-dip'); }, SWAP_MID_MS - 80));
+        swapTimers.push(setTimeout(function () { applySidesProjection(); }, SWAP_MID_MS));
+        swapTimers.push(setTimeout(function () { teams.classList.remove('sw-dip'); }, SWAP_MID_MS + 80));
+        // Fim da animação (também serve como tempo máximo: a finalização é única)
+        swapTimers.push(setTimeout(finishSwap, SWAP_ANIM_MS));
     }
 
     // ── PROJEÇÃO DE LADOS (Virada de campo, Fase 1) ───────────────

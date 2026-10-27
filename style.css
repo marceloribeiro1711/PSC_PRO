@@ -2277,10 +2277,18 @@
 #sw-lock { position: fixed; inset: 0; z-index: 200; background: transparent; touch-action: none; }
 
 .sw-btn.is-hidden { display: none; }
-.sw-btn.is-alert { color: #e03030; border-color: #e03030; animation: swBlink 1s steps(2, start) infinite; pointer-events: none; }
+.sw-btn.is-alert { background: #e03030; color: #fff; border-color: #e03030; pointer-events: none; }
+.sw-btn.is-alert .sw-text { animation: swBlink 1s steps(2, start) infinite; }
 @keyframes swBlink { to { opacity: 0.2; } }
 
 /* Break Point ao lado do Golden Point, na mesma linha do divisor (corrige posição no fim da tela) */
 .gp-divider-wrap { display: flex; justify-content: flex-end; align-items: center; gap: 2vw; padding-right: 3vw; height: 0; }
 .gp-divider-wrap .gp-divider-badge { position: static; right: auto; top: auto; transform: none; }
 .gp-divider-wrap .bp-center-badge { position: static; left: auto; bottom: auto; transform: none; }
+
+/* Animação em X (3b): véu de fundo, clones dos jogadores e esmaecimento dos números no centro */
+.sw-dim { position: fixed; inset: 0; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 0.25s ease; z-index: 150; pointer-events: none; }
+.sw-dim.on { opacity: 1; }
+.sw-clone { position: fixed; margin: 0; z-index: 160; pointer-events: none; transform-origin: 0 0; box-shadow: 0 0 14px rgba(255,255,255,0.55); border-radius: 8px; }
+.p-teams { transition: opacity 0.15s ease; }
+.p-teams.sw-dip { opacity: 0.25; }
