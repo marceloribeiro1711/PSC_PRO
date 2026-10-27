@@ -197,6 +197,8 @@
         }
         .p-tab-btn svg { width: 20px; height: 20px; }
         .p-tab-btn span { font-size: 10px; font-weight: 600; }
+        /* 5 abas: rótulo longo ("Padel Calendar") não quebra a linha da barra */
+        .p-tab-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .p-tab-btn:active { color: var(--accent-blue); }
         /* No retrato o menu hambúrguer (FAB) dá lugar à barra inferior; o FAB continua só no TV Mode */
         @media (orientation: portrait) {

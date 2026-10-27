@@ -5239,7 +5239,7 @@
         checkForUpdates,
         ngConfirm, ngCancel,
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
-        closeCircuitOverlay, fecharCircuitoPadel,
+        openCircuitOverlay, closeCircuitOverlay, fecharCircuitoPadel,
         openAiViewer, closeAiViewer,
         closeExportResult, shareExportResult,
         closeShareFallback, downloadShareFallback,
