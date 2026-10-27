@@ -200,7 +200,7 @@
     <div class="linha" id="f-categoria">
       <button class="chip" data-valor="todas" aria-pressed="true">All</button>
       <button class="chip" data-valor="MAIN" aria-pressed="false">MAIN</button>
-      <button class="chip" data-valor="MASTERS" aria-pressed="false">MASTERS</button>
+      <button class="chip" data-valor="SENIORS" aria-pressed="false">SENIORS</button>
       <button class="chip" data-valor="JUNIOR" aria-pressed="false">JUNIOR</button>
     </div>
     <div class="linha" id="f-status">
@@ -651,7 +651,7 @@ function rotuloGenero(g) {
 // Linha "Category" do card: Promises, veteranos ou as faixas M/F
 function rotuloCategoriaDetalhe(t) {
   if (circuitoDe(t) === "Promises") return "U12B to U18B and U12G to U18G";
-  if (categoriaDe(t) === "MASTERS") return "Senior +35 to +60";
+  if (categoriaDe(t) === "SENIORS") return "Senior +35 to +60";
   return rotuloGenero(t.genero);
 }
 
@@ -674,7 +674,7 @@ function categoriaDe(t) {
   if (c === "CUPRA Tour") return "MAIN";
   const cat = (t.categoria || "").toUpperCase();
   if (!cat) return null;
-  const traducao = { ABS: "MAIN", VET: "MASTERS", JOV: "JUNIOR", JUV: "JUNIOR" };
+  const traducao = { ABS: "MAIN", VET: "SENIORS", MASTERS: "SENIORS", JOV: "JUNIOR", JUV: "JUNIOR" };
   return traducao[cat] || cat;
 }
 
