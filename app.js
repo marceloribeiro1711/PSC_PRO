@@ -4423,31 +4423,22 @@
     }
     // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
     // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
-    // Switch Sides: o texto do botão é sempre o mesmo. O aviso "⚠ SIDES SWITCHED" aparece
-    // só durante os dois pontos seguintes a cada troca (inclusive ao desfazer) e some sem aviso.
-    // Visibilidade do botão: início de game, tie-break e super tie-break; partida encerrada, nunca.
     function updateSwitchSidesBtn() {
         const btn = document.getElementById('switch-sides-btn');
-        const notice = document.getElementById('sw-notice');
         if (!btn || !state) return;
         const played = state.pts[0] + state.pts[1];
         if (played !== sideLastPlayed) {
-            // ponto novo: avança a janela; se o game acabou (contagem zerou), conta como 1 ponto
+            // ponto novo: fecha a janela pós-troca; se o game acabou (contagem zerou), conta como 1 ponto
             const gained = played > sideLastPlayed ? played - sideLastPlayed : 1;
             sideNoticeLeft = Math.max(0, sideNoticeLeft - gained);
             sideLastPlayed = played;
         }
         const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
-        if (special) sideNoticeLeft = 0;   // tie-break e super tie-break: sem aviso
-        const noticeOn = !state.matchOver && !special && sideNoticeLeft > 0;
-        // o botão continua disponível durante o aviso, para permitir desfazer a troca
-        const showBtn = !state.matchOver && (special || played === 0 || noticeOn);
-        btn.textContent = 'To change Sides';
+        if (special) sideNoticeLeft = 0;
+        const windowOpen = sideNoticeLeft > 0;
+        const showBtn = !state.matchOver && (special || played === 0 || windowOpen);
+        btn.textContent = 'Change Sides';
         btn.classList.toggle('is-hidden', !showBtn);
-        if (notice) {
-            if (noticeOn && !notice.firstChild) notice.innerHTML = '<span class="sw-text">⚠ Sides changed</span>';
-            notice.classList.toggle('is-hidden', !noticeOn);
-        }
     }
     function applyPlayerEditLock() {
         const locked = isMatchLocked();

@@ -2278,7 +2278,6 @@
 
 .sw-btn.is-hidden { display: none; }
 .sw-btn.is-alert { background: #e03030; color: #fff; border-color: #e03030; pointer-events: none; }
-.sw-btn.is-alert .sw-text { animation: swBlink 1s steps(2, start) infinite; }
 @keyframes swBlink { to { opacity: 0.2; } }
 
 /* Break Point ao lado do Golden Point, na mesma linha do divisor (corrige posição no fim da tela) */
@@ -2293,8 +2292,3 @@
 .p-teams { transition: opacity 0.15s ease; }
 .p-teams.sw-dip { opacity: 0.25; }
 
-/* Aviso centralizado no divisor, separado do botão: não bloqueia a troca */
-.sw-notice { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: #e03030; color: #fff; font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 900; letter-spacing: 1.2px; padding: calc(0.3 * var(--vh, 1vh)) 2vw; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 101; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-.sw-notice.is-hidden { display: none; }
-.sw-notice .sw-text { animation: swBlink 1s steps(2, start) infinite; }
-.p-teams.is-swapped .team1 .sw-notice { bottom: auto; top: 0; transform: translate(-50%, -50%); }
