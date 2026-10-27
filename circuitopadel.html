@@ -859,10 +859,11 @@ function renderizar() {
   const agora = new Date();
   const itens = TORNEIOS.map(t => ({ t, st: calcularStatus(t, agora) }));
 
-  document.getElementById("k-abertas").textContent = itens.filter(i => i.st.chave === "abertas").length;
-  document.getElementById("k-pagamento").textContent = itens.filter(i => i.st.chave === "pagamento").length;
-
+  // Totais do topo = exatamente os cartões exibidos com esse status (após todos os filtros)
   const visiveis = itens.filter(i => passaFiltro(i.t, i.st)).sort(ordenar);
+  document.getElementById("k-abertas").textContent = visiveis.filter(i => i.st.chave === "abertas").length;
+  document.getElementById("k-pagamento").textContent = visiveis.filter(i => i.st.chave === "pagamento").length;
+
   document.getElementById("lista").innerHTML = visiveis.length
     ? visiveis.map(i => cartao(i.t, i.st)).join("")
     : `<div class="vazio-lista">No tournaments match these filters.</div>`;
