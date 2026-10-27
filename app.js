@@ -4428,6 +4428,7 @@
     // Visibilidade do botão: início de game, tie-break e super tie-break; partida encerrada, nunca.
     function updateSwitchSidesBtn() {
         const btn = document.getElementById('switch-sides-btn');
+        const notice = document.getElementById('sw-notice');
         if (!btn || !state) return;
         const played = state.pts[0] + state.pts[1];
         if (played !== sideLastPlayed) {
@@ -4437,13 +4438,16 @@
             sideLastPlayed = played;
         }
         const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
-        if (special) sideNoticeLeft = 0;   // tie-break e super tie-break: sem aviso, e o aviso não vaza para o game seguinte
-        const notice = !state.matchOver && !special && sideNoticeLeft > 0;
-        const showBtn = !state.matchOver && (notice || special || played === 0);
-        if (notice) btn.innerHTML = '<span class="sw-text">⚠ SIDES SWITCHED</span>';
-        else btn.textContent = 'Switch Sides';
+        if (special) sideNoticeLeft = 0;   // tie-break e super tie-break: sem aviso
+        const noticeOn = !state.matchOver && !special && sideNoticeLeft > 0;
+        // o botão continua disponível durante o aviso, para permitir desfazer a troca
+        const showBtn = !state.matchOver && (special || played === 0 || noticeOn);
+        btn.textContent = 'Switch Sides';
         btn.classList.toggle('is-hidden', !showBtn);
-        btn.classList.toggle('is-alert', notice);
+        if (notice) {
+            if (noticeOn && !notice.firstChild) notice.innerHTML = '<span class="sw-text">⚠ SIDES SWITCHED</span>';
+            notice.classList.toggle('is-hidden', !noticeOn);
+        }
     }
     function applyPlayerEditLock() {
         const locked = isMatchLocked();

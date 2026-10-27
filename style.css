@@ -2292,3 +2292,9 @@
 .sw-clone { position: fixed; margin: 0; z-index: 160; pointer-events: none; transform-origin: 0 0; box-shadow: 0 0 14px rgba(255,255,255,0.55); border-radius: 8px; }
 .p-teams { transition: opacity 0.15s ease; }
 .p-teams.sw-dip { opacity: 0.25; }
+
+/* Aviso centralizado no divisor, separado do botão: não bloqueia a troca */
+.sw-notice { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); background: #e03030; color: #fff; font-size: calc(1.0 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.2px; padding: calc(0.25 * var(--vh, 1vh)) 1.6vw; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 101; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.sw-notice.is-hidden { display: none; }
+.sw-notice .sw-text { animation: swBlink 1s steps(2, start) infinite; }
+.p-teams.is-swapped .team1 .sw-notice { bottom: auto; top: 0; transform: translate(-50%, -50%); }
