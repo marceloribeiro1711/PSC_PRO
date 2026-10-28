@@ -173,7 +173,6 @@
             color: var(--text-dim); pointer-events: none;
         }
         .header-logo-placeholder span { font-size: calc(1.2 * var(--vh, 1vh)); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-        .header-logo-hint { font-size: calc(1 * var(--vh, 1vh)); font-weight: 400; letter-spacing: 0; text-transform: none; opacity: 0.75; text-align: center; white-space: nowrap; }
         .header-logo-placeholder svg { width: calc(3 * var(--vh, 1vh)); height: calc(3 * var(--vh, 1vh)); opacity: 0.5; }
         .header-divider { width: 1px; height: calc(4 * var(--vh, 1vh)); background: var(--divider); flex-shrink: 0; }
 
@@ -198,8 +197,6 @@
         }
         .p-tab-btn svg { width: 20px; height: 20px; }
         .p-tab-btn span { font-size: 10px; font-weight: 600; }
-        /* 5 abas: rótulo longo ("Padel Calendar") não quebra a linha da barra */
-        .p-tab-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .p-tab-btn:active { color: var(--accent-blue); }
         /* No retrato o menu hambúrguer (FAB) dá lugar à barra inferior; o FAB continua só no TV Mode */
         @media (orientation: portrait) {
@@ -2240,58 +2237,3 @@
     white-space: pre-wrap; line-height: 1.5; margin: 10px 0;
     font-size: calc(1.5 * var(--vh, 1vh)); user-select: text; -webkit-user-select: text;
 }
-
-
-/* ── VIRADA DE CAMPO (Fase 3a) ─────────────────────────────────
-   Rotação de 180° feita só por CSS, a partir de .p-teams.is-swapped.
-   Nenhum dado ou ID é trocado. O timer, o divisor e o botão são
-   ancorados ao topo da faixa da equipe 1 quando ela está embaixo. */
-.p-teams.is-swapped .team1.p-team-panel { order: 2; flex: 1.18; padding-top: calc(2.5 * var(--vh, 1vh)); padding-bottom: calc(0.3 * var(--vh, 1vh)); border-bottom: none; }
-.p-teams.is-swapped .team2.p-team-panel { order: 1; flex: 0.82; padding-top: calc(0.3 * var(--vh, 1vh)); padding-bottom: calc(2.5 * var(--vh, 1vh)); border-bottom: 2px solid var(--divider); }
-.p-teams.is-swapped .p-players-col { flex-direction: column-reverse; justify-content: flex-end; }
-.p-teams.is-swapped .p-photos-row,
-.p-teams.is-swapped .stats-panel { flex-direction: row-reverse; }
-.p-teams.is-swapped .team1 .match-timer,
-.p-teams.is-swapped .team1 .gp-divider-wrap,
-.p-teams.is-swapped .team1 .sw-btn { bottom: auto; top: 0; transform: translateY(-50%); }
-
-.sw-btn {
-    position: absolute; right: 5vw; bottom: 0; transform: translateY(50%);
-    background: #e03030; border: 1.5px solid #e03030; border-radius: 7px;
-    padding: calc(0.35 * var(--vh, 1vh)) 2.5vw; color: #fff;
-    font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 0.4px;
-    cursor: pointer; z-index: 101; white-space: nowrap;
-}
-.sw-btn:active { background: #b02424; border-color: #b02424; }
-
-/* Rótulos Set 1 / Set 2 / SUPERTIE: sempre na faixa de cima, sem girar com a equipe.
-   Cada faixa tem a sua cópia; só a que está em cima aparece. */
-.p-teams:not(.is-swapped) .team2 .scores-labels { display: none; }
-.p-teams.is-swapped .team1 .scores-labels { display: none; }
-.p-teams.is-swapped .team2 .scores-labels { display: flex; }
-
-/* Rótulo Points: mesma regra dos Set 1 / Set 2 / SUPERTIE, uma cópia por faixa */
-.p-teams:not(.is-swapped) .team2 .pts-label { display: none; }
-.p-teams.is-swapped .team1 .pts-label { display: none; }
-.p-teams.is-swapped .team2 .pts-label { display: block; }
-
-
-/* Virada 3b: indicador de lados invertidos (RK-13) e bloqueio de toque durante a animação */
-#sw-lock { position: fixed; inset: 0; z-index: 200; background: transparent; touch-action: none; }
-
-.sw-btn.is-hidden { display: none; }
-.sw-btn.is-alert { background: #e03030; color: #fff; border-color: #e03030; pointer-events: none; }
-@keyframes swBlink { to { opacity: 0.2; } }
-
-/* Break Point ao lado do Golden Point, na mesma linha do divisor (corrige posição no fim da tela) */
-.gp-divider-wrap { display: flex; justify-content: flex-end; align-items: center; gap: 2vw; padding-right: 3vw; height: 0; }
-.gp-divider-wrap .gp-divider-badge { position: static; right: auto; top: auto; transform: none; }
-.gp-divider-wrap .bp-center-badge { position: static; left: auto; bottom: auto; transform: none; }
-
-/* Animação em X (3b): véu de fundo, clones dos jogadores e esmaecimento dos números no centro */
-.sw-dim { position: fixed; inset: 0; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 0.25s ease; z-index: 150; pointer-events: none; }
-.sw-dim.on { opacity: 1; }
-.sw-clone { position: fixed; margin: 0; z-index: 160; pointer-events: none; transform-origin: 0 0; box-shadow: 0 0 14px rgba(255,255,255,0.55); border-radius: 8px; }
-.p-teams { transition: opacity 0.15s ease; }
-.p-teams.sw-dip { opacity: 0.25; }
-

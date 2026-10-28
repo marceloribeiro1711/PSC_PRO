@@ -52,7 +52,7 @@
 <input type="file" id="fi-t1-img2" accept="image/*" class="img-file-input" data-target="t1-img2">
 <input type="file" id="fi-t2-img1" accept="image/*" class="img-file-input" data-target="t2-img1">
 <input type="file" id="fi-t2-img2" accept="image/*" class="img-file-input" data-target="t2-img2">
-<input type="file" id="fi-logo-left"  accept=".png,.jpg,.jpeg" class="logo-file-input" data-side="left">
+<input type="file" id="fi-logo-left"  accept="image/*" class="logo-file-input" data-side="left">
 
 <!-- ============================================================
      LAYOUT PORTRAIT (9:16)
@@ -69,7 +69,6 @@
                 <div class="header-logo-placeholder" id="logo-left-placeholder">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>
                     <span>Logo 1</span>
-                    <small class="header-logo-hint">Logo size 320 x 106 pixels</small>
                 </div>
             </div>
             <div class="header-divider"></div>
@@ -155,15 +154,14 @@
                 <div>Adjust to close it or to a score that keeps the Set open</div>
             </div>
             <div class="whos-serve-badge" id="whos-serve-p">Tap the ball to decide who will serve first</div>
+            <div class="bp-center-badge" id="break-point-p">BREAK POINT</div>
             <div class="gp-divider-wrap">
-                <div class="bp-center-badge" id="break-point-p">BREAK POINT</div>
                 <div class="gp-divider-badge" id="golden-point-p">GOLDEN POINT</div>
             </div>
             <div class="match-timer" id="timer-p" onclick="toggleTimer()">
                 <div class="timer-label">Time</div>
                 <div class="timer-display" id="timer-display-p">00:00</div>
             </div>
-            <button class="sw-btn" id="switch-sides-btn" onclick="askSwitchSides()">Change Sides</button>
         </div>
 
         <!-- EQUIPA 2: scores em cima, fotos em baixo -->
@@ -171,11 +169,6 @@
             <div class="p-players-col">
                 <div class="p-scores-col">
                     <div class="sets-block">
-                        <div class="scores-labels">
-                            <div class="score-label-cell">Set 1</div>
-                            <div class="score-label-cell">Set 2</div>
-                            <div class="score-label-cell s3-label">SUPERTIE</div>
-                        </div>
                         <div class="scores-box">
                             <div class="score-cell" id="t2-s1-cell"><span class="val" id="t2-s1">0</span><span class="tb-mini" id="t2-s1-tb"></span></div>
                             <div class="score-cell" id="t2-s2-cell"><span class="val" id="t2-s2">0</span><span class="tb-mini" id="t2-s2-tb"></span></div>
@@ -183,7 +176,6 @@
                         </div>
                     </div>
                     <div class="pts-block">
-                        <div class="pts-label">Points</div>
                         <div class="pts-box" data-team="2">
                             <span class="pts-val" id="t2-pts">0</span>
                         </div>
@@ -246,10 +238,6 @@
         <button class="p-tab-btn" id="tab-notes" onclick="openNotesFs(null)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
             <span>Notes</span>
-        </button>
-        <button class="p-tab-btn" id="tab-calendar" onclick="openCircuitOverlay()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
-            <span>Padel Calendar</span>
         </button>
         <button class="p-tab-btn" id="tab-setup" onclick="openConfig()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -430,7 +418,7 @@
             <button class="config-tut-btn" onclick="startTutorialFromConfig()">Show Tutorial</button>
         </div>
 
-        <div class="config-version" id="config-version-label">V 3.11.00</div>
+        <div class="config-version" id="config-version-label">V 3.9.8</div>
         <div class="config-modal-footer">
             <button class="config-back-btn" onclick="closeConfig()">BACK</button>
         </div>
@@ -508,16 +496,6 @@
         <div class="ng-buttons">
             <button class="ng-btn ng-cancel" onclick="declineCloseSet()">No</button>
             <button class="ng-btn ng-confirm" onclick="confirmCloseSet()">Yes</button>
-        </div>
-    </div>
-</div>
-<div class="ng-overlay" id="sw-overlay">
-    <div class="ng-modal">
-        <div class="ng-title">Padel Coaching Pro</div>
-        <div class="ng-message">Switch sides?</div>
-        <div class="ng-buttons">
-            <button class="ng-btn ng-cancel" onclick="swCancel()">No</button>
-            <button class="ng-btn ng-confirm" onclick="swConfirm()">Yes</button>
         </div>
     </div>
 </div>

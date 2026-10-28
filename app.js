@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.00';
+    const APP_VERSION = '3.10.45';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1138,34 +1138,28 @@
     function _processImageFile(file, maxSize, onDone) {
         if (!file) return;
         showToast('⏳ Processing...');
-        // iOS/iPadOS: fotos da câmera podem ter dezenas de megapixels. Em vez de copiar o arquivo
-        // inteiro para base64 (readAsDataURL) e decodificar tudo, usamos uma URL temporária do arquivo,
-        // desenhamos já reduzido e liberamos a memória. Nunca guardamos a imagem original como fallback.
-        const url = (window.URL && URL.createObjectURL) ? URL.createObjectURL(file) : null;
-        if (!url) { showToast('❌ Error reading file', '#991b1b'); return; }
-        const img = new Image();
-        let done = false;
-        const finish = function (dataUrl) {
-            if (done) return; done = true;
-            try { URL.revokeObjectURL(url); } catch (e) {}
-            img.onload = img.onerror = null;
-            img.removeAttribute('src');
-            if (dataUrl) onDone(dataUrl);
-            else showToast('❌ Image too large for this device — pick a smaller photo', '#991b1b');
-        };
-        img.onload = function () {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const dataUrl = ev.target.result;
             try {
-                const scale = Math.min(1, maxSize / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
-                const w = Math.max(1, Math.round((img.naturalWidth || maxSize) * scale));
-                const h = Math.max(1, Math.round((img.naturalHeight || maxSize) * scale));
-                const canvas = document.createElement('canvas');
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                finish(canvas.toDataURL('image/jpeg', 0.82));
-            } catch (e) { finish(null); }
+                const img = new Image();
+                img.onload = function() {
+                    try {
+                        const scale = Math.min(1, maxSize / Math.max(img.width || 1, img.height || 1));
+                        const w = Math.round((img.width  || maxSize) * scale);
+                        const h = Math.round((img.height || maxSize) * scale);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        onDone(canvas.toDataURL('image/jpeg', 0.82));
+                    } catch(e) { onDone(dataUrl); }
+                };
+                img.onerror = function() { onDone(dataUrl); };
+                img.src = dataUrl;
+            } catch(e) { onDone(dataUrl); }
         };
-        img.onerror = function () { finish(null); };
-        img.src = url;
+        reader.onerror = function() { showToast('❌ Error reading file', '#991b1b'); };
+        reader.readAsDataURL(file);
     }
 
     // Registar listeners em cada input individual
@@ -2246,10 +2240,6 @@
     // ============================================================
     // PERSISTÊNCIA DO ESTADO DO JOGO EM CURSO
     // ============================================================
-    // Virada de campo: estado de lados (false = posição original)
-    let sidesSwapped = false;
-    let sideNoticeLeft = 0;     // pontos restantes do aviso após cada troca (evento, não estado)
-    let sideLastPlayed = 0;     // pontos do game já contabilizados pelo aviso
     const GAME_STATE_KEY = 'padel_game_state';
 
     function saveGameState() {
@@ -2292,9 +2282,6 @@
                 t2AnchorTurn: SERVE.t2AnchorTurn,
             }
         };
-        // Virada de campo: campo gravado só quando true, para que o snapshot sem virada
-        // continue idêntico ao da versão anterior.
-        if (sidesSwapped) snapshot.sidesSwapped = true;
         try { localStorage.setItem(GAME_STATE_KEY, JSON.stringify(snapshot)); } catch(e) {}
     }
 
@@ -2302,10 +2289,6 @@
         let snap;
         try { snap = JSON.parse(localStorage.getItem(GAME_STATE_KEY)); } catch(e) {}
         if (!snap) return false;
-
-        // Virada de campo: campo ausente em snapshots antigos = false
-        sidesSwapped = snap.sidesSwapped === true;
-        applySidesProjection();
 
         // Restaurar estado do jogo
         state = snap.state;
@@ -4361,9 +4344,6 @@
     }
 
     function forceClear() {
-        sidesSwapped = false; // nova partida sempre começa sem virada
-        sideNoticeLeft = 0; sideLastPlayed = 0;
-        applySidesProjection();
         clearGameState();
         state = { sets:[[0,0],[0,0],[0,0]], currentSet:0, pts:[0,0], isSuperTieBreak:false, isTieBreakMode:false, matchOver:false, tiebreakPts:[null,null,null], deuceCount:0 };
         currentNotes = '';
@@ -4425,30 +4405,10 @@
         return state.sets.some(function (s) { return s[0] || s[1]; });
     }
     function isMatchLocked() {
-        return !!(state && hasMatchScore());   // aberta ou encerrada; libera só em New Game (forceClear)
-    }
-    // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
-    // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
-    function updateSwitchSidesBtn() {
-        const btn = document.getElementById('switch-sides-btn');
-        if (!btn || !state) return;
-        const played = state.pts[0] + state.pts[1];
-        if (played !== sideLastPlayed) {
-            // ponto novo: fecha a janela pós-troca; se o game acabou (contagem zerou), conta como 1 ponto
-            const gained = played > sideLastPlayed ? played - sideLastPlayed : 1;
-            sideNoticeLeft = Math.max(0, sideNoticeLeft - gained);
-            sideLastPlayed = played;
-        }
-        const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
-        if (special) sideNoticeLeft = 0;
-        const windowOpen = sideNoticeLeft > 0;
-        const showBtn = !state.matchOver && (special || played === 0 || windowOpen);
-        btn.textContent = 'Change Sides';
-        btn.classList.toggle('is-hidden', !showBtn);
+        return !!(state && !state.matchOver && hasMatchScore());
     }
     function applyPlayerEditLock() {
         const locked = isMatchLocked();
-        updateSwitchSidesBtn();
         ['t1-p1','t1-p2','t2-p1','t2-p2'].forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
@@ -4983,269 +4943,13 @@
     if (!hadSavedGame) setTimeout(tutMaybeStart, 2600);
 
     // ── Expor funções públicas no window (chamadas por onclick no HTML) ──────
-
-    // ── BACKUP / RESTORE DOS DADOS LOCAIS ─────────────────────────
-    // Exporta e importa todas as chaves padel_* do localStorage (histórico,
-    // jogo em andamento, nomes, fotos, logos, análises de IA, tutorial).
-    // Não altera nenhum formato de dado: apenas copia o que já está gravado.
-    const APP_BUILD_VERSION = APP_VERSION;
-    const BACKUP_FORMAT = 'psc-pro-backup';
-    const BACKUP_PREFIX = 'padel_';
-
-    function collectLocalData() {
-        const data = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(BACKUP_PREFIX)) data[key] = localStorage.getItem(key);
-        }
-        return data;
-    }
-
-    // Retorna true se o backup foi entregue (compartilhado ou baixado), false se o usuário cancelou.
-    async function backupAllData() {
-        const createdAt = new Date().toISOString();
-        const payload = {
-            format: BACKUP_FORMAT,
-            appVersion: APP_BUILD_VERSION,
-            createdAt: createdAt,
-            data: collectLocalData(),
-        };
-        const stamp = createdAt.slice(0, 16).replace(/[:T]/g, '-');
-        const file = new File([JSON.stringify(payload)], 'psc_backup_' + stamp + '.json', { type: 'application/json' });
-
-        // Mesmo caminho do envio de partidas: compartilhamento nativo primeiro (funciona no iOS e no Android)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: file.name });
-                return true;
-            } catch (e) {
-                if (e && e.name === 'AbortError') return false;
-                // outro erro: segue para o download
-            }
-        }
-        downloadTextFile(file);
-        return true;
-    }
-
-    function restoreAllDataPrompt() {
-        document.getElementById('restore-file-input').click();
-    }
-
-    function restoreAllDataFile(event) {
-        const input = event.target;
-        const file = input.files && input.files[0];
-        input.value = '';
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async function () {
-            let payload;
-            try { payload = JSON.parse(reader.result); } catch (e) { alert('Arquivo inválido.'); return; }
-            if (!payload || payload.format !== BACKUP_FORMAT || !payload.data || typeof payload.data !== 'object') {
-                alert('Este arquivo não é um backup do PSC Pro. Nada foi alterado.');
-                return;
-            }
-            const keys = Object.keys(payload.data);
-            const valid = keys.every(function (k) {
-                return k.startsWith(BACKUP_PREFIX) && typeof payload.data[k] === 'string';
-            });
-            if (!valid) {
-                alert('Conteúdo do backup inesperado. Nada foi alterado.');
-                return;
-            }
-            const msg = 'Restaurar backup de ' + payload.createdAt + ' (' + keys.length + ' itens)?\n'
-                + 'Os dados atuais serão substituídos. Antes, será baixado um backup automático dos dados atuais.';
-            if (!confirm(msg)) return;
-
-            const saved = await backupAllData(); // salvaguarda do estado atual antes de qualquer escrita
-            if (!saved) {
-                alert('Restauração cancelada: o backup de segurança não foi salvo.');
-                return;
-            }
-            try {
-                Object.keys(collectLocalData()).forEach(function (k) { localStorage.removeItem(k); });
-                keys.forEach(function (k) { localStorage.setItem(k, payload.data[k]); });
-            } catch (e) {
-                alert('Falha ao restaurar. Use o backup automático baixado antes desta operação.');
-                return;
-            }
-            alert('Backup restaurado. A página será recarregada.');
-            location.reload();
-        };
-        reader.readAsText(file);
-    }
-
-
-
-    // ── VIRADA DE CAMPO (Fase 3a): botão, confirmação e alternância ──
-    function askSwitchSides() {
-        document.getElementById('sw-overlay').classList.add('show');
-    }
-    function swCancel() {
-        document.getElementById('sw-overlay').classList.remove('show');
-    }
-    // Animação em X (3b): cada jogador (foto, nome e bolinha) cruza na diagonal até o canto oposto.
-    // Números e placares ficam parados e trocam de posição no centro, com um leve esmaecimento.
-    // O fundo é escurecido para destacar quem se move.
-    const SWAP_ANIM_MS = 1000;      // duração total
-    const SWAP_MID_MS = 500;        // cruzamento no centro: troca dos dados
-    let swapAnimating = false;
-    let swapTimers = [];
-    let swapClones = [];
-    let swapCards = [];
-
-    function setSwapLock(on) {
-        let lock = document.getElementById('sw-lock');
-        if (on) {
-            if (!lock) {
-                lock = document.createElement('div');
-                lock.id = 'sw-lock';
-                document.body.appendChild(lock);
-            }
-        } else if (lock) {
-            lock.remove();
-        }
-    }
-
-    // Copia o estilo computado de cada elemento para o clone, para manter a aparência da equipe
-    function copyComputedStyle(from, to) {
-        const cs = getComputedStyle(from);
-        for (let i = 0; i < cs.length; i++) {
-            const p = cs[i];
-            to.style.setProperty(p, cs.getPropertyValue(p), cs.getPropertyPriority(p));
-        }
-    }
-
-    // Finalização única: estado final no layout, limpeza dos clones e liberação da tela
-    function finishSwap() {
-        if (!swapAnimating) return;
-        swapAnimating = false;
-        swapTimers.forEach(clearTimeout);
-        swapTimers = [];
-        applySidesProjection();            // garante o estado final (idempotente)
-        swapClones.forEach(function (c) { c.remove(); });
-        swapClones = [];
-        swapCards.forEach(function (c) { c.style.visibility = ''; });
-        swapCards = [];
-        const dim = document.getElementById('sw-dim');
-        if (dim) dim.classList.remove('on');
-        const teams = document.querySelector('.p-teams');
-        if (teams) teams.classList.remove('sw-dip');
-        setSwapLock(false);
-        const sw = document.getElementById('switch-sides-btn');
-        if (sw) sw.disabled = false;
-        saveGameState();                   // estado gravado só ao fim
-    }
-
-    function swConfirm() {
-        document.getElementById('sw-overlay').classList.remove('show');
-        if (swapAnimating) return;
-
-        const target = !sidesSwapped;
-        sidesSwapped = target;             // D4: o mesmo botão desfaz
-        sideNoticeLeft = 1;                // botão e aviso permanecem até o primeiro ponto após a troca
-        updateSwitchSidesBtn();
-
-        const teams = document.querySelector('.p-teams');
-        const cards = teams ? Array.prototype.slice.call(teams.querySelectorAll('.player-card')) : [];
-        if (cards.length !== 4) {          // sem a tela de jogo: aplica direto
-            applySidesProjection();
-            saveGameState();
-            return;
-        }
-
-        // Mede a posição antiga (layout atual) e a nova (aplicada e desfeita sem pintar a tela)
-        const before = cards.map(function (c) { return c.getBoundingClientRect(); });
-        teams.classList.toggle('is-swapped', target);
-        const after = cards.map(function (c) { return c.getBoundingClientRect(); });
-        teams.classList.toggle('is-swapped', !target);
-
-        swapAnimating = true;
-        setSwapLock(true);
-        const sw = document.getElementById('switch-sides-btn');
-        if (sw) sw.disabled = true;
-
-        // Véu escuro para destacar os jogadores
-        let dim = document.getElementById('sw-dim');
-        if (!dim) {
-            dim = document.createElement('div');
-            dim.id = 'sw-dim';
-            dim.className = 'sw-dim';
-            document.body.appendChild(dim);
-        }
-        void dim.offsetWidth;
-        dim.classList.add('on');
-
-        // Clones dos jogadores: cada um percorre a diagonal até o canto oposto
-        swapCards = cards;
-        swapClones = [];
-        cards.forEach(function (card, i) {
-            const b = before[i], f = after[i];
-            const clone = card.cloneNode(true);
-            clone.removeAttribute('id');
-            clone.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
-            copyComputedStyle(card, clone);
-            clone.style.position = 'fixed';      // deve vencer o estilo copiado
-            clone.style.margin = '0';
-            clone.style.zIndex = '160';
-            clone.style.pointerEvents = 'none';
-            clone.style.transform = 'none';
-            const cardEls = card.querySelectorAll('*');
-            const cloneEls = clone.querySelectorAll('*');
-            for (let k = 0; k < cardEls.length && k < cloneEls.length; k++) {
-                copyComputedStyle(cardEls[k], cloneEls[k]);
-            }
-            clone.classList.add('sw-clone');
-            clone.style.left = b.left + 'px';
-            clone.style.top = b.top + 'px';
-            clone.style.width = b.width + 'px';
-            clone.style.height = b.height + 'px';
-            document.body.appendChild(clone);
-            swapClones.push(clone);
-            card.style.visibility = 'hidden';
-
-            const dx = f.left - b.left, dy = f.top - b.top;
-            const sx = f.width / b.width, sy = f.height / b.height;
-            const hl = 1.06;               // leve destaque no cruzamento
-            clone.animate([
-                { transform: 'translate(0px, 0px) scale(1, 1)' },
-                { transform: 'translate(' + (dx / 2) + 'px, ' + (dy / 2) + 'px) scale(' + (((1 + sx) / 2) * hl) + ', ' + (((1 + sy) / 2) * hl) + ')', offset: 0.5 },
-                { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + sx + ', ' + sy + ')' }
-            ], { duration: SWAP_ANIM_MS, easing: 'ease-in-out', fill: 'forwards' });
-        });
-
-        // No centro: esmaece os números, troca os dados e reaparece
-        swapTimers.push(setTimeout(function () { teams.classList.add('sw-dip'); }, SWAP_MID_MS - 80));
-        swapTimers.push(setTimeout(function () { applySidesProjection(); }, SWAP_MID_MS));
-        swapTimers.push(setTimeout(function () { teams.classList.remove('sw-dip'); }, SWAP_MID_MS + 80));
-        // Fim da animação (também serve como tempo máximo: a finalização é única)
-        swapTimers.push(setTimeout(finishSwap, SWAP_ANIM_MS));
-    }
-
-    // ── PROJEÇÃO DE LADOS (Virada de campo, Fase 1) ───────────────
-    // Estado de lados: false = posição original. Nesta fase nada muda visualmente:
-    // a classe 'is-swapped' é aplicada, mas nenhuma regra CSS depende dela ainda.
-    // A rotação 180° (D2) será feita por CSS a partir dessa classe (Fase 3/4).
-
-    function applySidesProjection() {
-        const teams = document.querySelector('.p-teams');
-        if (teams) teams.classList.toggle('is-swapped', sidesSwapped);
-        // TV (paisagem) não reflete a virada: decisão D9 revisada, sem rotação na paisagem.
-        updateSwitchSidesBtn();
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-        applySidesProjection();
-    });
-
     Object.assign(window, {
-        backupAllData, restoreAllDataPrompt, restoreAllDataFile,
-        askSwitchSides, swCancel, swConfirm,
         addPoint, removePoint,
         askResetMatch, carouselNav,
         checkForUpdates,
         ngConfirm, ngCancel,
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
-        openCircuitOverlay, closeCircuitOverlay, fecharCircuitoPadel,
+        closeCircuitOverlay, fecharCircuitoPadel,
         openAiViewer, closeAiViewer,
         closeExportResult, shareExportResult,
         closeShareFallback, downloadShareFallback,
