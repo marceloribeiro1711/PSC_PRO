@@ -2517,6 +2517,7 @@
             timer = setTimeout(function() {
                 isLong = true;
                 removePoint(null, team);
+                box.dispatchEvent(new Event('padel:hold-decrement')); // avisa o tutorial (passo 18)
             }, 600);
         }, { passive: true });
 
@@ -4656,29 +4657,23 @@
         { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
         { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
         { text: "Plus insights into mental performance and game strategy.", anchor: null, advance: 'next' },
-        { text: "Tap here to pick a tournament or federation logo from your gallery.", anchor: '#logo-left-slot', advance: 'action', actionTargets: ['#fi-logo-left'], actionEvent: ['change'] },
-        { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: ['change'] },
-        { text: "Suggested setup: place each player where they stand on court, as seen from behind the baseline. Change Sides flips the layout at any time.", anchor: null, figure: true, advance: 'next' },
+        { text: "History: review past matches, with stats, AI analysis, match log, export and email.", anchor: '#tab-history', advance: 'next' },
+        { text: "Suggested setup: place each player where they stand on court, as seen from behind the Glass Wall. Change Sides flips the layout at any time.", anchor: null, figure: true, advance: 'next' },
         { text: "Update the logo, player names and photos here.", anchor: '#logo-left-slot', advance: 'next' },
-        { text: "History: review past matches, stats and AI analysis.", anchor: '#tab-history', advance: 'next' },
-        { text: "Notes: write free notes about the match or the players.", anchor: '#tab-notes', advance: 'next' },
+        { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Padel Calendar: browse the tournament calendar.", anchor: '#tab-calendar', advance: 'next' },
         { text: "Setup: match format, scoring and app settings.", anchor: '#tab-setup', advance: 'next' },
-        { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: ['blur'] },
-        { text: "SETUP is where you prepare the match. Tap Next and we'll open it for you.", anchor: '#tab-setup', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
+        { text: "SETUP is where you prepare the match. Next opens it for you.", anchor: '#tab-setup', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
         { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie, or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
-        { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
-        { text: "Choose the language for the AI Analysis. Tap Next to go back to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
-        { text: "Tap NEW GAME and confirm to start the match.", anchor: '#tab-newgame', ring: true, advance: 'action', actionTargets: ['#ng-overlay .ng-confirm'], actionEvent: ['click'], onSkip: function() { return tutSkipNewGame(); } },
-        { text: "Tap the ball to set who will serve first for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, center: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
-        { text: "The match is on! Tap the Points box to add each point to the team that won it.", anchor: '.pts-box', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box'], actionEvent: ['click'] },
+        { text: "Choose the language for the AI Analysis. Next returns to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
+        { text: "NEW GAME starts a new match.", anchor: '#tab-newgame', ring: true, advance: 'next' },
+        { text: "The first serve is chosen by tapping the ball, for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, center: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
+        { text: "Each point is added by tapping the Points box for the team that won it.", anchor: '.pts-box[data-team="1"]', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box[data-team="1"]'], actionEvent: ['click'] },
+        { text: "Hold any value for a moment to decrease it.", anchor: '.pts-box[data-team="1"]', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box[data-team="1"]'], actionEvent: ['padel:hold-decrement'] },
         { text: "Follow every rally and give the point to the right team. Tag the shot stat only after marking the point (optional).", anchor: null, tip: true, low: true, advance: 'next' },
-        { text: "Tap Next for a quick simulation: Pair 1 wins both sets.", anchor: null, center: true, simulate: true, nextLabel: 'Next', advance: 'next' },
-        { text: "The test match is over! Tap History to see it.", anchor: '#tab-history', ring: true, advance: 'action', actionTargets: ['#tab-history'], actionEvent: ['click'] },
-        { text: "Tap AI Analysis for a detailed review of the match: each player's strengths, weaknesses and what to improve, in the language you chose.", anchor: '#h-ai-footer-btn', advance: 'next' },
-        { text: "Tap Match Log to replay the match point by point.", anchor: '#h-matchlog-btn', advance: 'next' },
-        { text: "This match came from the tutorial simulation. Tap the trash icon to delete it whenever you like.", anchor: '.h-delete-btn', advance: 'next' },
+        { title: "Change Sides", text: "At the end of a game, tap Change Sides whenever you want to switch sides, then tap Yes.", anchor: '#switch-sides-btn', ring: true, advance: 'action', actionTargets: ['#sw-overlay .ng-confirm'], actionEvent: ['click'] },
+        { text: "Tap Change Sides again and Yes to undo the switch, until the first point after the change.", anchor: '#switch-sides-btn', ring: true, advance: 'action', actionTargets: ['#sw-overlay .ng-confirm'], actionEvent: ['click'] },
     ];
 
     // "Skip step" no passo NEW GAME: os passos seguintes (escolher o sacador, marcar pontos) precisam
