@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.10.17';
+    const APP_VERSION = '3.11.00';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -99,8 +99,63 @@
     function updateVersionLabels() {
         var cfgVerEl = document.getElementById('config-version-label');
         if (cfgVerEl) cfgVerEl.textContent = 'V ' + APP_VERSION;
+        bindHiddenCircuitAccess();
     }
-    updateVersionLabels();
+
+    // ── Acesso oculto ao circuitopadel: 3 toques seguidos na versão ──
+    // Só conta toques (não chama preventDefault nem stopPropagation),
+    // por isso não interfere nos botões da tela de configuração.
+    var _verTapCount = 0;
+    var _verTapTimer = null;
+    function bindHiddenCircuitAccess() {
+        var el = document.getElementById('config-version-label');
+        if (!el || el.getAttribute('data-circuit-bound')) return;
+        el.setAttribute('data-circuit-bound', '1');
+        el.addEventListener('click', function () {
+            _verTapCount++;
+            if (_verTapTimer) clearTimeout(_verTapTimer);
+            _verTapTimer = setTimeout(function () { _verTapCount = 0; }, 700);
+            if (_verTapCount >= 3) {
+                _verTapCount = 0;
+                clearTimeout(_verTapTimer);
+                openCircuitOverlay();
+            }
+        });
+    }
+    // Sobreposição do circuitopadel: criada ao abrir e removida ao fechar.
+    // Não recarrega o app nem toca no estado da partida.
+    function openCircuitOverlay() {
+        if (document.getElementById('circuit-overlay')) return;
+        var ov = document.createElement('div');
+        ov.id = 'circuit-overlay';
+        ov.className = 'circuit-overlay show';
+        ov.setAttribute('role', 'dialog');
+        ov.setAttribute('aria-label', 'Circuit');
+        var fr = document.createElement('iframe');
+        fr.id = 'circuit-frame';
+        fr.className = 'circuit-frame';
+        fr.title = 'Circuit';
+        fr.src = 'circuitopadel.html';
+        ov.appendChild(fr);
+        document.body.appendChild(ov);
+    }
+    // Remove o iframe e a sobreposição e volta à tela de jogo
+    function fecharCircuitoPadel() {
+        var ov = document.getElementById('circuit-overlay');
+        if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    }
+    // Compatibilidade: o circuito pode chamar window.parent.closeCircuitOverlay()
+    function closeCircuitOverlay() { fecharCircuitoPadel(); }
+
+    // Mensagem enviada pelo circuitopadel ao tocar em Fechar/BACK
+    window.addEventListener('message', function (e) {
+        if (e.origin !== location.origin) return;
+        if (e.data && e.data.origem === 'circuitopadel' && e.data.acao === 'voltar') {
+            fecharCircuitoPadel();
+        }
+    });
+
+    updateVersionLabels(); // liga o toque triplo depois que as funções acima estão definidas
 
     // ── Painel de diagnóstico de tela (oculto) ────────────────────────────────
     // 5 toques seguidos na linha de versão do Setup mostram as medidas reais da tela
@@ -178,8 +233,10 @@
             o.appendChild(pre); o.appendChild(b1); o.appendChild(b2);
             document.body.appendChild(o);
         }
+        // Desativado por enquanto (reativar junto com a chamada oficial do circuito)
+        var DIAG_ENABLED = false;
         var el = document.getElementById('config-version-label');
-        if (el) el.addEventListener('click', function () {
+        if (DIAG_ENABLED && el) el.addEventListener('click', function () {
             taps++; clearTimeout(timer);
             timer = setTimeout(function () { taps = 0; }, 2500);
             if (taps >= 5) { taps = 0; show(); }
@@ -218,7 +275,7 @@
     }
 
     function renderServeBalls() {
-        var showWS = (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2');
+        var showWS = (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2' || SERVE.phase === 'pick-tb');
 
         SERVE_IDS.forEach((id, i) => {
             const ball = document.getElementById('serve-ball-' + id);
@@ -228,7 +285,7 @@
                 b.classList.remove('active', 'pending');
             });
 
-            if (SERVE.phase === 'pick-any') {
+            if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-tb') {
                 if (ball) ball.classList.add('pending'); // todas piscam
                 if (lsBall) lsBall.classList.add('pending');
             } else if (SERVE.phase === 'pick-t2') {
@@ -705,7 +762,7 @@
 
         if (state.isTieBreakMode || state.isSuperTieBreak) {
             SERVE.phase = 'tb';
-            const nextNormal = calcNextServer(SERVE.gamesThisSet);
+            const nextNormal = calcNextServer(SERVE.gamesThisSet + 1);
             SERVE.current = nextNormal;
             SERVE.tbFirst = nextNormal;
             SERVE.tbPoints = 0;
@@ -804,6 +861,15 @@
             } else {
                 SERVE.phase = 'auto';
             }
+            renderServeBalls();
+            return;
+        }
+
+        if (SERVE.phase === 'pick-tb') {
+            SERVE.current = playerIdx;
+            SERVE.tbFirst = playerIdx;
+            SERVE.tbPoints = 0;
+            SERVE.phase = 'tb';
             renderServeBalls();
             return;
         }
@@ -1072,28 +1138,34 @@
     function _processImageFile(file, maxSize, onDone) {
         if (!file) return;
         showToast('⏳ Processing...');
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            const dataUrl = ev.target.result;
-            try {
-                const img = new Image();
-                img.onload = function() {
-                    try {
-                        const scale = Math.min(1, maxSize / Math.max(img.width || 1, img.height || 1));
-                        const w = Math.round((img.width  || maxSize) * scale);
-                        const h = Math.round((img.height || maxSize) * scale);
-                        const canvas = document.createElement('canvas');
-                        canvas.width = w; canvas.height = h;
-                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                        onDone(canvas.toDataURL('image/jpeg', 0.82));
-                    } catch(e) { onDone(dataUrl); }
-                };
-                img.onerror = function() { onDone(dataUrl); };
-                img.src = dataUrl;
-            } catch(e) { onDone(dataUrl); }
+        // iOS/iPadOS: fotos da câmera podem ter dezenas de megapixels. Em vez de copiar o arquivo
+        // inteiro para base64 (readAsDataURL) e decodificar tudo, usamos uma URL temporária do arquivo,
+        // desenhamos já reduzido e liberamos a memória. Nunca guardamos a imagem original como fallback.
+        const url = (window.URL && URL.createObjectURL) ? URL.createObjectURL(file) : null;
+        if (!url) { showToast('❌ Error reading file', '#991b1b'); return; }
+        const img = new Image();
+        let done = false;
+        const finish = function (dataUrl) {
+            if (done) return; done = true;
+            try { URL.revokeObjectURL(url); } catch (e) {}
+            img.onload = img.onerror = null;
+            img.removeAttribute('src');
+            if (dataUrl) onDone(dataUrl);
+            else showToast('❌ Image too large for this device — pick a smaller photo', '#991b1b');
         };
-        reader.onerror = function() { showToast('❌ Error reading file', '#991b1b'); };
-        reader.readAsDataURL(file);
+        img.onload = function () {
+            try {
+                const scale = Math.min(1, maxSize / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+                const w = Math.max(1, Math.round((img.naturalWidth || maxSize) * scale));
+                const h = Math.max(1, Math.round((img.naturalHeight || maxSize) * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                finish(canvas.toDataURL('image/jpeg', 0.82));
+            } catch (e) { finish(null); }
+        };
+        img.onerror = function () { finish(null); };
+        img.src = url;
     }
 
     // Registar listeners em cada input individual
@@ -1103,6 +1175,7 @@
         input.addEventListener('change', function() {
             const file = this.files && this.files[0];
             if (!file) return;
+            if (isMatchLocked()) { try { input.value = ''; } catch(e) {} return; }
             _processImageFile(file, 480, function(dataUrl) {
                 applyPhoto(id, dataUrl);
                 hideToast();
@@ -1432,7 +1505,10 @@
     }
 
     function updateScreen() {
+        if (!state.startedAt && hasMatchScore()) state.startedAt = new Date().toISOString();
         saveGameState(); // persistir estado a cada alteração
+        applyPlayerEditLock();
+        renderSetLockedLabel();
         for (let i = 0; i < 3; i++) {
             const [s1id, s2id, c1id, c2id, tb1id, tb2id] =
                 [`t1-s${i+1}`, `t2-s${i+1}`, `t1-s${i+1}-cell`, `t2-s${i+1}-cell`, `t1-s${i+1}-tb`, `t2-s${i+1}-tb`];
@@ -1942,6 +2018,11 @@
         document.getElementById('game-over-p').classList.add('show');
         document.getElementById('gs-card-btn').classList.add('show');
         updateScreen();
+        // Captura da tela final após o render (a data da partida é a do registro recém-salvo)
+        setTimeout(function () {
+            const hist = loadHistory();
+            if (hist[0] && hist[0].date) captureFinalScreen(hist[0].date).catch(function () {});
+        }, 1500);
     }
 
     // Contagem automática de Serve Won / Broken Serve para o servidor actual
@@ -1962,12 +2043,14 @@
 
     function addPoint(teamIndex) {
         if (state.matchOver) return;
+        // Set decidido por ajuste manual aguarda encerramento explícito
+        if (isOpenSetFinished()) { renderSetLockedLabel(); return; }
         // No modo PROSET, saltar directamente para o 3º set (índice 2)
         if (prosetMode && state.currentSet < 2) {
             state.currentSet = 2;
         }
         // Bloquear pontos enquanto o servidor não estiver definido
-        if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2') {
+        if (SERVE.phase === 'pick-any' || SERVE.phase === 'pick-t1' || SERVE.phase === 'pick-t2' || SERVE.phase === 'pick-tb') {
             blinkServeLabel();
             return;
         }
@@ -2079,26 +2162,34 @@
     }
 
     function removeSetPoint(teamIndex, setIndex) {
+        if (setIndex < state.currentSet) return; // set já encerrado: bloqueado
         if (setIndex > state.currentSet) return;
         if (state.matchOver) return;
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
         if (state.sets[setIndex][idx] > 0) {
             state.sets[setIndex][idx]--;
+            reconcileOpenSet();
             updateScreen();
+            if (setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
 
     function addSetPoint(teamIndex, setIndex) {
+        if (setIndex < state.currentSet) return; // set já encerrado: bloqueado
         if (setIndex > state.currentSet) return;
         if (state.matchOver) return;
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
         const isThirdSetSuperTie = (setIndex === 2 && superTieMode);
         const limit = isThirdSetSuperTie ? Infinity : 7;
+        // Set aberto já decidido: só é possível corrigir para baixo (evita 7-4 etc.)
+        if (setIndex === state.currentSet && isOpenSetFinished()) { showCloseSetConfirm(); return; }
         if (state.sets[setIndex][idx] < limit) {
             state.sets[setIndex][idx]++;
+            reconcileOpenSet();
             updateScreen();
+            if (setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
 
@@ -2155,6 +2246,10 @@
     // ============================================================
     // PERSISTÊNCIA DO ESTADO DO JOGO EM CURSO
     // ============================================================
+    // Virada de campo: estado de lados (false = posição original)
+    let sidesSwapped = false;
+    let sideNoticeLeft = 0;     // pontos restantes do aviso após cada troca (evento, não estado)
+    let sideLastPlayed = 0;     // pontos do game já contabilizados pelo aviso
     const GAME_STATE_KEY = 'padel_game_state';
 
     function saveGameState() {
@@ -2197,6 +2292,9 @@
                 t2AnchorTurn: SERVE.t2AnchorTurn,
             }
         };
+        // Virada de campo: campo gravado só quando true, para que o snapshot sem virada
+        // continue idêntico ao da versão anterior.
+        if (sidesSwapped) snapshot.sidesSwapped = true;
         try { localStorage.setItem(GAME_STATE_KEY, JSON.stringify(snapshot)); } catch(e) {}
     }
 
@@ -2204,6 +2302,10 @@
         let snap;
         try { snap = JSON.parse(localStorage.getItem(GAME_STATE_KEY)); } catch(e) {}
         if (!snap) return false;
+
+        // Virada de campo: campo ausente em snapshots antigos = false
+        sidesSwapped = snap.sidesSwapped === true;
+        applySidesProjection();
 
         // Restaurar estado do jogo
         state = snap.state;
@@ -2502,6 +2604,8 @@
     const AI_WORKER_URL = 'https://psc-ai-analysis.marceloribeiro1711.workers.dev/analyze';
     const AI_TIMEOUT_MS = 30000;  // 30s — recalibrado após MAX_OUTPUT_TOKENS subir de 900 p/ 1600 no worker (5 parágrafos podem levar bem mais que os 8s antigos para gerar)
     const AI_ANALYSIS_MARKER = '\n\n✨ AI Analysis:\n';
+    // Armazenamento próprio da análise de IA, separado do Notes (chave = data da partida)
+    const AI_STORE_KEY = 'padel_ai_analysis';
 
     function buildPlayerStatsForAi() {
         const ids = ['t1-p1', 't1-p2', 't2-p1', 't2-p2'];
@@ -2650,23 +2754,112 @@
 
     // `replace`: quando true (regeneração manual/retry), substitui uma
     // análise anterior em vez de recusar por já existir uma.
+    // ── Armazenamento da análise de IA (separado do Notes) ──────────────
+    function loadAiStore() {
+        try {
+            const raw = localStorage.getItem(AI_STORE_KEY);
+            const obj = raw ? JSON.parse(raw) : {};
+            return (obj && typeof obj === 'object') ? obj : {};
+        } catch (e) { return {}; }
+    }
+    function saveAiStore(store) {
+        try { localStorage.setItem(AI_STORE_KEY, JSON.stringify(store)); } catch (e) {}
+    }
+    function saveAiAnalysisRecord(date, text, language) {
+        if (!date || !text) return;
+        const store = loadAiStore();
+        store[date] = { text: text, language: language || 'en', generatedAt: new Date().toISOString() };
+        saveAiStore(store);
+    }
+    function deleteAiAnalysisRecord(date) {
+        if (!date) return;
+        const store = loadAiStore();
+        if (store[date]) { delete store[date]; saveAiStore(store); }
+    }
+    // Extrai a análise legada do campo notes. Tolerante a variações de espaço/quebra
+    // e à ausência do emoji (o trim() das notas remove as quebras iniciais do marcador).
+    function extractLegacyAiText(notes) {
+        if (!notes) return null;
+        const m = /✨?\s*AI Analysis:\s*/.exec(notes);
+        if (!m) return null;
+        const text = notes.slice(m.index + m[0].length).trim();
+        return text || null;
+    }
+
+    // Texto da análise: primeiro o armazenamento novo; se não existir, o texto legado após o marcador
+    function getAiAnalysisText(entry) {
+        if (!entry) return null;
+        const rec = loadAiStore()[entry.date];
+        if (rec && rec.text) return rec.text;
+        return extractLegacyAiText(entry.notes || '');
+    }
+    // Fase 2: remove a análise do Notes SOMENTE quando o armazenamento novo tem exatamente
+    // o mesmo texto extraído daquele Notes. Entradas em que o texto não bate (ex.: fallback
+    // de Notes completo) não são tocadas. Idempotente.
+    function removeAiFromNotesMigrated() {
+        try {
+            const history = loadHistory();
+            const store = loadAiStore();
+            let removed = 0, changed = false;
+            history.forEach(function (entry) {
+                if (!entry || !entry.date) return;
+                const rec = store[entry.date];
+                const notes = entry.notes || '';
+                if (!rec || !rec.text) return;
+                const m = /✨?\s*AI Analysis:\s*/.exec(notes);
+                if (!m) return;
+                if (extractLegacyAiText(notes) !== rec.text) return; // trava: texto precisa bater
+                const before = notes.slice(0, m.index).replace(/[\s✨]+$/, '');
+                entry.notes = before;
+                removed++; changed = true;
+            });
+            if (changed) localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            return removed;
+        } catch (e) { return 0; }
+    }
+
+    // Copia (sem apagar nada do Notes) a análise já existente para o armazenamento novo.
+    // Idempotente: partidas que já têm registro são ignoradas.
+    function migrateAiAnalysisToStore() {
+        try {
+            const history = loadHistory();
+            const store = loadAiStore();
+            let copied = 0, lost = 0, changed = false;
+            history.forEach(function (entry) {
+                if (!entry || !entry.date || store[entry.date]) return;
+                const notes = entry.notes || '';
+                // Caso normal: texto após o marcador. Se o marcador não for reconhecido mas a
+                // partida tem análise (flag ou o termo no Notes), copia o Notes como está.
+                let text = extractLegacyAiText(notes);
+                if (!text && (entry.aiAnalysisGenerated || /AI Analysis/i.test(notes))) {
+                    text = notes.trim();
+                }
+                if (text) {
+                    store[entry.date] = { text: text, language: 'en', generatedAt: null, migrated: true };
+                    copied++; changed = true;
+                } else if (entry.aiAnalysisGenerated) {
+                    lost++;
+                }
+            });
+            if (changed) saveAiStore(store);
+            return { copied: copied, lost: lost };
+        } catch (e) { return { copied: 0, lost: 0 }; }
+    }
+
     function appendAiAnalysisToHistory(entryDate, analysisText, replace) {
         try {
             let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
             const idx = history.findIndex(function (h) { return h.date === entryDate; });
             if (idx === -1) return;
-            let existing = history[idx].notes || '';
-            const markerPos = existing.indexOf(AI_ANALYSIS_MARKER);
-            if (markerPos !== -1) {
-                if (!replace) return; // já preenchido, não sobrescreve por padrão
-                existing = existing.slice(0, markerPos); // remove análise antiga antes de recolocar
-            }
-            history[idx].notes = existing + AI_ANALYSIS_MARKER + analysisText;
+            // A análise não é mais escrita no Notes: vive só no armazenamento próprio
+            const already = isAiAnalysisGenerated(history[idx]);
+            if (already && !replace) return; // já preenchido, não sobrescreve por padrão
             // Flag permanente: uma vez gerada, a partida fica marcada como já
             // analisada para sempre — independe do texto continuar no Notes ou
             // não (o Coach pode apagar/editar o texto livremente depois).
             history[idx].aiAnalysisGenerated = true;
             localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            saveAiAnalysisRecord(entryDate, analysisText, aiAnalysisLanguage);
             if (idx === 0) currentNotes = history[idx].notes; // reflecte se ainda for a partida mais recente
         } catch (e) { /* falha silenciosa */ }
     }
@@ -2763,7 +2956,8 @@
         hideAiWaitOverlay();
         if (analysis) {
             appendAiAnalysisToHistory(entry.date, analysis, true);
-            showToast('✨ AI analysis ready — check Notes');
+            updateNavBtns();      // atualiza o ícone da IA no rodapé do histórico
+            openAiViewer(idx);    // abre o resultado automaticamente
         } else {
             showAiRetryPopup(entry.date);
         }
@@ -2961,6 +3155,7 @@
 
         const entry = {
             date: new Date().toISOString(),
+            startedAt: state.startedAt || null,
             players: [p1, p2, p3, p4],
             winner,
             sets: JSON.parse(JSON.stringify(state.sets)),
@@ -3333,7 +3528,7 @@
         const entry = history[idx];
         if (!entry) return;
         if (isAiAnalysisGenerated(entry)) {
-            openNotesFs(idx);
+            openAiViewer(idx);
         } else {
             regenerateAiAnalysisForEntry(idx, true);
         }
@@ -3343,6 +3538,21 @@
     // partida actualmente visível no carrossel (carouselIdx), mesmo padrão
     // já usado por openPointLogFromHistoryCurrent().
     function handleAiButtonForEntryCurrent() { handleAiButtonForEntry(carouselIdx); }
+
+    // Visualizador somente leitura da análise de IA (texto não editável)
+    function openAiViewer(idx) {
+        const history = loadHistory();
+        const entry = history[idx];
+        const text = getAiAnalysisText(entry);
+        if (!text) { showToast('AI analysis not available for this match'); return; }
+        document.getElementById('ai-view-text').textContent = text;
+        document.getElementById('ai-view-overlay').classList.add('show');
+        document.getElementById('ai-view-text').scrollTop = 0; // sempre do início
+    }
+    function closeAiViewer() {
+        document.getElementById('ai-view-overlay').classList.remove('show');
+        document.getElementById('ai-view-text').textContent = '';
+    }
     function openNotesFsCurrent() { openNotesFs(carouselIdx); }
 
     function buildGameSlide(entry, idx) {
@@ -3388,7 +3598,6 @@
     // Botões diretos no footer do histórico; usam sempre o jogo
     // actualmente visível no carousel (carouselIdx).
     // ============================================================
-    const EMAIL_LAST_KEY = 'padel_last_email';
 
     // Alinha texto à direita dentro de uma largura fixa (para colunas monoespaçadas)
     function padLeft(str, width) {
@@ -3516,55 +3725,249 @@
             lines.push('');
             lines.push(matchStatsText);
         }
-        const userNotes = getUserNotes(entry.notes || '');
-        if (userNotes) {
-            lines.push('');
-            lines.push('Notes:');
-            lines.push(userNotes);
-        }
         return lines.join('\n');
     }
 
-    function sendGameByEmail() {
-        const input = document.getElementById('email-recipient-input');
-        let lastEmail = '';
-        try { lastEmail = localStorage.getItem(EMAIL_LAST_KEY) || ''; } catch(e) {}
-        input.value = lastEmail;
-        document.getElementById('email-prompt-overlay').classList.add('show');
-        setTimeout(() => input.focus(), 100);
+    // Data e hora de INÍCIO do jogo, em horário local (partidas antigas sem startedAt usam o registro)
+    function matchStartParts(entry) {
+        const d = new Date(entry.startedAt || entry.date);
+        const p = function (n) { return String(n).padStart(2, '0'); };
+        const date = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+        const time = p(d.getHours()) + ':' + p(d.getMinutes());
+        return { date: date, time: time, stamp: date + '_' + time.replace(':', '-') };
     }
 
-    function closeEmailPrompt(e) {
-        if (e && e.target.id !== 'email-prompt-overlay') return;
-        document.getElementById('email-prompt-overlay').classList.remove('show');
+    // Texto das Notes do Coach, sem a análise de IA (que vai no anexo próprio)
+    function getPersonalNotesText(entry) {
+        let t = getUserNotes(entry.notes || '');
+        const ai = getAiAnalysisText(entry);
+        if (ai && t.indexOf(ai) !== -1) t = t.split(ai).join('');
+        return t.replace(/✨?\s*AI Analysis:\s*/g, '').trim();
     }
 
-    function confirmSendEmail() {
-        const input = document.getElementById('email-recipient-input');
-        const email = input.value.trim();
-        if (!email || !email.includes('@')) {
-            showToast('⚠️ Enter a valid email', '#b45309');
-            return;
+    // Anexos do e-mail: Notes e análise de IA, em .txt (só os que existem)
+    function buildGameEmailFiles(entry) {
+        const stamp = matchStartParts(entry).stamp;
+        const files = [];
+        const notes = getPersonalNotesText(entry);
+        if (notes) files.push(new File([notes], 'PSC_PRO_Notes_' + stamp + '.txt', { type: 'text/plain' }));
+        const ai = getAiAnalysisText(entry);
+        if (ai) files.push(new File([ai], 'PSC_PRO_AI_Analysis_' + stamp + '.txt', { type: 'text/plain' }));
+        return files;
+    }
+
+    // ── Tela final do jogo em PNG (IndexedDB: imagens não cabem no localStorage) ──
+    const SHOT_DB = 'padel-screens', SHOT_STORE = 'shots';
+    const _shotCache = {};
+    function openShotDb() {
+        return new Promise(function (resolve, reject) {
+            const req = indexedDB.open(SHOT_DB, 1);
+            req.onupgradeneeded = function () { req.result.createObjectStore(SHOT_STORE); };
+            req.onsuccess = function () { resolve(req.result); };
+            req.onerror = function () { reject(req.error); };
+        });
+    }
+    async function saveMatchScreenshot(date, blob) {
+        _shotCache[date] = blob;
+        const db = await openShotDb();
+        await new Promise(function (resolve, reject) {
+            const tx = db.transaction(SHOT_STORE, 'readwrite');
+            tx.objectStore(SHOT_STORE).put(blob, date);
+            tx.oncomplete = resolve; tx.onerror = function () { reject(tx.error); };
+        });
+        db.close();
+    }
+    async function getMatchScreenshot(date) {
+        if (date in _shotCache) return _shotCache[date];
+        try {
+            const db = await openShotDb();
+            const blob = await new Promise(function (resolve, reject) {
+                const req = db.transaction(SHOT_STORE, 'readonly').objectStore(SHOT_STORE).get(date);
+                req.onsuccess = function () { resolve(req.result || null); };
+                req.onerror = function () { reject(req.error); };
+            });
+            db.close();
+            _shotCache[date] = blob || null; // null = partida sem tela final salva
+            return blob;
+        } catch (e) { return null; }
+    }
+    async function deleteMatchScreenshot(date) {
+        delete _shotCache[date];
+        try {
+            const db = await openShotDb();
+            await new Promise(function (resolve) {
+                const tx = db.transaction(SHOT_STORE, 'readwrite');
+                tx.objectStore(SHOT_STORE).delete(date);
+                tx.oncomplete = resolve; tx.onerror = resolve;
+            });
+            db.close();
+        } catch (e) {}
+    }
+    // Prepara todos os anexos em segundo plano, para o envio poder ser síncrono no toque
+    async function prepareEmailAttachments(entry) {
+        await Promise.all([
+            getMatchXlsxFile(entry).catch(function () {}),
+            renderCardPngFile(entry).catch(function () {}),
+            renderPairStatsPngFile(entry).catch(function () {}),
+            getMatchScreenshot(entry.date).catch(function () {})
+        ]);
+    }
+    // Captura a tela principal (placar, sets, fotos, estatísticas e menu) logo após o fim da partida
+    async function captureFinalScreen(date) {
+        const el = document.getElementById('layout-portrait');
+        if (!el || el.offsetParent === null) return; // tela não visível (ex.: landscape): não captura
+        const h2c = await loadHtml2Canvas();
+        const canvas = await h2c(el, { scale: 2, backgroundColor: '#0b1220', useCORS: true, logging: false });
+        const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
+        if (blob) await saveMatchScreenshot(date, blob);
+        const e = loadHistory().find(function (h) { return h.date === date; });
+        if (e) prepareEmailAttachments(e);
+    }
+
+    // ── Estatísticas por dupla em PNG (mesmo bloco abaixo do card no histórico) ──
+    const _pairsPngCache = {};
+    function pairsPngKey(entry) {
+        return cardCacheKey(entry) + '|' + JSON.stringify(entry.stats || {}) + '|' + (entry.notes || '').length;
+    }
+    async function renderPairStatsPngFile(entry) {
+        const key = pairsPngKey(entry);
+        if (_pairsPngCache[key]) return _pairsPngCache[key];
+        const h2c = await loadHtml2Canvas();
+        const host = document.createElement('div');
+        host.className = 'h-individual-details';
+        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:680px;padding:24px;box-sizing:border-box;background:#0b1220;';
+        host.innerHTML = buildPairBlock(entry, 0, entry.winner === 0) + buildPairBlock(entry, 1, entry.winner === 1) + buildMatchStatsTable(entry);
+        document.body.appendChild(host);
+        try {
+            const canvas = await h2c(host, { scale: 2, backgroundColor: '#0b1220', useCORS: true, logging: false });
+            const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
+            if (!blob) return null;
+            const file = new File([blob], 'PSC_PRO_Pairs_Stats_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' });
+            _pairsPngCache[key] = file;
+            return file;
+        } finally {
+            host.parentNode.removeChild(host);
         }
-        try { localStorage.setItem(EMAIL_LAST_KEY, email); } catch(e) {}
-
-        const history = loadHistory();
-        const entry = history[carouselIdx];
-        if (!entry) { closeEmailPrompt(); return; }
-
-        const subject = `Padel Match Report — ${formatDate(entry.date)}`;
-        const body = buildGameEmailText(entry);
-        const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-        document.getElementById('email-prompt-overlay').classList.remove('show');
-        window.location.href = mailtoUrl;
     }
 
-    async function exportHistoryGameToExcel() {
+    // ── Card final em PNG (anexo do e-mail) ─────────────────────
+    const HTML2CANVAS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    const _cardPngCache = {};
+    function loadHtml2Canvas() {
+        if (window.html2canvas) return Promise.resolve(window.html2canvas);
+        return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = HTML2CANVAS_URL;
+            s.onload = function () { window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas')); };
+            s.onerror = function () { reject(new Error('html2canvas load')); };
+            document.head.appendChild(s);
+        });
+    }
+    function cardCacheKey(entry) {
+        return entry.date + '|' + JSON.stringify(entry.sets) + '|' + JSON.stringify(entry.players) + '|' + entry.winner;
+    }
+    async function renderCardPngFile(entry) {
+        const key = cardCacheKey(entry);
+        if (_cardPngCache[key]) return _cardPngCache[key];
+        const h2c = await loadHtml2Canvas();
+        const html = await buildGrandSlamCardHtml(entry);
+        const host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:-10000px;top:0;width:660px;padding:30px;box-sizing:border-box;background:#0b1220;';
+        host.innerHTML = '<div class="gs-card" style="width:600px;max-width:none;">' + html + '</div>';
+        document.body.appendChild(host);
+        try {
+            const imgs = Array.prototype.slice.call(host.querySelectorAll('img'));
+            await Promise.all(imgs.map(function (im) {
+                return im.complete ? Promise.resolve() : new Promise(function (r) { im.onload = im.onerror = r; });
+            }));
+            const canvas = await h2c(host, { scale: 2, backgroundColor: '#0b1220', useCORS: true });
+            const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
+            if (!blob) return null;
+            const file = new File([blob], 'PSC_PRO_Card_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' });
+            _cardPngCache[key] = file;
+            return file;
+        } finally {
+            host.parentNode.removeChild(host);
+        }
+    }
+    // Pré-gera o card ao navegar no histórico, para o envio não depender de tempo (iOS exige gesto do usuário)
+    function prefetchCardPng(idx) {
+        const history = loadHistory();
+        const entry = history[idx];
+        if (!entry) return;
+        renderCardPngFile(entry).catch(function () {});
+        renderPairStatsPngFile(entry).catch(function () {});
+        getMatchXlsxFile(entry).catch(function () {});
+        getMatchScreenshot(entry.date).catch(function () {});
+    }
+
+    function downloadTextFile(file) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    // Envio pelo compartilhamento nativo do aparelho: o operador escolhe o destinatário
+    async function sendGameByEmail() {
         const history = loadHistory();
         const entry = history[carouselIdx];
         if (!entry) return;
+        const endp = matchStartParts(entry);
+        const subject = `PSC_PRO - Match result played on ${endp.date} ${endp.time}`; // início do jogo
+        const body = buildGameEmailText(entry);
+        // Tudo abaixo é síncrono: o compartilhamento precisa do gesto do toque (Android/iOS)
+        const xl = _xlsxCache[matchXlsxKey(entry)];
+        const card = _cardPngCache[cardCacheKey(entry)];
+        const pairs = _pairsPngCache[pairsPngKey(entry)];
+        const shot = _shotCache[entry.date];
+        if (!xl || !card || !pairs || shot === undefined) {
+            prepareEmailAttachments(entry);
+            showToast('Preparing attachments — tap Send again in a few seconds');
+            return;
+        }
+        const files = buildGameEmailFiles(entry);
+        files.unshift(xl);
+        files.push(card);
+        files.push(pairs);
+        if (shot) files.push(new File([shot], 'PSC_PRO_Final_Screen_' + matchStartParts(entry).stamp + '.png', { type: 'image/png' }));
+        const data = { title: subject, text: body, files: files };
+        if (!navigator.share) {
+            showShareFallback(files, 'This browser cannot share files');
+            return;
+        }
+        if (!(navigator.canShare && navigator.canShare({ files: files }))) {
+            showShareFallback(files, 'This device cannot share these files');
+            return;
+        }
+        try {
+            await navigator.share(data);
+        } catch (e) {
+            if (e && e.name === 'AbortError') return; // operador cancelou
+            showShareFallback(files, (e && e.name ? e.name : 'Error') + (e && e.message ? ': ' + e.message : ''));
+        }
+    }
 
+    // Tela de fallback: lista os arquivos e permite baixá-los, sem enviar e-mail sem anexos
+    let _fallbackFiles = [];
+    function showShareFallback(files, reason) {
+        _fallbackFiles = files || [];
+        document.getElementById('share-fallback-reason').textContent = 'Sharing did not work (' + reason + ').';
+        document.getElementById('share-fallback-list').textContent = _fallbackFiles.map(function (f) { return f.name; }).join('\n');
+        document.getElementById('share-fallback-overlay').classList.add('show');
+    }
+    function closeShareFallback() {
+        document.getElementById('share-fallback-overlay').classList.remove('show');
+        _fallbackFiles = [];
+    }
+    function downloadShareFallback() {
+        _fallbackFiles.forEach(function (f, i) {
+            setTimeout(function () { downloadTextFile(f); }, i * 300);
+        });
+    }
+
+    function buildMatchWorkbook(entry) {
         const [p1, p2, p3, p4] = entry.players;
         const isProset = entry.setMode === 'proset';
 
@@ -3587,6 +3990,28 @@
             });
         }
 
+        // ---- 0. CABEÇALHO INFORMATIVO ----
+        const sModeTxt = entry.setMode === 'proset' ? 'ProSet' : (entry.setMode === 'supertie' ? 'Supertie' : '3 Sets');
+        const pModeTxt = entry.pointMode === 'star' ? 'Star Point' : 'Golden Point';
+        const dt = new Date(entry.startedAt || entry.date);
+        const timeTxtStart = String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+        const infoRows = [
+            ['PADEL MATCH REPORT'],
+            ['Start', formatDate(entry.startedAt || entry.date) + ' ' + timeTxtStart],
+            ['Duration', entry.duration || '—'],
+            ['Mode', sModeTxt + ' · ' + pModeTxt],
+            ['Pair 1', p1 + ' / ' + p2],
+            ['Pair 2', p3 + ' / ' + p4],
+            ['Winner', entry.winner === 0 ? (p1 + ' / ' + p2) : (p3 + ' / ' + p4)],
+            ['Final score', formatScore(entry)]
+        ];
+        infoRows.forEach(function (r, i) {
+            const row = ws.addRow(r);
+            if (i === 0) row.font = { bold: true, size: 14 };
+            else row.getCell(1).font = { bold: true };
+        });
+        ws.addRow([]);
+
         // ---- 1. RESULTADO (igual ao que já existia) ----
         const setHeaders = [
             '',
@@ -3596,18 +4021,30 @@
         ];
         const resultHeaderRow = ws.addRow(setHeaders);
         styleHeaderRow(resultHeaderRow);
-        ws.addRow([
+        const resRow1 = ws.addRow([
             p1 + ' / ' + p2,
             isProset ? '—' : entry.sets[0][0],
             isProset ? '—' : entry.sets[1][0],
             entry.sets[2][0]
         ]);
-        ws.addRow([
+        const resRow2 = ws.addRow([
             p3 + ' / ' + p4,
             isProset ? '—' : entry.sets[0][1],
             isProset ? '—' : entry.sets[1][1],
             entry.sets[2][1]
         ]);
+        // Célula do vencedor de cada set em destaque (dourado)
+        const WIN_FILL = 'FFFFE699';
+        const setCols = isProset ? [4] : [2, 3, 4];
+        const setIdxs = isProset ? [2] : [0, 1, 2];
+        setCols.forEach(function (col, k) {
+            const gs = entry.sets[setIdxs[k]];
+            if (!gs || typeof gs[0] !== 'number' || typeof gs[1] !== 'number' || gs[0] === gs[1]) return;
+            const winRow = gs[0] > gs[1] ? resRow1 : resRow2;
+            const cell = winRow.getCell(col);
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: WIN_FILL } };
+            cell.font = { bold: true };
+        });
 
         // ---- 2 linhas em branco ----
         ws.addRow([]);
@@ -3634,34 +4071,118 @@
         ws.addRow([]);
         ws.addRow([]);
 
-        // ---- 3. ANÁLISE POR IA — texto simples ----
-        const aiHeaderRow = ws.addRow(['AI ANALYSIS & NOTES']);
-        styleHeaderRow(aiHeaderRow);
-        const notesText = getUserNotes(entry.notes || '') || '(no notes for this match)';
-        notesText.split('\n').forEach(line => {
-            ws.addRow([line]);
+        // ---- Aba Match Log: uma linha por ponto ----
+        const logWs = wb.addWorksheet('Match Log');
+        logWs.columns = [
+            { header: 'Set', key: 'set', width: 16 },
+            { header: 'Game', key: 'game', width: 8 },
+            { header: 'Point', key: 'point', width: 8 },
+            { header: 'Server', key: 'server', width: 26 },
+            { header: 'Point won by', key: 'won', width: 26 },
+            { header: 'Score after', key: 'score', width: 14 },
+            { header: 'Tie-break', key: 'tb', width: 11 }
+        ];
+        styleHeaderRow(logWs.getRow(1));
+        logWs.views = [{ state: 'frozen', ySplit: 1 }];
+        const pairOf = function (team) {
+            return team === 'team1' ? duplaName(entry.players[0], entry.players[1]) : duplaName(entry.players[2], entry.players[3]);
+        };
+        // Cores alternadas por game (azul claro / cinza claro), para separar visualmente os games
+        const paintGameRow = function (row, gi, isResult) {
+            const even = gi % 2 === 0;
+            const argb = isResult ? (even ? 'FFCFE2F9' : 'FFD9D9D9') : (even ? 'FFE8F1FB' : 'FFF5F5F5');
+            row.eachCell(function (cell) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+            });
+        };
+        buildMatchLogForAiFromEntry(entry).forEach(function (g, gi) {
+            const setLabel = g.isSuperTie ? 'Super Tie-break' : 'Set ' + (g.set + 1);
+            (g.points || []).forEach(function (p) {
+                const pRow = logWs.addRow({
+                    set: setLabel,
+                    game: g.gameNumber,
+                    point: p.point,
+                    server: p.server || g.servingPlayer || '',
+                    won: pairOf(p.wonBy),
+                    score: p.scoreAfter ? (p.scoreAfter.team1 + ' - ' + p.scoreAfter.team2) : '',
+                    tb: g.isTiebreakGame ? 'Yes' : 'No'
+                });
+                paintGameRow(pRow, gi, false);
+            });
+            // Linha de resultado do game: qual dupla venceu
+            const resultRow = logWs.addRow({
+                set: setLabel,
+                game: g.gameNumber,
+                point: 'Result',
+                server: g.servingPlayer || '',
+                won: 'Game won by ' + pairOf(g.winner),
+                score: '',
+                tb: g.isTiebreakGame ? 'Yes' : 'No'
+            });
+            resultRow.font = { bold: true };
+            paintGameRow(resultRow, gi, true);
         });
-        // Mesclar as células de texto pra não ficarem cortadas por A:E
-        const notesStartRow = aiHeaderRow.number + 1;
-        const notesEndRow = notesStartRow + notesText.split('\n').length - 1;
-        for (let r = notesStartRow; r <= notesEndRow; r++) {
-            ws.mergeCells(`A${r}:E${r}`);
-            ws.getRow(r).alignment = { wrapText: true, vertical: 'top' };
-        }
+        logWs.autoFilter = { from: 'A1', to: 'G1' };
 
-        // ---- Download ----
-        const d = new Date(entry.date);
-        const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+        return wb;
+    }
+
+    // Arquivo .xlsx da partida, com cache (pré-gerado ao navegar, para o envio não depender de tempo)
+    const _xlsxCache = {};
+    function matchXlsxKey(entry) {
+        return cardCacheKey(entry) + '|' + (entry.pointLog ? entry.pointLog.length : 0) + '|' + (entry.duration || '') + '|' + JSON.stringify(entry.stats || {});
+    }
+    async function getMatchXlsxFile(entry) {
+        const key = matchXlsxKey(entry);
+        if (_xlsxCache[key]) return _xlsxCache[key];
+        const wb = buildMatchWorkbook(entry);
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
+        const file = new File([blob], `PSC_PRO_Match_Report_${matchStartParts(entry).stamp}.xlsx`, { type: blob.type });
+        _xlsxCache[key] = file;
+        return file;
+    }
+
+    async function exportHistoryGameToExcel() {
+        const history = loadHistory();
+        const entry = history[carouselIdx];
+        if (!entry) return;
+        const file = await getMatchXlsxFile(entry);
+        showExportResult(file);
+    }
+
+    // ── Tela de confirmação da exportação Excel ─────────────────
+    let _pendingExportFile = null;
+    function showExportResult(file) {
+        _pendingExportFile = file;
+        document.getElementById('export-result-name').textContent = file.name;
+        const shareBtn = document.getElementById('export-result-share');
+        const canShareFile = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+        shareBtn.textContent = canShareFile ? 'Share / Save' : 'Download';
+        document.getElementById('export-result-overlay').classList.add('show');
+    }
+    function closeExportResult() {
+        document.getElementById('export-result-overlay').classList.remove('show');
+        _pendingExportFile = null;
+    }
+    async function shareExportResult() {
+        const file = _pendingExportFile;
+        if (!file) return;
+        try {
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: file.name });
+                closeExportResult();
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return; // operador cancelou; mantém a tela
+        }
+        const url = URL.createObjectURL(file);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `padel_${stamp}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        closeExportResult();
     }
 
     function renderCarousel() {
@@ -3709,6 +4230,7 @@
     }
 
     function updateNavBtns() {
+        if (typeof carouselIdx === 'number') prefetchCardPng(carouselIdx);
         // Navegação por swipe mantida; setas são só indicador visual (sem
         // acção de navegação), acesas conforme houver mais jogos pro lado.
         const leftArrow = document.getElementById('h-nav-arrow-left');
@@ -3761,6 +4283,7 @@
     function deleteMatch(idx) {
         if (!confirm('Delete this game from history?')) return;
         let history = loadHistory();
+        if (history[idx]) { deleteAiAnalysisRecord(history[idx].date); deleteMatchScreenshot(history[idx].date); }
         history.splice(idx, 1);
         try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
         carouselIdx = Math.max(0, Math.min(carouselIdx, history.length - 1));
@@ -3838,6 +4361,9 @@
     }
 
     function forceClear() {
+        sidesSwapped = false; // nova partida sempre começa sem virada
+        sideNoticeLeft = 0; sideLastPlayed = 0;
+        applySidesProjection();
         clearGameState();
         state = { sets:[[0,0],[0,0],[0,0]], currentSet:0, pts:[0,0], isSuperTieBreak:false, isTieBreakMode:false, matchOver:false, tiebreakPts:[null,null,null], deuceCount:0 };
         currentNotes = '';
@@ -3886,6 +4412,150 @@
         });
     }
 
+    // ============================================================
+    // BLOQUEIO DE NOMES E FOTOS DURANTE A PARTIDA
+    // ============================================================
+    // Bloqueio derivado do placar: ativo enquanto houver qualquer ponto
+    // (automático ou manual, em pontos ou sets) e a partida não tiver terminado.
+    // Voltar a 0-0 libera a edição de nomes e fotos.
+    function hasMatchScore() {
+        if (!state) return false;
+        if (state.currentSet > 0) return true;
+        if (state.pts[0] || state.pts[1]) return true;
+        return state.sets.some(function (s) { return s[0] || s[1]; });
+    }
+    function isMatchLocked() {
+        return !!(state && hasMatchScore());   // aberta ou encerrada; libera só em New Game (forceClear)
+    }
+    // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
+    // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
+    function updateSwitchSidesBtn() {
+        const btn = document.getElementById('switch-sides-btn');
+        if (!btn || !state) return;
+        const played = state.pts[0] + state.pts[1];
+        if (played !== sideLastPlayed) {
+            // ponto novo: fecha a janela pós-troca; se o game acabou (contagem zerou), conta como 1 ponto
+            const gained = played > sideLastPlayed ? played - sideLastPlayed : 1;
+            sideNoticeLeft = Math.max(0, sideNoticeLeft - gained);
+            sideLastPlayed = played;
+        }
+        const special = !!(state.isTieBreakMode || state.isSuperTieBreak);
+        if (special) sideNoticeLeft = 0;
+        const windowOpen = sideNoticeLeft > 0;
+        const showBtn = !state.matchOver && (special || played === 0 || windowOpen);
+        btn.textContent = 'Change Sides';
+        btn.classList.toggle('is-hidden', !showBtn);
+    }
+    function applyPlayerEditLock() {
+        const locked = isMatchLocked();
+        updateSwitchSidesBtn();
+        ['t1-p1','t1-p2','t2-p1','t2-p2'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.setAttribute('contenteditable', locked ? 'false' : 'true');
+            el.classList.toggle('name-locked', locked);
+        });
+        ['t1-img1','t1-img2','t2-img1','t2-img2'].forEach(function (id) {
+            const lbl = document.querySelector('label[for="fi-' + id + '"]');
+            if (!lbl) return;
+            lbl.classList.toggle('photo-locked', locked);
+            lbl.setAttribute('aria-disabled', locked ? 'true' : 'false');
+        });
+    }
+    function showLockInfo() {
+        document.getElementById('lock-info-overlay').classList.add('show');
+    }
+    function closeLockInfo() {
+        document.getElementById('lock-info-overlay').classList.remove('show');
+    }
+
+    // ============================================================
+    // CONTROLE DO SET ABERTO APÓS AJUSTE MANUAL
+    // ============================================================
+    // Regra de vitória de set (sem contar o set em curso no winGame)
+    function setWinnerByGames(g1, g2) {
+        if (prosetMode) {
+            if ((g1 >= 9 || g2 >= 9) && Math.abs(g1 - g2) >= 2) return g1 > g2 ? 0 : 1;
+            return -1;
+        }
+        if ((g1 === 7 && g2 === 6) || (g1 === 6 && g2 === 7)) return g1 > g2 ? 0 : 1;
+        if ((g1 >= 6 || g2 >= 6) && Math.abs(g1 - g2) >= 2) return g1 > g2 ? 0 : 1;
+        return -1;
+    }
+    // Verdadeiro quando o set aberto já está decidido pelo placar (ex.: 6-3 após ajuste manual)
+    function isOpenSetFinished() {
+        if (!state || state.matchOver || state.isSuperTieBreak) return false;
+        if (state.currentSet > 2) return false;
+        const g = state.sets[state.currentSet];
+        return setWinnerByGames(g[0], g[1]) !== -1;
+    }
+    // Após qualquer ajuste manual de games: entra ou sai do tie-break conforme o placar
+    function reconcileOpenSet() {
+        if (!state || state.matchOver || state.isSuperTieBreak || state.currentSet > 2) return;
+        const i = state.currentSet;
+        const g1 = state.sets[i][0], g2 = state.sets[i][1];
+        const tbAt = prosetMode ? 8 : 6;
+        const atTiebreak = (g1 === tbAt && g2 === tbAt);
+
+        if (atTiebreak && !state.isTieBreakMode) {
+            // Ajuste manual para 6-6: entra no tie-break e pede quem saca (4 bolinhas)
+            state.isTieBreakMode = true;
+            state.pts = [0, 0];
+            currentGamePoints = [];
+            currentGameBreakPoints = [0, 0];
+            currentGameBpPeak = 0;
+            currentGameServingTeam = null;
+            currentGameServingPlayer = null;
+            SERVE.gamesThisSet = g1 + g2;
+            SERVE.tbPoints = 0;
+            SERVE.phase = 'pick-tb';
+            SERVE.current = null;
+            renderServeBalls();
+        } else if (!atTiebreak && state.isTieBreakMode && !isOpenSetFinished()) {
+            // Saiu do 6-6 por ajuste manual: volta ao game normal, saque pela alternância
+            state.isTieBreakMode = false;
+            state.pts = [0, 0];
+            SERVE.gamesThisSet = g1 + g2;
+            SERVE.tbPoints = 0;
+            SERVE.phase = 'auto';
+            SERVE.current = calcNextServer(SERVE.gamesThisSet + 1);
+            renderServeBalls();
+        }
+    }
+    // Encerra o set aberto decidido por ajuste manual
+    function closeOpenSet() {
+        if (!isOpenSetFinished()) { renderSetLockedLabel(); return; }
+        state.pts = [0, 0];
+        state.isTieBreakMode = false;
+        currentGamePoints = [];
+        currentGameBreakPoints = [0, 0];
+        currentGameBpPeak = 0;
+        currentGameServingTeam = null;
+        currentGameServingPlayer = null;
+        _serveStatCounted = false;
+        winSet();
+        updateScreen();
+    }
+    function showCloseSetConfirm() {
+        const el = document.getElementById('close-set-confirm-overlay');
+        if (el) el.classList.add('show');
+    }
+    function hideCloseSetConfirm() {
+        const el = document.getElementById('close-set-confirm-overlay');
+        if (el) el.classList.remove('show');
+    }
+    function confirmCloseSet() {
+        hideCloseSetConfirm();
+        closeOpenSet();
+    }
+    function declineCloseSet() {
+        hideCloseSetConfirm();
+    }
+    function renderSetLockedLabel() {
+        const label = document.getElementById('set-locked-label');
+        if (label) label.classList.toggle('show', isOpenSetFinished());
+    }
+
     function askResetMatch() {
         document.getElementById('ng-overlay').classList.add('show');
     }
@@ -3893,6 +4563,9 @@
     function ngConfirm() {
         document.getElementById('ng-overlay').classList.remove('show');
         forceClear();
+        applyPlayerEditLock();
+        saveGameState();
+        showLockInfo();
     }
 
     function ngCancel() {
@@ -4293,6 +4966,10 @@
 
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
+    applyPlayerEditLock();
+    const aiMigration = migrateAiAnalysisToStore();
+    removeAiFromNotesMigrated();
+    if (aiMigration.copied > 0) showToast('AI analyses saved: ' + aiMigration.copied);
 
     updateScreen();
     applyStatsVisibility();
@@ -4306,11 +4983,272 @@
     if (!hadSavedGame) setTimeout(tutMaybeStart, 2600);
 
     // ── Expor funções públicas no window (chamadas por onclick no HTML) ──────
+
+    // ── BACKUP / RESTORE DOS DADOS LOCAIS ─────────────────────────
+    // Exporta e importa todas as chaves padel_* do localStorage (histórico,
+    // jogo em andamento, nomes, fotos, logos, análises de IA, tutorial).
+    // Não altera nenhum formato de dado: apenas copia o que já está gravado.
+    const APP_BUILD_VERSION = APP_VERSION;
+    const BACKUP_FORMAT = 'psc-pro-backup';
+    const BACKUP_PREFIX = 'padel_';
+
+    function collectLocalData() {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(BACKUP_PREFIX)) data[key] = localStorage.getItem(key);
+        }
+        return data;
+    }
+
+    // Retorna true se o backup foi entregue (compartilhado ou baixado), false se o usuário cancelou.
+    async function backupAllData() {
+        const createdAt = new Date().toISOString();
+        const payload = {
+            format: BACKUP_FORMAT,
+            appVersion: APP_BUILD_VERSION,
+            createdAt: createdAt,
+            data: collectLocalData(),
+        };
+        const stamp = createdAt.slice(0, 16).replace(/[:T]/g, '-');
+        const file = new File([JSON.stringify(payload)], 'psc_backup_' + stamp + '.json', { type: 'application/json' });
+
+        // Mesmo caminho do envio de partidas: compartilhamento nativo primeiro (funciona no iOS e no Android)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: file.name });
+                return true;
+            } catch (e) {
+                if (e && e.name === 'AbortError') return false;
+                // outro erro: segue para o download
+            }
+        }
+        downloadTextFile(file);
+        return true;
+    }
+
+    function restoreAllDataPrompt() {
+        document.getElementById('restore-file-input').click();
+    }
+
+    function restoreAllDataFile(event) {
+        const input = event.target;
+        const file = input.files && input.files[0];
+        input.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function () {
+            let payload;
+            try { payload = JSON.parse(reader.result); } catch (e) { alert('Arquivo inválido.'); return; }
+            if (!payload || payload.format !== BACKUP_FORMAT || !payload.data || typeof payload.data !== 'object') {
+                alert('Este arquivo não é um backup do PSC Pro. Nada foi alterado.');
+                return;
+            }
+            const keys = Object.keys(payload.data);
+            const valid = keys.every(function (k) {
+                return k.startsWith(BACKUP_PREFIX) && typeof payload.data[k] === 'string';
+            });
+            if (!valid) {
+                alert('Conteúdo do backup inesperado. Nada foi alterado.');
+                return;
+            }
+            const msg = 'Restaurar backup de ' + payload.createdAt + ' (' + keys.length + ' itens)?\n'
+                + 'Os dados atuais serão substituídos. Antes, será baixado um backup automático dos dados atuais.';
+            if (!confirm(msg)) return;
+
+            const saved = await backupAllData(); // salvaguarda do estado atual antes de qualquer escrita
+            if (!saved) {
+                alert('Restauração cancelada: o backup de segurança não foi salvo.');
+                return;
+            }
+            try {
+                Object.keys(collectLocalData()).forEach(function (k) { localStorage.removeItem(k); });
+                keys.forEach(function (k) { localStorage.setItem(k, payload.data[k]); });
+            } catch (e) {
+                alert('Falha ao restaurar. Use o backup automático baixado antes desta operação.');
+                return;
+            }
+            alert('Backup restaurado. A página será recarregada.');
+            location.reload();
+        };
+        reader.readAsText(file);
+    }
+
+
+
+    // ── VIRADA DE CAMPO (Fase 3a): botão, confirmação e alternância ──
+    function askSwitchSides() {
+        document.getElementById('sw-overlay').classList.add('show');
+    }
+    function swCancel() {
+        document.getElementById('sw-overlay').classList.remove('show');
+    }
+    // Animação em X (3b): cada jogador (foto, nome e bolinha) cruza na diagonal até o canto oposto.
+    // Números e placares ficam parados e trocam de posição no centro, com um leve esmaecimento.
+    // O fundo é escurecido para destacar quem se move.
+    const SWAP_ANIM_MS = 1000;      // duração total
+    const SWAP_MID_MS = 500;        // cruzamento no centro: troca dos dados
+    let swapAnimating = false;
+    let swapTimers = [];
+    let swapClones = [];
+    let swapCards = [];
+
+    function setSwapLock(on) {
+        let lock = document.getElementById('sw-lock');
+        if (on) {
+            if (!lock) {
+                lock = document.createElement('div');
+                lock.id = 'sw-lock';
+                document.body.appendChild(lock);
+            }
+        } else if (lock) {
+            lock.remove();
+        }
+    }
+
+    // Copia o estilo computado de cada elemento para o clone, para manter a aparência da equipe
+    function copyComputedStyle(from, to) {
+        const cs = getComputedStyle(from);
+        for (let i = 0; i < cs.length; i++) {
+            const p = cs[i];
+            to.style.setProperty(p, cs.getPropertyValue(p), cs.getPropertyPriority(p));
+        }
+    }
+
+    // Finalização única: estado final no layout, limpeza dos clones e liberação da tela
+    function finishSwap() {
+        if (!swapAnimating) return;
+        swapAnimating = false;
+        swapTimers.forEach(clearTimeout);
+        swapTimers = [];
+        applySidesProjection();            // garante o estado final (idempotente)
+        swapClones.forEach(function (c) { c.remove(); });
+        swapClones = [];
+        swapCards.forEach(function (c) { c.style.visibility = ''; });
+        swapCards = [];
+        const dim = document.getElementById('sw-dim');
+        if (dim) dim.classList.remove('on');
+        const teams = document.querySelector('.p-teams');
+        if (teams) teams.classList.remove('sw-dip');
+        setSwapLock(false);
+        const sw = document.getElementById('switch-sides-btn');
+        if (sw) sw.disabled = false;
+        saveGameState();                   // estado gravado só ao fim
+    }
+
+    function swConfirm() {
+        document.getElementById('sw-overlay').classList.remove('show');
+        if (swapAnimating) return;
+
+        const target = !sidesSwapped;
+        sidesSwapped = target;             // D4: o mesmo botão desfaz
+        sideNoticeLeft = 1;                // botão e aviso permanecem até o primeiro ponto após a troca
+        updateSwitchSidesBtn();
+
+        const teams = document.querySelector('.p-teams');
+        const cards = teams ? Array.prototype.slice.call(teams.querySelectorAll('.player-card')) : [];
+        if (cards.length !== 4) {          // sem a tela de jogo: aplica direto
+            applySidesProjection();
+            saveGameState();
+            return;
+        }
+
+        // Mede a posição antiga (layout atual) e a nova (aplicada e desfeita sem pintar a tela)
+        const before = cards.map(function (c) { return c.getBoundingClientRect(); });
+        teams.classList.toggle('is-swapped', target);
+        const after = cards.map(function (c) { return c.getBoundingClientRect(); });
+        teams.classList.toggle('is-swapped', !target);
+
+        swapAnimating = true;
+        setSwapLock(true);
+        const sw = document.getElementById('switch-sides-btn');
+        if (sw) sw.disabled = true;
+
+        // Véu escuro para destacar os jogadores
+        let dim = document.getElementById('sw-dim');
+        if (!dim) {
+            dim = document.createElement('div');
+            dim.id = 'sw-dim';
+            dim.className = 'sw-dim';
+            document.body.appendChild(dim);
+        }
+        void dim.offsetWidth;
+        dim.classList.add('on');
+
+        // Clones dos jogadores: cada um percorre a diagonal até o canto oposto
+        swapCards = cards;
+        swapClones = [];
+        cards.forEach(function (card, i) {
+            const b = before[i], f = after[i];
+            const clone = card.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
+            copyComputedStyle(card, clone);
+            clone.style.position = 'fixed';      // deve vencer o estilo copiado
+            clone.style.margin = '0';
+            clone.style.zIndex = '160';
+            clone.style.pointerEvents = 'none';
+            clone.style.transform = 'none';
+            const cardEls = card.querySelectorAll('*');
+            const cloneEls = clone.querySelectorAll('*');
+            for (let k = 0; k < cardEls.length && k < cloneEls.length; k++) {
+                copyComputedStyle(cardEls[k], cloneEls[k]);
+            }
+            clone.classList.add('sw-clone');
+            clone.style.left = b.left + 'px';
+            clone.style.top = b.top + 'px';
+            clone.style.width = b.width + 'px';
+            clone.style.height = b.height + 'px';
+            document.body.appendChild(clone);
+            swapClones.push(clone);
+            card.style.visibility = 'hidden';
+
+            const dx = f.left - b.left, dy = f.top - b.top;
+            const sx = f.width / b.width, sy = f.height / b.height;
+            const hl = 1.06;               // leve destaque no cruzamento
+            clone.animate([
+                { transform: 'translate(0px, 0px) scale(1, 1)' },
+                { transform: 'translate(' + (dx / 2) + 'px, ' + (dy / 2) + 'px) scale(' + (((1 + sx) / 2) * hl) + ', ' + (((1 + sy) / 2) * hl) + ')', offset: 0.5 },
+                { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + sx + ', ' + sy + ')' }
+            ], { duration: SWAP_ANIM_MS, easing: 'ease-in-out', fill: 'forwards' });
+        });
+
+        // No centro: esmaece os números, troca os dados e reaparece
+        swapTimers.push(setTimeout(function () { teams.classList.add('sw-dip'); }, SWAP_MID_MS - 80));
+        swapTimers.push(setTimeout(function () { applySidesProjection(); }, SWAP_MID_MS));
+        swapTimers.push(setTimeout(function () { teams.classList.remove('sw-dip'); }, SWAP_MID_MS + 80));
+        // Fim da animação (também serve como tempo máximo: a finalização é única)
+        swapTimers.push(setTimeout(finishSwap, SWAP_ANIM_MS));
+    }
+
+    // ── PROJEÇÃO DE LADOS (Virada de campo, Fase 1) ───────────────
+    // Estado de lados: false = posição original. Nesta fase nada muda visualmente:
+    // a classe 'is-swapped' é aplicada, mas nenhuma regra CSS depende dela ainda.
+    // A rotação 180° (D2) será feita por CSS a partir dessa classe (Fase 3/4).
+
+    function applySidesProjection() {
+        const teams = document.querySelector('.p-teams');
+        if (teams) teams.classList.toggle('is-swapped', sidesSwapped);
+        // TV (paisagem) não reflete a virada: decisão D9 revisada, sem rotação na paisagem.
+        updateSwitchSidesBtn();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        applySidesProjection();
+    });
+
     Object.assign(window, {
+        backupAllData, restoreAllDataPrompt, restoreAllDataFile,
+        askSwitchSides, swCancel, swConfirm,
         addPoint, removePoint,
         askResetMatch, carouselNav,
         checkForUpdates,
         ngConfirm, ngCancel,
+        closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
+        openCircuitOverlay, closeCircuitOverlay, fecharCircuitoPadel,
+        openAiViewer, closeAiViewer,
+        closeExportResult, shareExportResult,
+        closeShareFallback, downloadShareFallback,
         closeConfig, closeConfigOnBg,
         closeHistory, closeNotes, closeNotesFs, closeNotesOnBg, closeNotesFsOnBg,
         openConfig, openHistory, openNotes, startTutorialFromConfig,
@@ -4320,7 +5258,7 @@
         updateNotesCounter, updateNotesFsCounter,
         // Histórico (chamadas dinâmicas em buildGameSlide)
         deleteMatch, openNotesFs, openPointLogFromHistory, openPointLogFromHistoryCurrent,
-        sendGameByEmail, closeEmailPrompt, confirmSendEmail,
+        sendGameByEmail,
         exportHistoryGameToExcel,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
