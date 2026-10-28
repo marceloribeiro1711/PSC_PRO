@@ -4,6 +4,7 @@
 const CACHE_VERSION = 'v3.11.00';
 
 const PRECACHE_URLS = [
+  './tutorial-court.jpg',
   './',
   './index.html',
   './app.js',

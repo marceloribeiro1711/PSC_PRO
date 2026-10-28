@@ -4649,13 +4649,21 @@
     // center (true = balão no centro da tela, mesmo havendo alvo com destaque),
     // simulate (true = o Next desse passo roda a simulação de partida e segue para o passo seguinte),
     // nextLabel: texto do botão (padrão: 'Got it' no último passo, 'Next' nos demais)
+    // Figura do tutorial: imagem ilustrativa do campo com setas e legendas (viewBox = pixels da imagem)
+    const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><defs><marker id="tut-arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#ffffff"/></marker></defs><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/><path d="M 262 188 Q 230 230 256 262" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="40" y="150" width="220" height="76" rx="16" fill="#ffffff"/><text x="150.0" y="202" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 1</text><path d="M 764 188 Q 794 230 768 262" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="764" y="150" width="220" height="76" rx="16" fill="#ffffff"/><text x="874.0" y="202" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 2</text><path d="M 262 1266 Q 200 1180 208 1040" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="40" y="1230" width="220" height="76" rx="16" fill="#ffffff"/><text x="150.0" y="1282" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 3</text><path d="M 764 1266 Q 830 1180 816 1050" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="764" y="1230" width="220" height="76" rx="16" fill="#ffffff"/><text x="874.0" y="1282" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 4</text></svg>';
+
     const TUTORIAL_STEPS = [
         { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
         { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
         { text: "Plus insights into mental performance and game strategy.", anchor: null, advance: 'next' },
         { text: "Tap here to pick a tournament or federation logo from your gallery.", anchor: '#logo-left-slot', advance: 'action', actionTargets: ['#fi-logo-left'], actionEvent: ['change'] },
         { text: "Tap each photo to add a picture for that player.", anchor: '#t1-img1', advance: 'action', actionTargets: ['#fi-t1-img1', '#fi-t1-img2', '#fi-t2-img1', '#fi-t2-img2'], actionEvent: ['change'] },
-        { text: "Standing behind the baseline, place each player on the side they actually play — left or right.", anchor: null, tip: true, advance: 'next' },
+        { text: "Suggested setup: place each player where they stand on court, as seen from behind the baseline. Change Sides flips the layout at any time.", anchor: null, figure: true, advance: 'next' },
+        { text: "Update the logo, player names and photos here.", anchor: '#logo-left-slot', advance: 'next' },
+        { text: "History: review past matches, stats and AI analysis.", anchor: '#tab-history', advance: 'next' },
+        { text: "Notes: write free notes about the match or the players.", anchor: '#tab-notes', advance: 'next' },
+        { text: "Padel Calendar: browse the tournament calendar.", anchor: '#tab-calendar', advance: 'next' },
+        { text: "Setup: match format, scoring and app settings.", anchor: '#tab-setup', advance: 'next' },
         { text: "Tap a name to rename each player.", anchor: '#t1-p1', advance: 'action', actionTargets: ['#t1-p1', '#t1-p2', '#t2-p1', '#t2-p2'], actionEvent: ['blur'] },
         { text: "SETUP is where you prepare the match. Tap Next and we'll open it for you.", anchor: '#tab-setup', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
         { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie, or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
@@ -4763,6 +4771,7 @@
                 '<div class="tut-bubble-label">💡 Tip</div>' +
                 '<div class="tut-bubble-title" id="tut-bubble-title"></div>' +
                 '<div class="tut-bubble-subtitle" id="tut-bubble-subtitle"></div>' +
+                '<div class="tut-figure" id="tut-figure" style="display:none"></div>' +
                 '<div class="tut-bubble-text" id="tut-bubble-text"></div>' +
                 '<div class="tut-bubble-footer">' +
                     '<span class="tut-progress" id="tut-progress"></span>' +
@@ -4923,6 +4932,11 @@
         titleEl.style.display = step.title ? 'block' : 'none';
         subEl.style.display = step.subtitle ? 'block' : 'none';
         document.getElementById('tut-bubble-text').textContent = step.text;
+        const figEl = document.getElementById('tut-figure');
+        if (figEl) {
+            if (step.figure && !figEl.firstChild) figEl.innerHTML = TUT_FIGURE_SVG;
+            figEl.style.display = step.figure ? 'block' : 'none';
+        }
         document.getElementById('tut-progress').textContent = tutSteps.length > 1 ? ((tutIdx + 1) + ' / ' + tutSteps.length) : '';
         bubble.classList.toggle('tut-tip', !!step.tip);
 

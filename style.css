@@ -2168,6 +2168,8 @@
     transition: top 0.25s, left 0.25s, width 0.25s, height 0.25s;
 }
 
+.tut-figure { margin: 6px 0 10px; }
+.tut-figure svg { display: block; width: 100%; max-height: 46vh; height: auto; border-radius: 10px; }
 .tut-bubble {
     position: fixed; pointer-events: auto;
     max-width: 82vw; min-width: 210px;
