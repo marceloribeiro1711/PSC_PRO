@@ -537,19 +537,6 @@
         }
         .gs-card-btn.show { opacity: 1; pointer-events: auto; }
 
-        /* Aviso de set bloqueado aguardando ajuste — pisca em vermelho na base da tela */
-        .set-locked-label {
-            position: fixed; left: 50%; transform: translateX(-50%);
-            bottom: calc(calc(4 * var(--vh, 1vh)) + env(safe-area-inset-bottom, 0px));
-            width: 88vw; box-sizing: border-box; text-align: center;
-            background: #e03030; color: #fff; border-radius: 12px; padding: calc(1 * var(--vh, 1vh)) 3vw;
-            font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700; line-height: 1.35;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-            opacity: 0; pointer-events: none; z-index: 310;
-        }
-        .set-locked-label.show { opacity: 1; animation: setLockedBlink 1s steps(1, end) infinite; }
-        @keyframes setLockedBlink { 0% { opacity: 1; } 50% { opacity: 0.25; } }
-
         /* WHO'S SERVE? — portrait, mesma posição e formato do game-over-banner (faixa de avisos do rodapé) */
         .whos-serve-badge {
             position: fixed; left: 50%;
@@ -1604,11 +1591,6 @@
             align-items: center; justify-content: center;
         }
         .ng-overlay.show { display: flex; }
-        .lock-info-modal { border: 1.5px solid #facc15; }
-        .lock-info-icon { width: calc(9 * var(--vh, 1vh)); height: auto; }
-        label.photo-label.photo-locked { pointer-events: none; cursor: default; }
-        label.photo-label.photo-locked .photo-edit-hint { display: none; }
-        .player-name.name-locked { cursor: default; }
         .ng-modal {
             background: var(--panel-bg); border: 1.5px solid var(--border-card);
             border-radius: 16px; padding: calc(3 * var(--vh, 1vh)) 6vw calc(2.5 * var(--vh, 1vh));
@@ -2214,26 +2196,4 @@
 .tut-next-btn.tut-skip-step {
     background: none; color: #40566f; font-weight: 600;
     text-decoration: underline; padding: 5px 4px;
-}
-
-/* ── Acesso oculto ao circuitopadel ─────────────────────────── */
-#config-version-label {
-    -webkit-user-select: none; user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.circuit-overlay {
-    position: fixed; inset: 0; z-index: 10000;
-    background: #000; display: none;
-}
-.circuit-overlay.show { display: block; }
-.circuit-frame {
-    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
-}
-
-/* ── Visualizador da análise de IA (somente leitura) ───────── */
-.ai-view-modal { max-height: 82vh; display: flex; flex-direction: column; }
-.ai-view-text {
-    overflow-y: auto; max-height: 60vh; text-align: left;
-    white-space: pre-wrap; line-height: 1.5; margin: 10px 0;
-    font-size: calc(1.5 * var(--vh, 1vh)); user-select: text; -webkit-user-select: text;
 }
