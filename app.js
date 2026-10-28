@@ -1138,28 +1138,34 @@
     function _processImageFile(file, maxSize, onDone) {
         if (!file) return;
         showToast('⏳ Processing...');
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            const dataUrl = ev.target.result;
-            try {
-                const img = new Image();
-                img.onload = function() {
-                    try {
-                        const scale = Math.min(1, maxSize / Math.max(img.width || 1, img.height || 1));
-                        const w = Math.round((img.width  || maxSize) * scale);
-                        const h = Math.round((img.height || maxSize) * scale);
-                        const canvas = document.createElement('canvas');
-                        canvas.width = w; canvas.height = h;
-                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                        onDone(canvas.toDataURL('image/jpeg', 0.82));
-                    } catch(e) { onDone(dataUrl); }
-                };
-                img.onerror = function() { onDone(dataUrl); };
-                img.src = dataUrl;
-            } catch(e) { onDone(dataUrl); }
+        // iOS/iPadOS: fotos da câmera podem ter dezenas de megapixels. Em vez de copiar o arquivo
+        // inteiro para base64 (readAsDataURL) e decodificar tudo, usamos uma URL temporária do arquivo,
+        // desenhamos já reduzido e liberamos a memória. Nunca guardamos a imagem original como fallback.
+        const url = (window.URL && URL.createObjectURL) ? URL.createObjectURL(file) : null;
+        if (!url) { showToast('❌ Error reading file', '#991b1b'); return; }
+        const img = new Image();
+        let done = false;
+        const finish = function (dataUrl) {
+            if (done) return; done = true;
+            try { URL.revokeObjectURL(url); } catch (e) {}
+            img.onload = img.onerror = null;
+            img.removeAttribute('src');
+            if (dataUrl) onDone(dataUrl);
+            else showToast('❌ Image too large for this device — pick a smaller photo', '#991b1b');
         };
-        reader.onerror = function() { showToast('❌ Error reading file', '#991b1b'); };
-        reader.readAsDataURL(file);
+        img.onload = function () {
+            try {
+                const scale = Math.min(1, maxSize / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+                const w = Math.max(1, Math.round((img.naturalWidth || maxSize) * scale));
+                const h = Math.max(1, Math.round((img.naturalHeight || maxSize) * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                finish(canvas.toDataURL('image/jpeg', 0.82));
+            } catch (e) { finish(null); }
+        };
+        img.onerror = function () { finish(null); };
+        img.src = url;
     }
 
     // Registar listeners em cada input individual

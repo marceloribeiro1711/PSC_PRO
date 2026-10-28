@@ -173,6 +173,7 @@
             color: var(--text-dim); pointer-events: none;
         }
         .header-logo-placeholder span { font-size: calc(1.2 * var(--vh, 1vh)); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+        .header-logo-hint { font-size: calc(1 * var(--vh, 1vh)); font-weight: 400; letter-spacing: 0; text-transform: none; opacity: 0.75; text-align: center; white-space: nowrap; }
         .header-logo-placeholder svg { width: calc(3 * var(--vh, 1vh)); height: calc(3 * var(--vh, 1vh)); opacity: 0.5; }
         .header-divider { width: 1px; height: calc(4 * var(--vh, 1vh)); background: var(--divider); flex-shrink: 0; }
 
