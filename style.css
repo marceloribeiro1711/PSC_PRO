@@ -2237,6 +2237,10 @@
 
 /* ── Visualizador da análise de IA (somente leitura) ───────── */
 .ai-view-modal { max-height: 82vh; display: flex; flex-direction: column; }
+/* Tablets: a caixa de leitura acompanha a largura da tela (no celular continua igual) */
+@media (min-width: 768px) {
+    .ai-view-modal { width: 70vw; max-width: 620px; }
+}
 .ai-view-text {
     overflow-y: auto; max-height: 60vh; text-align: left;
     white-space: pre-wrap; line-height: 1.5; margin: 10px 0;

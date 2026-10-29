@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.01';
+    const APP_VERSION = '3.11.05';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1966,7 +1966,6 @@
     // Continua visível durante o set seguinte também (não é obrigatório
     // fechar só porque o próximo set começou a ser jogado).
     function showSetIntervalCardBtn() {
-        setTimeout(function() { tutContextual(TUT_CARD_STEPS, TUT_CARD_KEY); }, 450);
         var pBtn = document.getElementById('gs-card-btn');
         if (pBtn) pBtn.classList.add('show');
         var lsBtn = document.getElementById('ls-card-btn');
@@ -4651,7 +4650,7 @@
     // simulate (true = o Next desse passo roda a simulação de partida e segue para o passo seguinte),
     // nextLabel: texto do botão (padrão: 'Got it' no último passo, 'Next' nos demais)
     // Figura do tutorial: imagem ilustrativa do campo com setas e legendas (viewBox = pixels da imagem)
-    const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><defs><marker id="tut-arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#ffffff"/></marker></defs><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/><path d="M 262 188 Q 230 230 256 262" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="40" y="150" width="220" height="76" rx="16" fill="#ffffff"/><text x="150.0" y="202" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 1</text><path d="M 764 188 Q 794 230 768 262" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="764" y="150" width="220" height="76" rx="16" fill="#ffffff"/><text x="874.0" y="202" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 2</text><path d="M 262 1266 Q 200 1180 208 1040" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="40" y="1230" width="220" height="76" rx="16" fill="#ffffff"/><text x="150.0" y="1282" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 3</text><path d="M 764 1266 Q 830 1180 816 1050" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" marker-end="url(#tut-arrowhead)"/><rect x="764" y="1230" width="220" height="76" rx="16" fill="#ffffff"/><text x="874.0" y="1282" text-anchor="middle" font-size="46" font-weight="700" fill="#0b1d3a" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">Player 4</text></svg>';
+    const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/><rect x="30" y="120" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><rect x="804" y="120" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><rect x="30" y="1266" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><rect x="804" y="1266" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><line x1="250" y1="250" x2="220" y2="200" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/><line x1="770" y1="250" x2="804" y2="200" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/><line x1="215" y1="1050" x2="220" y2="1300" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/><line x1="812" y1="1050" x2="880" y2="1266" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/></svg>';
 
     const TUTORIAL_STEPS = [
         { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
