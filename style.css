@@ -1346,6 +1346,10 @@
            POINT LOG POPUP
         ============================================================ */
         .pointlog-modal { gap: calc(1 * var(--vh, 1vh)); }
+/* Tablets: o Match Log acompanha a largura da tela, para caber o SuperTie (no celular continua igual) */
+@media (min-width: 768px) {
+    .pointlog-modal { width: 70vw; max-width: 620px; }
+}
         .pointlog-set-tabs {
             display: none; gap: 1.2vw; margin-bottom: calc(0.8 * var(--vh, 1vh));
         }
@@ -1418,6 +1422,25 @@
         .pointlog-trail.compact .pointlog-node-win { font-size: 1dvh; }
         .pointlog-trail.compact .pointlog-node-lose { min-width: 5vw; font-size: 0.85dvh; }
         .pointlog-trail.compact .pointlog-connector { flex-basis: 0.4vw; margin-right: 0.15vw; }
+        /* SuperTie / tie-break: ponto tocável e detalhe (quem sacou, quem ganhou) */
+        .pointlog-node.tappable { cursor: pointer; }
+        .pointlog-node.selected { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+        .pointlog-point-detail {
+            margin-top: calc(1 * var(--vh, 1vh)); padding: calc(1 * var(--vh, 1vh)) 3vw;
+            border: 1.5px solid var(--border-card); border-radius: 8px;
+            display: flex; flex-direction: column; gap: calc(0.6 * var(--vh, 1vh));
+        }
+        .pointlog-detail-row { display: flex; justify-content: space-between; align-items: center; font-size: calc(1.6 * var(--vh, 1vh)); }
+        .pointlog-detail-row span { color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .pointlog-detail-row strong { color: var(--text-main); font-weight: 800; }
+        .pointlog-stats-block { display: flex; flex-direction: column; gap: calc(0.4 * var(--vh, 1vh)); margin-top: calc(0.6 * var(--vh, 1vh)); }
+        .pointlog-stats-head { font-size: calc(1.4 * var(--vh, 1vh)); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .pointlog-stats-pair { font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 800; text-transform: uppercase; margin-top: calc(0.4 * var(--vh, 1vh)); }
+        .pointlog-stats-pair.team1 { color: var(--accent-blue); }
+        .pointlog-stats-pair.team2 { color: var(--accent-yellow); }
+        .pointlog-stat-row { display: flex; justify-content: space-between; align-items: center; font-size: calc(1.5 * var(--vh, 1vh)); }
+        .pointlog-stat-name { color: var(--text-main); font-weight: 700; }
+        .pointlog-stat-val { color: var(--text-dim); font-weight: 700; min-width: 7vw; text-align: right; }
         .pointlog-divider {
             border-top: 1px dashed var(--border-card); margin: calc(0.6 * var(--vh, 1vh)) 0;
         }

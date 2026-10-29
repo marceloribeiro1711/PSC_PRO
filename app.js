@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.05';
+    const APP_VERSION = '3.11.08';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -657,6 +657,73 @@
     // a linha da outra dupla fica vazia na mesma coluna. Isso preserva a
     // leitura de sequência (ex: 3 pontos seguidos perdidos aparecem como
     // 3 colunas vazias consecutivas na linha da dupla que perdeu).
+    // SuperTie / tie-break: cada ponto é tocável e mostra quem sacou e quem ganhou
+    let pointLogTrailGame = null;
+    function showPointLogDetail(i) {
+        const game = pointLogTrailGame;
+        const box = document.getElementById('pointlog-point-detail');
+        if (!game || !box || !game.points || !game.points[i]) return;
+        const pt = game.points[i];
+        const alreadyOpen = box.style.display !== 'none' && box.dataset.pt === String(i);
+        document.querySelectorAll('#gamelog-block .pointlog-node.selected').forEach(function (n) { n.classList.remove('selected'); });
+        if (alreadyOpen) { box.style.display = 'none'; box.dataset.pt = ''; return; }
+        const t1Name = (document.getElementById('pointlog-team1-name') || {}).textContent || 'Team 1';
+        const t2Name = (document.getElementById('pointlog-team2-name') || {}).textContent || 'Team 2';
+        const teamName = [t1Name, t2Name];
+        const winnerName = pt.wonBy === 'team1' ? t1Name : t2Name;
+        const serverName = pt.server || '\u2014';
+        box.innerHTML = '';
+        [['Serving', serverName], ['Won by', winnerName]].forEach(function (row) {
+            const r = document.createElement('div');
+            r.className = 'pointlog-detail-row';
+            const k = document.createElement('span'); k.textContent = row[0];
+            const v = document.createElement('strong'); v.textContent = row[1];
+            r.appendChild(k); r.appendChild(v); box.appendChild(r);
+        });
+
+        // Acumulado até este ponto (SuperTie / tie-break, por ponto):
+        //  - Serve won:    ponto ganho pela dupla do jogador enquanto ele sacava
+        //  - Serve broken: ponto perdido pela dupla do jogador enquanto ele sacava
+        const players = [0, 1, 2, 3].map(function (idx) {
+            return { idx: idx, team: idx < 2 ? 0 : 1, name: pointLogPlayerNameByIdx(idx) };
+        }).filter(function (p) { return !!p.name; });
+        const stats = {};
+        players.forEach(function (p) { stats[p.name] = { won: 0, broken: 0 }; });
+        for (let k = 0; k <= i; k++) {
+            const q = game.points[k];
+            if (!q || !q.server || !stats[q.server]) continue;
+            const serverTeam = players.find(function (p) { return p.name === q.server; }).team;
+            const winnerTeam = q.wonBy === 'team1' ? 0 : 1;
+            if (winnerTeam === serverTeam) stats[q.server].won++; else stats[q.server].broken++;
+        }
+        const statsBox = document.createElement('div');
+        statsBox.className = 'pointlog-stats-block';
+        const titleRow = document.createElement('div');
+        titleRow.className = 'pointlog-stats-head';
+        titleRow.textContent = 'Serves up to this point';
+        statsBox.appendChild(titleRow);
+        [0, 1].forEach(function (team) {
+            const pairHead = document.createElement('div');
+            pairHead.className = 'pointlog-stats-pair ' + (team === 0 ? 'team1' : 'team2');
+            pairHead.textContent = teamName[team];
+            statsBox.appendChild(pairHead);
+            players.filter(function (p) { return p.team === team; }).forEach(function (p) {
+                const row = document.createElement('div');
+                row.className = 'pointlog-stat-row';
+                const nm = document.createElement('span'); nm.className = 'pointlog-stat-name'; nm.textContent = p.name;
+                const won = document.createElement('span'); won.className = 'pointlog-stat-val'; won.textContent = 'Won ' + stats[p.name].won;
+                const brk = document.createElement('span'); brk.className = 'pointlog-stat-val'; brk.textContent = 'Broken ' + stats[p.name].broken;
+                row.appendChild(nm); row.appendChild(won); row.appendChild(brk);
+                statsBox.appendChild(row);
+            });
+        });
+        box.appendChild(statsBox);
+
+        box.dataset.pt = String(i);
+        box.style.display = '';
+        document.querySelectorAll('#gamelog-block .pointlog-node[data-pt="' + i + '"]').forEach(function (n) { n.classList.add('selected'); });
+    }
+
     function renderPointLogTrails(game) {
         const c1 = document.getElementById('pointlog-trail-team1');
         const c2 = document.getElementById('pointlog-trail-team2');
@@ -664,6 +731,13 @@
         // SuperTie e tie-break normal podem ter mais pontos que um game
         // normal — usa nós menores (modo compacto) pra reduzir scroll
         const useCompact = !!game.isSuperTie || !!game.isTiebreakGame;
+        const tappable = useCompact;
+        pointLogTrailGame = game;
+        const detailBox = document.getElementById('pointlog-point-detail');
+        if (detailBox) { detailBox.style.display = 'none'; detailBox.dataset.pt = ''; }
+        const tapAttr = function (i) {
+            return tappable ? ' tappable" data-pt="' + i + '" onclick="showPointLogDetail(' + i + ')"' : '"';
+        };
         c1.classList.toggle('compact', useCompact);
         c2.classList.toggle('compact', useCompact);
         const total = game.points.length;
@@ -682,20 +756,20 @@
             const winnerIsTeam1 = isWinningPoint && pt.wonBy === 'team1';
             const winnerIsTeam2 = isWinningPoint && pt.wonBy === 'team2';
             if (winnerIsTeam1) {
-                html1 += '<span class="pointlog-node pointlog-node-win">✅</span>';
-                html2 += '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
+                html1 += '<span class=\"pointlog-node pointlog-node-win' + tapAttr(i) + '>✅</span>';
+                html2 += '<span class=\"pointlog-node' + tapAttr(i) + '>' + pt.scoreAfter.team2 + '</span>';
                 if (game.servingTeam === 'team2') {
                     html2 += '<span class="pointlog-node pointlog-node-lose">BROKEN</span>';
                 }
             } else if (winnerIsTeam2) {
-                html2 += '<span class="pointlog-node pointlog-node-win">✅</span>';
-                html1 += '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
+                html2 += '<span class=\"pointlog-node pointlog-node-win' + tapAttr(i) + '>✅</span>';
+                html1 += '<span class=\"pointlog-node' + tapAttr(i) + '>' + pt.scoreAfter.team1 + '</span>';
                 if (game.servingTeam === 'team1') {
                     html1 += '<span class="pointlog-node pointlog-node-lose">BROKEN</span>';
                 }
             } else {
-                html1 += '<span class="pointlog-node">' + pt.scoreAfter.team1 + '</span>';
-                html2 += '<span class="pointlog-node">' + pt.scoreAfter.team2 + '</span>';
+                html1 += '<span class=\"pointlog-node' + tapAttr(i) + '>' + pt.scoreAfter.team1 + '</span>';
+                html2 += '<span class=\"pointlog-node' + tapAttr(i) + '>' + pt.scoreAfter.team2 + '</span>';
             }
             if (!isLastPoint) {
                 html1 += '<span class="pointlog-connector"></span>';
@@ -5249,6 +5323,7 @@
         backupAllData, restoreAllDataPrompt, restoreAllDataFile,
         askSwitchSides, swCancel, swConfirm,
         addPoint, removePoint,
+        showPointLogDetail,
         askResetMatch, carouselNav,
         checkForUpdates,
         ngConfirm, ngCancel,
