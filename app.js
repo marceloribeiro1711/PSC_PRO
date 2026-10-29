@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.08';
+    const APP_VERSION = '3.11.09';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -778,6 +778,8 @@
         });
         c1.innerHTML = html1 || '<span class="pointlog-node dim">—</span>';
         c2.innerHTML = html2 || '<span class="pointlog-node dim">—</span>';
+        // SuperTie / tie-break: já abre o detalhe do primeiro ponto ao entrar no Match Log
+        if (tappable && game.points && game.points.length > 0) showPointLogDetail(0);
     }
 
     // Sincroniza o scroll horizontal de duas linhas irmãs (cada uma com

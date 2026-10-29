@@ -1382,7 +1382,7 @@
            (initPointLogScrollSync) — rolar uma rola a outra junto */
         .pointlog-trail {
             display: flex; align-items: center; flex-wrap: nowrap;
-            overflow-x: auto; overscroll-behavior-x: contain; padding: calc(0.4 * var(--vh, 1vh)) 0;
+            overflow-x: auto; overscroll-behavior-x: contain; padding: calc(0.6 * var(--vh, 1vh)) 1.5vw;
         }
         .pointlog-node {
             flex: 0 0 auto;
