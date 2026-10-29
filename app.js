@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.09';
+    const APP_VERSION = '3.11.10';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -4734,7 +4734,7 @@
         { text: "Plus insights into mental performance and game strategy.", anchor: null, advance: 'next' },
         { text: "Suggested setup: place each player where they stand on court, as seen from behind the Glass Wall. Change Sides flips the layout at any time.", anchor: null, figure: true, advance: 'next' },
         { text: "Update the logo, player names and photos here.", anchor: null, advance: 'next' },
-        { text: "History: review past matches, with stats, AI analysis, match log, export and email.", anchor: '#tab-history', advance: 'next' },
+        { text: "History: review past matches, with stats, AI analysis, match log and export.", anchor: '#tab-history', advance: 'next' },
         { text: "Padel Calendar: browse the tournament calendar.", anchor: '#tab-calendar', advance: 'next' },
         { text: "Setup: match format, scoring and app settings.", anchor: '#tab-setup', advance: 'next' },
         { text: "SETUP is where you prepare the match. Next opens it for you.", anchor: '#tab-setup', advance: 'next', onLeave: function() { tutOpenedConfig = true; openConfig(); } },
