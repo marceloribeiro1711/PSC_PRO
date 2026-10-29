@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.10';
+    const APP_VERSION = '3.11.11';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3897,7 +3897,6 @@
         const blob = await new Promise(function (r) { canvas.toBlob(r, 'image/png'); });
         if (blob) await saveMatchScreenshot(date, blob);
         const e = loadHistory().find(function (h) { return h.date === date; });
-        if (e) prepareEmailAttachments(e);
     }
 
     // ── Estatísticas por dupla em PNG (mesmo bloco abaixo do card no histórico) ──
@@ -4219,12 +4218,74 @@
         return file;
     }
 
+    // ZIP sem compressão (método "stored"): leve e sem dependências
+    const _crcTable = (function () {
+        const t = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+            t[n] = c >>> 0;
+        }
+        return t;
+    })();
+    function crc32Of(bytes) {
+        let c = 0xFFFFFFFF;
+        for (let i = 0; i < bytes.length; i++) c = _crcTable[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+        return (c ^ 0xFFFFFFFF) >>> 0;
+    }
+    async function makeZipFile(files, zipName) {
+        const enc = new TextEncoder();
+        const parts = [], central = [];
+        let offset = 0;
+        for (const f of files) {
+            const data = new Uint8Array(await f.arrayBuffer());
+            const name = enc.encode(f.name);
+            const crc = crc32Of(data);
+            const lh = new DataView(new ArrayBuffer(30));
+            lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+            lh.setUint16(8, 0, true); lh.setUint16(10, 0, true); lh.setUint16(12, 0x21, true);
+            lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+            lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+            parts.push(new Uint8Array(lh.buffer), name, data);
+            const cd = new DataView(new ArrayBuffer(46));
+            cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
+            cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true); cd.setUint16(12, 0, true);
+            cd.setUint16(14, 0x21, true); cd.setUint32(16, crc, true); cd.setUint32(20, data.length, true);
+            cd.setUint32(24, data.length, true); cd.setUint16(28, name.length, true);
+            cd.setUint32(42, offset, true);
+            central.push(new Uint8Array(cd.buffer), name);
+            offset += 30 + name.length + data.length;
+        }
+        let cdSize = 0;
+        central.forEach(function (p) { cdSize += p.length; });
+        const end = new DataView(new ArrayBuffer(22));
+        end.setUint32(0, 0x06054b50, true);
+        end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+        end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+        return new File(parts.concat(central, [new Uint8Array(end.buffer)]), zipName, { type: 'application/zip' });
+    }
+    // Exporta todos os arquivos da partida em um único ZIP (gerados só ao tocar em Export)
     async function exportHistoryGameToExcel() {
         const history = loadHistory();
         const entry = history[carouselIdx];
         if (!entry) return;
-        const file = await getMatchXlsxFile(entry);
-        showExportResult(file);
+        showToast('Please wait, preparing export...');
+        try {
+            const stamp = matchStartParts(entry).stamp;
+            const files = buildGameEmailFiles(entry);            // notas (se houver) e análise de IA em txt
+            const xl = await getMatchXlsxFile(entry);            // Excel: estatísticas e match log
+            if (xl) files.push(xl);
+            const card = await renderCardPngFile(entry).catch(function () { return null; });
+            if (card) files.push(card);
+            const pairs = await renderPairStatsPngFile(entry).catch(function () { return null; });
+            if (pairs) files.push(pairs);
+            const shot = await getMatchScreenshot(entry.date);   // tela final, capturada ao fim da partida
+            if (shot) files.push(new File([shot], 'PSC_PRO_Final_Screen_' + stamp + '.png', { type: 'image/png' }));
+            const zip = await makeZipFile(files, 'PSC_PRO_Match_Report_' + stamp + '.zip');
+            showExportResult(zip);
+        } catch (e) {
+            showToast('Export failed. Please try again.');
+        }
     }
 
     // ── Tela de confirmação da exportação Excel ─────────────────
@@ -4306,7 +4367,6 @@
     }
 
     function updateNavBtns() {
-        if (typeof carouselIdx === 'number') prefetchCardPng(carouselIdx);
         // Navegação por swipe mantida; setas são só indicador visual (sem
         // acção de navegação), acesas conforme houver mais jogos pro lado.
         const leftArrow = document.getElementById('h-nav-arrow-left');
