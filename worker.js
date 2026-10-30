@@ -100,15 +100,42 @@ const TEAM_WORD = {
 // para não depender da IA somar números corretamente (mesma filosofia de
 // fidelidade de dados usada na regra de scoring abaixo).
 function computeTeamStats(payload) {
+    // null = não anotado (nunca tratar como zero). Totais só são somados quando há anotação.
     const fields = ['unforcedErrors', 'forcedErrors', 'doubleFaults', 'winners', 'smashWinners'];
-    const stats = { team1: {}, team2: {} };
-    fields.forEach(function (f) { stats.team1[f] = 0; stats.team2[f] = 0; });
-    (payload.playerStats || []).forEach(function (p) {
-        const bucket = stats[p.team];
-        if (!bucket) return;
-        fields.forEach(function (f) { bucket[f] += (p[f] || 0); });
+    const players = payload.playerStats || [];
+    const out = {};
+    ['team1', 'team2'].forEach(function (t) {
+        const mine = players.filter(function (p) { return p.team === t; });
+        const annotated = mine.some(function (p) { return p.statsAnnotated === true; });
+        const totals = {};
+        fields.forEach(function (f) {
+            const vals = mine.map(function (p) { return p[f]; }).filter(function (v) { return typeof v === 'number'; });
+            totals[f] = vals.length ? vals.reduce(function (x, y) { return x + y; }, 0) : null;
+        });
+        out[t] = { annotated: annotated, totals: totals };
     });
-    return stats;
+    return out;
+}
+
+function describeStatsStatus(payload, teamStats, team1Name, team2Name) {
+    const matchAnnotated = payload.statsAnnotated === true;
+    if (!matchAnnotated) {
+        return `STATS STATUS: NO STATISTICS WERE ANNOTATED IN THIS MATCH.
+- Do NOT mention unforced errors, forced errors, double faults, winners, smash winners, or any comparison or claim based on them, in ANY paragraph.
+- In the data, null and 0 both mean "not recorded". They never mean "no errors", "clean match" or "clean play".
+- PARAGRAPH 1: describe the pair level picture only from sets, games and break points. Do not compare the pairs by errors or winners.
+- PARAGRAPH 5: leave it empty.`;
+    }
+    const t1 = teamStats.team1.annotated, t2 = teamStats.team2.annotated;
+    const lines = [
+        'STATS STATUS: statistics were annotated in this match.',
+        `- ${team1Name}: ${t1 ? 'annotated' : 'NOT annotated, do not use its stat values'}`,
+        `- ${team2Name}: ${t2 ? 'annotated' : 'NOT annotated, do not use its stat values'}`,
+        '- A null value means that field was not recorded. Never describe a null value as zero, and never describe a zero as a clean match.',
+        '- PARAGRAPH 1: compare the pairs by stats only when BOTH pairs are annotated. Otherwise do not compare by stats.',
+        '- PARAGRAPH 5: only for players whose statsAnnotated is true, and only when their pair is annotated.'
+    ];
+    return lines.join('\n');
 }
 
 function buildPrompt(payload) {
@@ -119,6 +146,8 @@ function buildPrompt(payload) {
     const team1Name = teamWord + ' ' + team1RawName;
     const team2Name = teamWord + ' ' + team2RawName;
     const teamStats = computeTeamStats(payload);
+    const statsStatus = describeStatsStatus(payload, teamStats, team1Name, team2Name);
+    const teamTotalsLine = (t, name) => (teamStats[t].annotated ? `${name}: ${JSON.stringify(teamStats[t].totals)}` : `${name}: NOT ANNOTATED`);
 
     // Regra crítica de fidelidade de dados: o formato de pontuação
     // (payload.pointMode) determina se "vantagem"/"AD" sequer EXISTE nesta
@@ -142,9 +171,11 @@ TEAM NAMES — critical, read carefully: refer to each dupla using EXACTLY these
 
 ${scoringRule}
 
-PRE-COMPUTED TEAM TOTALS (dupla vs dupla, already summed from playerStats — use these exact numbers, do not recompute or estimate them yourself):
-${team1Name}: ${JSON.stringify(teamStats.team1)}
-${team2Name}: ${JSON.stringify(teamStats.team2)}
+${statsStatus}
+
+PRE-COMPUTED TEAM TOTALS (dupla vs dupla, already summed from playerStats; null = not recorded; use these exact numbers, do not recompute them):
+${teamTotalsLine('team1', team1Name)}
+${teamTotalsLine('team2', team2Name)}
 
 PARAGRAPH 1 (dupla vs dupla — team-level scout opener, 3-4 sentences): using ONLY the PRE-COMPUTED TEAM TOTALS above, compare "${team1Name}" and "${team2Name}" as units — which dupla played cleaner or more aggressive padel (unforcedErrors relative to winners/smashWinners), which dupla was tested more by the opponents (forcedErrors), and how doubleFaults compare between them. Write this the way a doubles scout report opens with the pair's combined numbers before going player-by-player. Stay at the dupla level in this paragraph — do not single out individual players here.
 
@@ -166,6 +197,7 @@ Rules:
 - If a paragraph lacks enough data for a specific, reliable claim, prefer a more generic sentence over inventing one (or, for paragraph 5, leave it empty).
 - Keep the combined output well under ${NOTES_CHAR_LIMIT} characters.
 - The ENTIRE output must be in ${langName} — do not mix languages, do not default to English unless ${langName} is English.
+- Follow the STATS STATUS above strictly. Never describe errors, winners, smash winners or double faults unless STATS STATUS allows it, and never treat null or 0 as a clean match.
 - Strictly follow the SCORING FORMAT rule above — do not describe a scoring state (advantage/AD, deuce) that doesn't exist in this match's format.
 
 Match data:

@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.11';
+    const APP_VERSION = '3.11.16';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -731,7 +731,7 @@
         // SuperTie e tie-break normal podem ter mais pontos que um game
         // normal — usa nós menores (modo compacto) pra reduzir scroll
         const useCompact = !!game.isSuperTie || !!game.isTiebreakGame;
-        const tappable = useCompact;
+        const tappable = !!game.isSuperTie; // detalhe por ponto e acumulado: só no SuperTie
         pointLogTrailGame = game;
         const detailBox = document.getElementById('pointlog-point-detail');
         if (detailBox) { detailBox.style.display = 'none'; detailBox.dataset.pt = ''; }
@@ -2705,21 +2705,32 @@
     // Variante para partidas já salvas no histórico (usada pelo botão
     // manual "Generate AI Analysis" e pelo retry) — não depende do DOM
     // ao vivo, lê tudo do próprio `entry`.
+    // Estatísticas no fim da partida: valor zero (ou ausente) = não há anotação.
+    // Enviamos null nesses campos para a IA nunca tratar a ausência como "partida sem erros".
     function buildPlayerStatsForAiFromEntry(entry) {
         const suffixes = ['p1', 'p2', 'p3', 'p4'];
         const teams = ['team1', 'team1', 'team2', 'team2'];
         const stats = entry.stats || {};
+        const keys = ['ufe', 'fe', 'df', 'win', 'smash'];
+        const num = function (k, suf) { return Number(stats['s_' + k + '_' + suf]) || 0; };
         return suffixes.map(function (suf, i) {
+            const annotated = keys.some(function (k) { return num(k, suf) > 0; });
+            const val = function (k) { const v = num(k, suf); return v > 0 ? v : null; };
             return {
                 name: entry.players[i] || ('Player ' + (i + 1)),
                 team: teams[i],
-                unforcedErrors: stats['s_ufe_' + suf] || 0,
-                forcedErrors: stats['s_fe_' + suf] || 0,
-                doubleFaults: stats['s_df_' + suf] || 0,
-                winners: stats['s_win_' + suf] || 0,
-                smashWinners: stats['s_smash_' + suf] || 0
+                statsAnnotated: annotated,
+                unforcedErrors: val('ufe'),
+                forcedErrors: val('fe'),
+                doubleFaults: val('df'),
+                winners: val('win'),
+                smashWinners: val('smash')
             };
         });
+    }
+    function entryHasStatsAnnotations(entry) {
+        const stats = entry.stats || {};
+        return Object.keys(stats).some(function (k) { return k.indexOf('s_') === 0 && (Number(stats[k]) || 0) > 0; });
     }
 
     function buildMatchLogForAi() {
@@ -2799,6 +2810,7 @@
                 team1: { name: duplaName(entry.players[0], entry.players[1]), players: [entry.players[0], entry.players[1]] },
                 team2: { name: duplaName(entry.players[2], entry.players[3]), players: [entry.players[2], entry.players[3]] }
             },
+            statsAnnotated: entryHasStatsAnnotations(entry), // false = nenhuma estatística foi anotada nesta partida
             playerStats: buildPlayerStatsForAiFromEntry(entry),
             sets: setsArr,
             winner: entry.winner === 0 ? 'team1' : 'team2',
@@ -4786,7 +4798,7 @@
     // simulate (true = o Next desse passo roda a simulação de partida e segue para o passo seguinte),
     // nextLabel: texto do botão (padrão: 'Got it' no último passo, 'Next' nos demais)
     // Figura do tutorial: imagem ilustrativa do campo com setas e legendas (viewBox = pixels da imagem)
-    const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/><rect x="30" y="120" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><rect x="804" y="120" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><rect x="30" y="1266" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><rect x="804" y="1266" width="190" height="150" rx="28" fill="#0b1d3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="8"/><line x1="250" y1="250" x2="220" y2="200" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/><line x1="770" y1="250" x2="804" y2="200" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/><line x1="215" y1="1050" x2="220" y2="1300" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/><line x1="812" y1="1050" x2="880" y2="1266" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/></svg>';
+    const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/></svg>';
 
     const TUTORIAL_STEPS = [
         { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
@@ -4875,6 +4887,7 @@
 
     function tutEnd() {
         tutActive = false;
+        tutRemoveFigureLinks();
         tutClearActionListeners();
         if (tutOpenedConfig) { tutOpenedConfig = false; closeConfig(); }
         const ov = document.getElementById('tut-overlay');
@@ -5047,6 +5060,55 @@
         bubble.style.top = '50%';
     }
 
+    // Linhas que saem dos jogadores da figura e chegam às caixas de foto reais na tela de jogo
+    const TUT_FIG_PLAYERS = [
+        { id: 't1-img1', x: 310, y: 300, edge: 'bottom' },
+        { id: 't1-img2', x: 715, y: 290, edge: 'bottom' },
+        { id: 't2-img1', x: 270, y: 960, edge: 'top' },
+        { id: 't2-img2', x: 745, y: 960, edge: 'top' }
+    ];
+    function tutRemoveFigureLinks() {
+        const old = document.getElementById('tut-links');
+        if (old) old.remove();
+    }
+    function tutDrawFigureLinks() {
+        const figEl = document.getElementById('tut-figure');
+        const ov = document.getElementById('tut-overlay');
+        if (!figEl || !ov || figEl.style.display === 'none') { tutRemoveFigureLinks(); return; }
+        const svgEl = figEl.querySelector('svg');
+        if (!svgEl) return;
+        const r = svgEl.getBoundingClientRect();
+        const sc = Math.min(r.width / 1024, r.height / 1536);
+        const ox = r.left + (r.width - 1024 * sc) / 2;
+        const oy = r.top + (r.height - 1536 * sc) / 2;
+        tutRemoveFigureLinks();
+        const NS = 'http://www.w3.org/2000/svg';
+        const layer = document.createElementNS(NS, 'svg');
+        layer.setAttribute('id', 'tut-links');
+        layer.setAttribute('width', '100%'); layer.setAttribute('height', '100%');
+        layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5000;';
+        TUT_FIG_PLAYERS.forEach(function (p) {
+            const el = document.getElementById(p.id);
+            if (!el) return;
+            const t = el.getBoundingClientRect();
+            const x1 = ox + p.x * sc, y1 = oy + p.y * sc;
+            const x2 = t.left + t.width / 2;
+            const y2 = p.edge === 'bottom' ? t.bottom : t.top;
+            [['#0b1d3a', 6], ['#ffffff', 3]].forEach(function (st) {
+                const ln = document.createElementNS(NS, 'line');
+                ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
+                ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
+                ln.setAttribute('stroke', st[0]); ln.setAttribute('stroke-width', st[1]);
+                ln.setAttribute('stroke-linecap', 'round');
+                layer.appendChild(ln);
+            });
+        });
+        ov.appendChild(layer);
+    }
+    window.addEventListener('resize', function () {
+        const figEl = document.getElementById('tut-figure');
+        if (figEl && figEl.style.display !== 'none') tutDrawFigureLinks();
+    });
     function tutShowStep() {
         if (!tutActive || tutSimulating) return;
         tutRenderShell();
@@ -5067,6 +5129,7 @@
             if (step.figure && !figEl.firstChild) figEl.innerHTML = TUT_FIGURE_SVG;
             figEl.style.display = step.figure ? 'block' : 'none';
         }
+        if (step.figure) requestAnimationFrame(tutDrawFigureLinks); else tutRemoveFigureLinks();
         document.getElementById('tut-progress').textContent = tutSteps.length > 1 ? ((tutIdx + 1) + ' / ' + tutSteps.length) : '';
         bubble.classList.toggle('tut-tip', !!step.tip);
 
