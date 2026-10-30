@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.16';
+    const APP_VERSION = '3.11.17';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -4405,8 +4405,20 @@
     }
 
     function carouselNav(dir) { goToSlide(carouselIdx + dir); }
+    // Setas ‹ › do histórico: clicáveis (mouse e toque), além do swipe
+    let historyArrowsBound = false;
+    function bindHistoryArrows() {
+        if (historyArrowsBound) return;
+        const l = document.getElementById('h-nav-arrow-left');
+        const r = document.getElementById('h-nav-arrow-right');
+        if (!l || !r) return;
+        l.addEventListener('click', function () { carouselNav(-1); });
+        r.addEventListener('click', function () { carouselNav(1); });
+        historyArrowsBound = true;
+    }
 
     function openHistory() {
+        bindHistoryArrows();
         // Histórico é só pra leitura vertical — nunca abre em TV Mode.
         if (window.matchMedia('(orientation: landscape)').matches) {
             return;
@@ -5086,7 +5098,7 @@
         const layer = document.createElementNS(NS, 'svg');
         layer.setAttribute('id', 'tut-links');
         layer.setAttribute('width', '100%'); layer.setAttribute('height', '100%');
-        layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5000;';
+        layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5002;';
         TUT_FIG_PLAYERS.forEach(function (p) {
             const el = document.getElementById(p.id);
             if (!el) return;

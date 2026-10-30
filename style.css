@@ -732,6 +732,8 @@
             color: var(--border-card); transition: color 0.2s;
         }
         .h-nav-arrow.lit { color: #f5c518; }
+        .h-nav-arrow { cursor: pointer; user-select: none; padding: calc(0.6 * var(--vh, 1vh)) 2vw; }
+        .h-nav-arrow:not(.lit) { cursor: default; }
         .h-counter {
             font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; color: var(--text-dim);
         }
@@ -1600,7 +1602,7 @@
             display: block;
             width: calc(4 * var(--vh, 1vh)); height: calc(4 * var(--vh, 1vh));
             min-width: 28px; min-height: 28px;
-            margin: calc(0.6 * var(--vh, 1vh)) auto 0;
+            margin: calc(2.2 * var(--vh, 1vh)) auto 0;
             opacity: 0.15;
             transition: opacity 0.3s ease, filter 0.3s ease;
             filter: grayscale(80%);
