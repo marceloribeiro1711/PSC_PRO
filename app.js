@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.31';
+    const APP_VERSION = '3.11.32';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2347,6 +2347,7 @@
             prosetMode,
             pointMode,
             statsEnabled,
+            tournamentName,
             gameLogEnabled,
             aiAnalysisLanguage,
             matchGameLogs,
@@ -2396,6 +2397,8 @@
         prosetMode    = snap.prosetMode || false;
         pointMode     = snap.pointMode;
         statsEnabled  = snap.statsEnabled;
+        tournamentName = snap.tournamentName || '';
+        renderTournamentName();
         gameLogEnabled = false; // sempre Off — sem toggle na UI, ignora valor salvo em snapshots antigos
         aiAnalysisLanguage = (snap.aiAnalysisLanguage !== undefined) ? snap.aiAnalysisLanguage : 'en';
         matchGameLogs  = snap.matchGameLogs || [];
@@ -2818,6 +2821,7 @@
                 team1: { name: duplaName(entry.players[0], entry.players[1]), players: [entry.players[0], entry.players[1]] },
                 team2: { name: duplaName(entry.players[2], entry.players[3]), players: [entry.players[2], entry.players[3]] }
             },
+            tournamentName: entry.tournamentName || 'match',
             statsAnnotated: entryHasStatsAnnotations(entry), // false = nenhuma estatística foi anotada nesta partida
             playerStats: buildPlayerStatsForAiFromEntry(entry),
             sets: setsArr,
@@ -3258,6 +3262,7 @@
             stats: Object.assign({}, statsState),
             setMode: prosetMode ? 'proset' : (superTieMode ? 'supertie' : '3sets'),
             pointMode: pointMode,
+            tournamentName: tournamentName || '',
             duration: formatDuration(timerSeconds),
             notes: currentNotes,
             pointLog: matchGameLogs
@@ -3825,6 +3830,12 @@
     }
 
     // Data e hora de INÍCIO do jogo, em horário local (partidas antigas sem startedAt usam o registro)
+    // Nome base dos arquivos de exportação: Nome_do_torneio_yyyy_mm_dd (sem hora)
+    function exportBaseName(entry) {
+        const raw = (entry.tournamentName || 'match').replace(/[\\/:*?"<>|]+/g, '').trim();
+        const name = (raw || 'match').replace(/\s+/g, '_');
+        return name + '_' + matchStartParts(entry).date.replace(/-/g, '_');
+    }
     function matchStartParts(entry) {
         const d = new Date(entry.startedAt || entry.date);
         const p = function (n) { return String(n).padStart(2, '0'); };
@@ -4233,7 +4244,7 @@
         const wb = buildMatchWorkbook(entry);
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const file = new File([blob], `PSC_PRO_Match_Report_${matchStartParts(entry).stamp}.xlsx`, { type: blob.type });
+        const file = new File([blob], `${exportBaseName(entry)}.xlsx`, { type: blob.type });
         _xlsxCache[key] = file;
         return file;
     }
@@ -4406,7 +4417,7 @@
             if (want('ex-notes') && notesFile) pdfPages.push({ kind: 'text', text: 'ANOTAÇÕES DO JOGO\n\n' + (await notesFile.text()) });
 
             const files = [];
-            const pdf = await buildExportPdf(pdfPages, 'PSC_PRO_Match_Report_' + stamp + '.pdf');
+            const pdf = await buildExportPdf(pdfPages, exportBaseName(entry) + '.pdf');
             if (pdf) files.push(pdf);
             if (!files.length) { showToast('Nothing to export'); return; }
             showExportResult(files);
@@ -4655,6 +4666,7 @@
         updateTimerDisplay();
     }
 
+    let tournamentName = ''; // nome do torneio (informado no New Game, 25 caracteres)
     function forceClear() {
         sidesSwapped = false; // nova partida sempre começa sem virada
         sideNoticeLeft = 0; sideLastPlayed = 0;
@@ -4745,7 +4757,7 @@
     function applyPlayerEditLock() {
         const locked = isMatchLocked();
         updateSwitchSidesBtn();
-        ['t1-p1','t1-p2','t2-p1','t2-p2'].forEach(function (id) {
+        ['t1-p1','t1-p2','t2-p1','t2-p2','p-tournament-name'].forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
             el.setAttribute('contenteditable', locked ? 'false' : 'true');
@@ -4853,15 +4865,47 @@
     }
 
     function askResetMatch() {
+        const inp = document.getElementById('ng-tournament-name');
+        const err = document.getElementById('ng-tournament-error');
+        if (inp) inp.value = '';
+        if (err) err.style.display = 'none';
         document.getElementById('ng-overlay').classList.add('show');
+        if (inp) setTimeout(function () { inp.focus(); }, 150);
     }
 
     function ngConfirm() {
+        const inp = document.getElementById('ng-tournament-name');
+        const err = document.getElementById('ng-tournament-error');
+        const name = inp ? inp.value.replace(/\s+/g, ' ').trim().slice(0, 25) : '';
+        if (!name) { if (err) err.style.display = ''; if (inp) inp.focus(); return; }
         document.getElementById('ng-overlay').classList.remove('show');
         forceClear();
+        tournamentName = name;
+        renderTournamentName();
         applyPlayerEditLock();
         saveGameState();
         showLockInfo();
+    }
+
+    // Nome do torneio na tela (retrato): mostra o nome atual, ou vazio em partidas antigas
+    function renderTournamentName() {
+        const el = document.getElementById('p-tournament-name');
+        if (el) el.textContent = tournamentName || '';
+    }
+    // Ao editar: máximo 25 caracteres; vazio volta ao nome anterior
+    function bindTournamentNameEdit() {
+        const el = document.getElementById('p-tournament-name');
+        if (!el) return;
+        el.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
+            if (e.key.length === 1 && (el.textContent || '').length >= 25) e.preventDefault();
+        });
+        el.addEventListener('blur', function () {
+            const v = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 25);
+            if (v) tournamentName = v;
+            el.textContent = tournamentName || '';
+            saveGameState();
+        });
     }
 
     function ngCancel() {
@@ -5680,6 +5724,7 @@
         bindPlayerNameKeyboardRelease();
         bindEditFocusRelease();
         bindScoreTapNoSelection();
+        bindTournamentNameEdit();
         applySidesProjection();
     });
 

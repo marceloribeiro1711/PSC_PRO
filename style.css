@@ -132,6 +132,7 @@
            HEADER
         ============================================================ */
         .p-header {
+            position: relative;
             display: flex; flex-direction: column;
             padding: calc(0.6 * var(--vh, 1vh)) 4vw;
             background-color: var(--panel-bg);
@@ -2338,3 +2339,23 @@
 .pts-box, .ls-set-cell, .set-box, .score-cell, .pts-box *, .ls-set-cell *, .set-box * {
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
+
+/* Nome do torneio: só em retrato, fixo abaixo dos logos, sem alterar o layout dos demais elementos */
+.p-tournament-name { display: none; }
+@media (orientation: portrait) {
+    .p-tournament-name {
+        display: block; position: absolute; left: 4vw; right: 4vw; bottom: calc(0.2 * var(--vh, 1vh));
+        height: calc(2.4 * var(--vh, 1vh)); line-height: calc(2.4 * var(--vh, 1vh));
+        font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 1px;
+        text-align: center; text-transform: uppercase; color: var(--text-main);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text;
+    }
+    .p-tournament-name.name-locked { cursor: default; }
+}
+.ng-tournament-wrap { width: 100%; display: flex; flex-direction: column; gap: calc(0.6 * var(--vh, 1vh)); }
+.ng-tournament-input {
+    width: 100%; box-sizing: border-box; padding: calc(1 * var(--vh, 1vh)) 3vw;
+    font-size: calc(1.8 * var(--vh, 1vh)); border-radius: 8px; border: 1.5px solid var(--border-card);
+    background: var(--card-bg); color: var(--text-main); text-transform: uppercase;
+}
+.ng-tournament-error { color: #ff6b6b; font-size: calc(1.4 * var(--vh, 1vh)); text-align: center; }
