@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.30';
+    const APP_VERSION = '3.11.31';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -5607,7 +5607,12 @@
     }
 
     // Foto: ao sair da edição (escolher, cancelar ou voltar do seletor), o foco não pode ficar na imagem.
+    function clearTextSelection() {
+        const sel = window.getSelection && window.getSelection();
+        if (sel && sel.rangeCount) sel.removeAllRanges();
+    }
     function releaseEditFocus() {
+        clearTextSelection();
         const a = document.activeElement;
         if (a && a !== document.body) {
             const isName = a.classList && a.classList.contains('player-name');
@@ -5643,6 +5648,14 @@
             if (!document.hidden) dropFileInputFocus();
         });
     }
+    // Toque nos placares (parcial e de sets) não pode levar o foco para um nome:
+    // limpa a seleção antes do toque selecionar o número.
+    function bindScoreTapNoSelection() {
+        document.querySelectorAll('.pts-box, .ls-set-cell, .set-box, .score-cell').forEach(function (el) {
+            el.addEventListener('pointerdown', function () { clearTextSelection(); });
+            el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        });
+    }
     // Teclado fechado (Android/iOS): nome em edição perde o foco.
     // Assim a sugestão do teclado/Google não fica pendurada na tela.
     function bindPlayerNameKeyboardRelease() {
@@ -5650,7 +5663,7 @@
             el.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
             });
-            el.addEventListener('blur', function () { el.classList.remove('name-editing'); });
+            el.addEventListener('blur', function () { el.classList.remove('name-editing'); clearTextSelection(); });
         });
         if (window.visualViewport) {
             let lastH = window.visualViewport.height;
@@ -5666,6 +5679,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         bindPlayerNameKeyboardRelease();
         bindEditFocusRelease();
+        bindScoreTapNoSelection();
         applySidesProjection();
     });
 

@@ -2333,3 +2333,8 @@
 .p-teams { transition: opacity 0.15s ease; }
 .p-teams.sw-dip { opacity: 0.25; }
 
+
+/* Placares: tocar no número não seleciona texto (evita levar o foco para um nome) */
+.pts-box, .ls-set-cell, .set-box, .score-cell, .pts-box *, .ls-set-cell *, .set-box * {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
