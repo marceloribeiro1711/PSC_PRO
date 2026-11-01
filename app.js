@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.17';
+    const APP_VERSION = '3.11.21';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -421,7 +421,7 @@
     function setPointLogActiveSet(setNum) {
         pointLogActiveSet = setNum;
         pointLogWindow = pointLogSourceData.filter(g => g.set === setNum);
-        pointLogViewIndex = pointLogWindow.length - 1; // game mais recente desse set
+        pointLogViewIndex = 0; // ao navegar entre SET 1 / SET 2 / SUPERTIE, começa pelo primeiro game
         renderPointLogSetTabs();
         renderPointLog();
     }
@@ -442,9 +442,9 @@
         // Por padrão mostra o set em curso; se ainda não tiver games nele
         // (ex: acabou de mudar de set), cai para o set mais recente disponível
         const hasCurrentSet = pointLogSourceData.some(g => g.set === state.currentSet);
-        pointLogActiveSet = hasCurrentSet ? state.currentSet : pointLogSourceData[pointLogSourceData.length - 1].set;
+        pointLogActiveSet = pointLogSourceData[0].set; // sempre começa no SET 1
         pointLogWindow = pointLogSourceData.filter(g => g.set === pointLogActiveSet);
-        pointLogViewIndex = pointLogWindow.length - 1;
+        pointLogViewIndex = 0; // primeiro game do set
         renderPointLogSetTabs();
         initPointLogScrollSync();
         renderPointLog();
@@ -480,9 +480,9 @@
             return;
         }
         pointLogSourceData = pointLog; // todos os sets dessa partida
-        pointLogActiveSet = pointLog[pointLog.length - 1].set; // set mais recente por padrão
+        pointLogActiveSet = pointLog[0].set; // sempre começa no SET 1
         pointLogWindow = pointLogSourceData.filter(g => g.set === pointLogActiveSet);
-        pointLogViewIndex = pointLogWindow.length - 1;
+        pointLogViewIndex = 0; // primeiro game do set
         renderPointLogSetTabs();
         initPointLogScrollSync();
         renderPointLog();
@@ -4230,107 +4230,224 @@
         return file;
     }
 
-    // ZIP sem compressão (método "stored"): leve e sem dependências
-    const _crcTable = (function () {
-        const t = new Uint32Array(256);
-        for (let n = 0; n < 256; n++) {
-            let c = n;
-            for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-            t[n] = c >>> 0;
-        }
-        return t;
-    })();
-    function crc32Of(bytes) {
-        let c = 0xFFFFFFFF;
-        for (let i = 0; i < bytes.length; i++) c = _crcTable[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
-        return (c ^ 0xFFFFFFFF) >>> 0;
+    // ============================================================
+    // EXPORTAÇÃO: escolha dos itens, PDF único (imagens + textos) e Excel separado
+    // ============================================================
+    const EXPORT_PDF_ITEMS = ['ex-final', 'ex-ai', 'ex-pairs', 'ex-card', 'ex-notes'];
+    function openExportPicker() {
+        if (carouselIdx == null || !loadHistory()[carouselIdx]) return;
+        const defaults = { 'ex-final': true, 'ex-ai': true, 'ex-pairs': false, 'ex-card': false, 'ex-notes': false, 'ex-excel': true };
+        Object.keys(defaults).forEach(function (id) { document.getElementById(id).checked = defaults[id]; });
+        exportPickerSync();
+        document.getElementById('export-pick-overlay').classList.add('show');
     }
-    async function makeZipFile(files, zipName) {
-        const enc = new TextEncoder();
-        const parts = [], central = [];
-        let offset = 0;
-        for (const f of files) {
-            const data = new Uint8Array(await f.arrayBuffer());
-            const name = enc.encode(f.name);
-            const crc = crc32Of(data);
-            const lh = new DataView(new ArrayBuffer(30));
-            lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
-            lh.setUint16(8, 0, true); lh.setUint16(10, 0, true); lh.setUint16(12, 0x21, true);
-            lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
-            lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
-            parts.push(new Uint8Array(lh.buffer), name, data);
-            const cd = new DataView(new ArrayBuffer(46));
-            cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
-            cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true); cd.setUint16(12, 0, true);
-            cd.setUint16(14, 0x21, true); cd.setUint32(16, crc, true); cd.setUint32(20, data.length, true);
-            cd.setUint32(24, data.length, true); cd.setUint16(28, name.length, true);
-            cd.setUint32(42, offset, true);
-            central.push(new Uint8Array(cd.buffer), name);
-            offset += 30 + name.length + data.length;
-        }
-        let cdSize = 0;
-        central.forEach(function (p) { cdSize += p.length; });
-        const end = new DataView(new ArrayBuffer(22));
-        end.setUint32(0, 0x06054b50, true);
-        end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
-        end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
-        return new File(parts.concat(central, [new Uint8Array(end.buffer)]), zipName, { type: 'application/zip' });
+    function closeExportPicker() {
+        document.getElementById('export-pick-overlay').classList.remove('show');
     }
-    // Exporta todos os arquivos da partida em um único ZIP (gerados só ao tocar em Export)
-    async function exportHistoryGameToExcel() {
+    function exportPickerSync() {
+        const any = ['ex-final', 'ex-ai', 'ex-pairs', 'ex-card', 'ex-notes', 'ex-excel']
+            .some(function (id) { return document.getElementById(id).checked; });
+        document.getElementById('export-pick-go').disabled = !any;
+    }
+    function exportImageToJpeg(file) {
+        return new Promise(function (resolve, reject) {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = function () {
+                try {
+                    const c = document.createElement('canvas');
+                    c.width = img.naturalWidth; c.height = img.naturalHeight;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+                    ctx.drawImage(img, 0, 0);
+                    c.toBlob(function (blob) {
+                        URL.revokeObjectURL(url);
+                        if (!blob) return reject(new Error('jpeg'));
+                        blob.arrayBuffer().then(function (buf) {
+                            resolve({ type: 'image', jpeg: new Uint8Array(buf), w: c.width, h: c.height });
+                        });
+                    }, 'image/jpeg', 0.9);
+                } catch (e) { URL.revokeObjectURL(url); reject(e); }
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('img')); };
+            img.src = url;
+        });
+    }
+    function pdfTextSafe(str) {
+        return String(str || '')
+            .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2013\u2014]/g, '-').replace(/\u2022/g, '-').replace(/\u2026/g, '...')
+            .replace(/[\u00A0]/g, ' ');
+    }
+    function wrapPdfLines(text, maxChars) {
+        const out = [];
+        pdfTextSafe(text).split(/\r?\n/).forEach(function (para) {
+            if (!para.trim()) { out.push(''); return; }
+            let line = '';
+            para.split(/\s+/).forEach(function (word) {
+                while (word.length > maxChars) {
+                    if (line) { out.push(line); line = ''; }
+                    out.push(word.slice(0, maxChars)); word = word.slice(maxChars);
+                }
+                if ((line + ' ' + word).trim().length > maxChars) { out.push(line); line = word; }
+                else line = (line + ' ' + word).trim();
+            });
+            if (line) out.push(line);
+        });
+        return out;
+    }
+    function pdfEscape(str) {
+        // Helvetica com WinAnsi: caracteres fora de Latin-1 viram "?"
+        let r = '';
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            const ch = code < 256 ? str[i] : '?';
+            if (ch === '(' || ch === ')' || ch === '\\') r += '\\' + ch;
+            else r += ch;
+        }
+        return r;
+    }
+    function latin1Bytes(str) {
+        const out = new Uint8Array(str.length);
+        for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); out[i] = c < 256 ? c : 63; }
+        return out;
+    }
+    function buildPdfBytes(pages) {
+        // objetos: array de partes (string ou Uint8Array); numeração 1-based
+        const objs = [];
+        const add = function (parts) { objs.push(parts); return objs.length; };
+        const catalogNo = add(null), pagesNo = add(null), fontNo = add(null);
+        const pageNos = [];
+        pages.forEach(function (pg) {
+            let content, imgNo = null;
+            if (pg.type === 'image') {
+                imgNo = add(['<< /Type /XObject /Subtype /Image /Width ' + pg.w + ' /Height ' + pg.h +
+                    ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + pg.jpeg.length + ' >>\nstream\n',
+                    pg.jpeg, '\nendstream']);
+                const maxW = 595 - 72, maxH = 842 - 72;
+                const sc = Math.min(maxW / pg.w, maxH / pg.h);
+                const dw = pg.w * sc, dh = pg.h * sc, x = (595 - dw) / 2, y = (842 - dh) / 2;
+                content = 'q ' + dw.toFixed(2) + ' 0 0 ' + dh.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' cm /Im' + imgNo + ' Do Q';
+            } else {
+                const lines = pg.lines.map(function (l) { return '(' + pdfEscape(l) + ') Tj T*'; }).join('\n');
+                content = 'BT /F1 10 Tf 12 TL 36 806 Td\n' + lines + '\nET';
+            }
+            const cBytes = latin1Bytes(content);
+            const contentNo = add(['<< /Length ' + cBytes.length + ' >>\nstream\n', cBytes, '\nendstream']);
+            const res = '<< /Font << /F1 ' + fontNo + ' 0 R >>' + (imgNo ? ' /XObject << /Im' + imgNo + ' ' + imgNo + ' 0 R >>' : '') + ' >>';
+            pageNos.push(add('<< /Type /Page /Parent ' + pagesNo + ' 0 R /MediaBox [0 0 595 842] /Resources ' + res + ' /Contents ' + contentNo + ' 0 R >>'));
+        });
+        objs[catalogNo - 1] = '<< /Type /Catalog /Pages ' + pagesNo + ' 0 R >>';
+        objs[pagesNo - 1] = '<< /Type /Pages /Kids [' + pageNos.map(function (n) { return n + ' 0 R'; }).join(' ') + '] /Count ' + pageNos.length + ' >>';
+        objs[fontNo - 1] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+
+        const chunks = []; let pos = 0;
+        const push = function (x) {
+            const bytes = typeof x === 'string' ? latin1Bytes(x) : x;
+            chunks.push(bytes); pos += bytes.length;
+        };
+        push('%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n');
+        const offsets = [];
+        objs.forEach(function (parts, i) {
+            offsets.push(pos);
+            push((i + 1) + ' 0 obj\n');
+            (Array.isArray(parts) ? parts : [parts]).forEach(push);
+            push('\nendobj\n');
+        });
+        const xrefPos = pos;
+        let xref = 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+        offsets.forEach(function (o) { xref += String(o).padStart(10, '0') + ' 00000 n \n'; });
+        push(xref);
+        push('trailer\n<< /Size ' + (objs.length + 1) + ' /Root ' + catalogNo + ' 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF\n');
+        const total = new Uint8Array(pos); let off = 0;
+        chunks.forEach(function (c) { total.set(c, off); off += c.length; });
+        return total;
+    }
+    async function buildExportPdf(pageSpecs, fileName) {
+        const pages = [];
+        for (const spec of pageSpecs) {
+            if (spec.kind === 'text') {
+                pages.push({ type: 'text', lines: wrapPdfLines(spec.text, 92) });
+            } else if (spec.kind === 'image' && spec.file) {
+                try { pages.push(await exportImageToJpeg(spec.file)); } catch (e) { /* imagem indisponível: pula */ }
+            } else if (spec.kind === 'imageBlob' && spec.blob) {
+                const f = new File([spec.blob], 'final.png', { type: spec.blob.type || 'image/png' });
+                try { pages.push(await exportImageToJpeg(f)); } catch (e) { /* pula */ }
+            }
+        }
+        if (!pages.length) return null;
+        return new File([buildPdfBytes(pages)], fileName, { type: 'application/pdf' });
+    }
+    async function runExportSelection() {
         const history = loadHistory();
         const entry = history[carouselIdx];
         if (!entry) return;
+        const want = function (id) { return document.getElementById(id).checked; };
+        closeExportPicker();
         showToast('Please wait, preparing export...');
         try {
             const stamp = matchStartParts(entry).stamp;
-            const files = buildGameEmailFiles(entry);            // notas (se houver) e análise de IA em txt
-            const xl = await getMatchXlsxFile(entry);            // Excel: estatísticas e match log
-            if (xl) files.push(xl);
-            const card = await renderCardPngFile(entry).catch(function () { return null; });
-            if (card) files.push(card);
-            const pairs = await renderPairStatsPngFile(entry).catch(function () { return null; });
-            if (pairs) files.push(pairs);
-            const shot = await getMatchScreenshot(entry.date);   // tela final, capturada ao fim da partida
-            if (shot) files.push(new File([shot], 'PSC_PRO_Final_Screen_' + stamp + '.png', { type: 'image/png' }));
-            const zip = await makeZipFile(files, 'PSC_PRO_Match_Report_' + stamp + '.zip');
-            showExportResult(zip);
+            const built = buildGameEmailFiles(entry);     // [notas?, análise IA?] como File
+            const notesFile = built.find(function (f) { return f.name.indexOf('_Notes_') !== -1; });
+            const aiFile = built.find(function (f) { return f.name.indexOf('_AI_Analysis_') !== -1; });
+            const pdfPages = [];
+            if (want('ex-final')) pdfPages.push({ kind: 'imageBlob', blob: await getMatchScreenshot(entry.date) });
+            if (want('ex-ai') && aiFile) pdfPages.push({ kind: 'text', text: 'ANÁLISE POR IA\n\n' + (await aiFile.text()) });
+            if (want('ex-pairs')) pdfPages.push({ kind: 'image', file: await renderPairStatsPngFile(entry).catch(function () { return null; }) });
+            if (want('ex-card')) pdfPages.push({ kind: 'image', file: await renderCardPngFile(entry).catch(function () { return null; }) });
+            if (want('ex-notes') && notesFile) pdfPages.push({ kind: 'text', text: 'ANOTAÇÕES DO JOGO\n\n' + (await notesFile.text()) });
+
+            const files = [];
+            const pdf = await buildExportPdf(pdfPages, 'PSC_PRO_Match_Report_' + stamp + '.pdf');
+            if (pdf) files.push(pdf);
+            if (want('ex-excel')) {
+                const xl = await getMatchXlsxFile(entry);
+                if (xl) files.push(xl);
+            }
+            if (!files.length) { showToast('Nothing to export'); return; }
+            showExportResult(files);
         } catch (e) {
             showToast('Export failed. Please try again.');
         }
     }
+    // Botão Export do Histórico: abre a escolha dos itens
+    function exportHistoryGameToExcel() { openExportPicker(); }
 
     // ── Tela de confirmação da exportação Excel ─────────────────
     let _pendingExportFile = null;
-    function showExportResult(file) {
-        _pendingExportFile = file;
-        document.getElementById('export-result-name').textContent = file.name;
+    let _pendingExportFiles = [];
+    function showExportResult(files) {
+        _pendingExportFiles = files.slice();
+        document.getElementById('export-result-name').textContent = _pendingExportFiles.map(function (f) { return f.name; }).join('\n');
         const shareBtn = document.getElementById('export-result-share');
-        const canShareFile = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
-        shareBtn.textContent = canShareFile ? 'Share / Save' : 'Download';
+        const canShareFiles = !!(navigator.share && navigator.canShare && navigator.canShare({ files: _pendingExportFiles }));
+        shareBtn.textContent = canShareFiles ? 'Share / Save' : 'Download';
         document.getElementById('export-result-overlay').classList.add('show');
     }
     function closeExportResult() {
         document.getElementById('export-result-overlay').classList.remove('show');
-        _pendingExportFile = null;
+        _pendingExportFiles = [];
+    }
+    function downloadFileNow(file) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
     }
     async function shareExportResult() {
-        const file = _pendingExportFile;
-        if (!file) return;
+        const files = _pendingExportFiles;
+        if (!files || !files.length) return;
         try {
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: file.name });
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: files })) {
+                await navigator.share({ files: files, title: files[0].name });
                 closeExportResult();
                 return;
             }
         } catch (e) {
             if (e && e.name === 'AbortError') return; // operador cancelou; mantém a tela
         }
-        const url = URL.createObjectURL(file);
-        const a = document.createElement('a');
-        a.href = url; a.download = file.name;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        files.forEach(function (f, i) { setTimeout(function () { downloadFileNow(f); }, i * 400); });
         closeExportResult();
     }
 
@@ -4585,7 +4702,8 @@
         return state.sets.some(function (s) { return s[0] || s[1]; });
     }
     function isMatchLocked() {
-        return !!(state && hasMatchScore());   // aberta ou encerrada; libera só em New Game (forceClear)
+        // bloqueia só com um game aberto (já há pontos no game atual); entre games e sets libera
+        return !!(state && (state.pts[0] + state.pts[1]) > 0);
     }
     // Switch Sides: visível só no início de cada game (sem pontos no game atual), inclusive ao
     // final de um game e no início da partida; some no primeiro ponto; não aparece com a partida encerrada.
