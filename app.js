@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.27';
+    const APP_VERSION = '3.11.29';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -5221,21 +5221,20 @@
         const old = document.getElementById('tut-links');
         if (old) old.remove();
     }
-    // Ordena as fotos pela posição atual na tela (funciona com lados normais ou trocados):
-    // as duas de cima ligam aos jogadores de cima, as duas de baixo aos de baixo,
-    // e dentro de cada par, esquerda com esquerda e direita com direita.
+    // As linhas são fixas em relação à imagem do tutorial: medimos as caixas de foto
+    // na disposição padrão (sem Change Sides), para que a troca de lados nunca altere os alvos.
     function tutOrderedPhotos() {
-        const items = TUT_PHOTO_IDS.map(function (id) {
+        const teams = document.querySelector('.p-teams');
+        const wasSwapped = !!(teams && teams.classList.contains('is-swapped'));
+        if (wasSwapped) teams.classList.remove('is-swapped');
+        const rects = TUT_PHOTO_IDS.map(function (id) {
             const el = document.getElementById(id);
-            if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return { el: el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, rect: r };
-        }).filter(Boolean);
-        if (items.length < 4) return null;
-        items.sort(function (p, q) { return p.cy - q.cy; });
-        const top = items.slice(0, 2).sort(function (p, q) { return p.cx - q.cx; });
-        const bottom = items.slice(2).sort(function (p, q) { return p.cx - q.cx; });
-        return [top[0], top[1], bottom[0], bottom[1]];
+            return el ? el.getBoundingClientRect() : null;
+        });
+        if (wasSwapped) teams.classList.add('is-swapped');
+        if (rects.some(function (r) { return !r; })) return null;
+        // ordem fixa: t1-img1 = cima esquerda, t1-img2 = cima direita, t2-img1 = baixo esquerda, t2-img2 = baixo direita
+        return rects.map(function (r) { return { rect: r }; });
     }
     function tutDrawFigureLinks() {
         const figEl = document.getElementById('tut-figure');
@@ -5607,6 +5606,31 @@
         updateSwitchSidesBtn();
     }
 
+    // Foto: ao sair da edição (escolher, cancelar ou voltar do seletor), o foco não pode ficar na imagem.
+    function releaseEditFocus() {
+        const a = document.activeElement;
+        if (a && a !== document.body) {
+            const isName = a.classList && a.classList.contains('player-name');
+            const isPhotoInput = a.tagName === 'INPUT' && a.type === 'file';
+            const isPhotoLabel = !!(a.closest && a.closest('.photo-label'));
+            if (isName || isPhotoInput || isPhotoLabel) a.blur();
+        }
+        document.querySelectorAll('.photo-label, .img-file-input').forEach(function (el) {
+            if (el.blur) el.blur();
+        });
+        document.querySelectorAll('.player-name.name-editing').forEach(function (el) { el.classList.remove('name-editing'); });
+    }
+    function bindEditFocusRelease() {
+        document.querySelectorAll('.img-file-input').forEach(function (inp) {
+            inp.addEventListener('change', function () { setTimeout(releaseEditFocus, 0); });
+            inp.addEventListener('cancel', function () { setTimeout(releaseEditFocus, 0); });
+        });
+        // Ao voltar do seletor de arquivos (cancelou ou escolheu), a janela recupera o foco
+        window.addEventListener('focus', function () { setTimeout(releaseEditFocus, 300); });
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) setTimeout(releaseEditFocus, 300);
+        });
+    }
     // Teclado fechado (Android/iOS): nome em edição perde o foco.
     // Assim a sugestão do teclado/Google não fica pendurada na tela.
     function bindPlayerNameKeyboardRelease() {
@@ -5629,6 +5653,7 @@
     }
     document.addEventListener('DOMContentLoaded', function () {
         bindPlayerNameKeyboardRelease();
+        bindEditFocusRelease();
         applySidesProjection();
     });
 
