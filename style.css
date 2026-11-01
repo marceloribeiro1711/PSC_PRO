@@ -2359,3 +2359,12 @@
     background: var(--card-bg); color: var(--text-main); text-transform: uppercase;
 }
 .ng-tournament-error { color: #ff6b6b; font-size: calc(1.4 * var(--vh, 1vh)); text-align: center; }
+
+/* Retrato: logos com 6,5 vh de altura; nome do torneio em faixa própria logo abaixo */
+@media (orientation: portrait) {
+    .p-header-logos { flex: none; height: calc(6.5 * var(--vh, 1vh)); }
+    .p-tournament-name {
+        bottom: calc(0.3 * var(--vh, 1vh));
+        height: calc(2.4 * var(--vh, 1vh)); line-height: calc(2.4 * var(--vh, 1vh));
+    }
+}
