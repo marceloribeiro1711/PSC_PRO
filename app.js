@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.21';
+    const APP_VERSION = '3.11.24';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1916,7 +1916,14 @@
         // golden e star resolvem no addPoint, não chegam aqui com pts>3
     }
 
+    // Ao fechar game ou set, nenhum nome pode ficar em edição (com foco)
+    function releasePlayerNameFocus() {
+        const a = document.activeElement;
+        if (a && a.classList && a.classList.contains('player-name')) a.blur();
+        document.querySelectorAll('.player-name.name-editing').forEach(function (el) { el.classList.remove('name-editing'); });
+    }
     function winGame(ti) {
+        releasePlayerNameFocus();
         const _pointLogSet = state.currentSet; // capturado antes de qualquer winSet() mudar o set
         // Esconder banners imediatamente para evitar flash visual
         const gpEl = document.getElementById('golden-point-p');
@@ -2012,6 +2019,7 @@
     }
 
     function winSet() {
+        releasePlayerNameFocus();
         state.isTieBreakMode = false;
         const lastServer = SERVE.current;
         state.currentSet++;
@@ -5598,6 +5606,7 @@
         deleteMatch, openNotesFs, openPointLogFromHistory, openPointLogFromHistoryCurrent,
         sendGameByEmail,
         exportHistoryGameToExcel,
+        openExportPicker, closeExportPicker, exportPickerSync, runExportSelection,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
         // Point Log — popup de pausa técnica
