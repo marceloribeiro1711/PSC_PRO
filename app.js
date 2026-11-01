@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.25';
+    const APP_VERSION = '3.11.27';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -5209,15 +5209,33 @@
     }
 
     // Linhas que saem dos jogadores da figura e chegam às caixas de foto reais na tela de jogo
-    const TUT_FIG_PLAYERS = [
-        { id: 't1-img1', x: 310, y: 300, edge: 'bottom' },
-        { id: 't1-img2', x: 715, y: 290, edge: 'bottom' },
-        { id: 't2-img1', x: 270, y: 960, edge: 'top' },
-        { id: 't2-img2', x: 745, y: 960, edge: 'top' }
+    // Posições dos jogadores na figura (coordenadas da imagem 1024x1536)
+    const TUT_FIG_POINTS = [
+        { x: 310, y: 300 },   // cima, esquerda
+        { x: 715, y: 290 },   // cima, direita
+        { x: 270, y: 960 },   // baixo, esquerda
+        { x: 745, y: 960 }    // baixo, direita
     ];
+    const TUT_PHOTO_IDS = ['t1-img1', 't1-img2', 't2-img1', 't2-img2'];
     function tutRemoveFigureLinks() {
         const old = document.getElementById('tut-links');
         if (old) old.remove();
+    }
+    // Ordena as fotos pela posição atual na tela (funciona com lados normais ou trocados):
+    // as duas de cima ligam aos jogadores de cima, as duas de baixo aos de baixo,
+    // e dentro de cada par, esquerda com esquerda e direita com direita.
+    function tutOrderedPhotos() {
+        const items = TUT_PHOTO_IDS.map(function (id) {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { el: el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, rect: r };
+        }).filter(Boolean);
+        if (items.length < 4) return null;
+        items.sort(function (p, q) { return p.cy - q.cy; });
+        const top = items.slice(0, 2).sort(function (p, q) { return p.cx - q.cx; });
+        const bottom = items.slice(2).sort(function (p, q) { return p.cx - q.cx; });
+        return [top[0], top[1], bottom[0], bottom[1]];
     }
     function tutDrawFigureLinks() {
         const figEl = document.getElementById('tut-figure');
@@ -5225,6 +5243,8 @@
         if (!figEl || !ov || figEl.style.display === 'none') { tutRemoveFigureLinks(); return; }
         const svgEl = figEl.querySelector('svg');
         if (!svgEl) return;
+        const photos = tutOrderedPhotos();
+        if (!photos) { tutRemoveFigureLinks(); return; }
         const r = svgEl.getBoundingClientRect();
         const sc = Math.min(r.width / 1024, r.height / 1536);
         const ox = r.left + (r.width - 1024 * sc) / 2;
@@ -5235,13 +5255,12 @@
         layer.setAttribute('id', 'tut-links');
         layer.setAttribute('width', '100%'); layer.setAttribute('height', '100%');
         layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5002;';
-        TUT_FIG_PLAYERS.forEach(function (p) {
-            const el = document.getElementById(p.id);
-            if (!el) return;
-            const t = el.getBoundingClientRect();
-            const x1 = ox + p.x * sc, y1 = oy + p.y * sc;
+        photos.forEach(function (ph, i) {
+            const fp = TUT_FIG_POINTS[i];
+            const t = ph.rect;
+            const x1 = ox + fp.x * sc, y1 = oy + fp.y * sc;
             const x2 = t.left + t.width / 2;
-            const y2 = p.edge === 'bottom' ? t.bottom : t.top;
+            const y2 = i < 2 ? t.bottom : t.top;   // de cima: borda de baixo da foto; de baixo: borda de cima
             [['#0b1d3a', 6], ['#ffffff', 3]].forEach(function (st) {
                 const ln = document.createElementNS(NS, 'line');
                 ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
@@ -5588,7 +5607,28 @@
         updateSwitchSidesBtn();
     }
 
+    // Teclado fechado (Android/iOS): nome em edição perde o foco.
+    // Assim a sugestão do teclado/Google não fica pendurada na tela.
+    function bindPlayerNameKeyboardRelease() {
+        document.querySelectorAll('.player-name').forEach(function (el) {
+            el.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+            });
+            el.addEventListener('blur', function () { el.classList.remove('name-editing'); });
+        });
+        if (window.visualViewport) {
+            let lastH = window.visualViewport.height;
+            window.visualViewport.addEventListener('resize', function () {
+                const h = window.visualViewport.height;
+                const closing = h - lastH > 80;   // a área visível cresceu: o teclado fechou
+                lastH = h;
+                const a = document.activeElement;
+                if (closing && a && a.classList && a.classList.contains('player-name')) a.blur();
+            });
+        }
+    }
     document.addEventListener('DOMContentLoaded', function () {
+        bindPlayerNameKeyboardRelease();
         applySidesProjection();
     });
 
