@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.24';
+    const APP_VERSION = '3.11.25';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -4244,7 +4244,7 @@
     const EXPORT_PDF_ITEMS = ['ex-final', 'ex-ai', 'ex-pairs', 'ex-card', 'ex-notes'];
     function openExportPicker() {
         if (carouselIdx == null || !loadHistory()[carouselIdx]) return;
-        const defaults = { 'ex-final': true, 'ex-ai': true, 'ex-pairs': false, 'ex-card': false, 'ex-notes': false, 'ex-excel': true };
+        const defaults = { 'ex-final': true, 'ex-ai': true, 'ex-pairs': false, 'ex-card': false, 'ex-notes': false };
         Object.keys(defaults).forEach(function (id) { document.getElementById(id).checked = defaults[id]; });
         exportPickerSync();
         document.getElementById('export-pick-overlay').classList.add('show');
@@ -4253,7 +4253,7 @@
         document.getElementById('export-pick-overlay').classList.remove('show');
     }
     function exportPickerSync() {
-        const any = ['ex-final', 'ex-ai', 'ex-pairs', 'ex-card', 'ex-notes', 'ex-excel']
+        const any = ['ex-final', 'ex-ai', 'ex-pairs', 'ex-card', 'ex-notes']
             .some(function (id) { return document.getElementById(id).checked; });
         document.getElementById('export-pick-go').disabled = !any;
     }
@@ -4408,12 +4408,22 @@
             const files = [];
             const pdf = await buildExportPdf(pdfPages, 'PSC_PRO_Match_Report_' + stamp + '.pdf');
             if (pdf) files.push(pdf);
-            if (want('ex-excel')) {
-                const xl = await getMatchXlsxFile(entry);
-                if (xl) files.push(xl);
-            }
             if (!files.length) { showToast('Nothing to export'); return; }
             showExportResult(files);
+        } catch (e) {
+            showToast('Export failed. Please try again.');
+        }
+    }
+    // Botão Export Excel do Histórico: gera e compartilha só o Excel, sem seleção
+    async function exportExcelOnly() {
+        const history = loadHistory();
+        const entry = history[carouselIdx];
+        if (!entry) return;
+        showToast('Please wait, preparing export...');
+        try {
+            const xl = await getMatchXlsxFile(entry);
+            if (!xl) { showToast('Nothing to export'); return; }
+            showExportResult([xl]);
         } catch (e) {
             showToast('Export failed. Please try again.');
         }
@@ -5607,6 +5617,7 @@
         sendGameByEmail,
         exportHistoryGameToExcel,
         openExportPicker, closeExportPicker, exportPickerSync, runExportSelection,
+        exportExcelOnly,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
         // Point Log — popup de pausa técnica

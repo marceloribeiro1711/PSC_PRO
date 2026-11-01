@@ -2231,10 +2231,10 @@
 }
 .tut-next-btn:active { opacity: 0.7; }
 .tut-skip {
-    position: fixed; bottom: calc(10vh + env(safe-area-inset-bottom, 0px)); right: calc(1.5 * var(--vh, 1vh));
-    pointer-events: auto; background: none; border: none;
-    color: #cfe3f5; font-size: 11px; text-decoration: underline;
-    z-index: 5001; padding: 6px;
+    position: fixed; bottom: calc(8vh + env(safe-area-inset-bottom, 0px)); right: calc(1.5 * var(--vh, 1vh));
+    pointer-events: auto; background: #ffffff; border: none; border-radius: 8px;
+    color: #000000; font-size: 12px; text-decoration: none;
+    z-index: 5001; padding: 6px 10px;
 }
 
 
