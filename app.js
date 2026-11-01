@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.29';
+    const APP_VERSION = '3.11.30';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -5620,15 +5620,27 @@
         });
         document.querySelectorAll('.player-name.name-editing').forEach(function (el) { el.classList.remove('name-editing'); });
     }
+    // Tira o foco do campo de arquivo logo após escolher ou cancelar, em todos os casos.
+    // Repete algumas vezes porque o navegador pode devolver o foco depois do seletor fechar.
+    function dropFileInputFocus() {
+        const fire = function () {
+            document.querySelectorAll('input[type="file"]').forEach(function (inp) {
+                if (document.activeElement === inp) inp.blur();
+            });
+            releaseEditFocus();
+        };
+        fire();
+        [0, 120, 400, 1000].forEach(function (ms) { setTimeout(fire, ms); });
+    }
     function bindEditFocusRelease() {
-        document.querySelectorAll('.img-file-input').forEach(function (inp) {
-            inp.addEventListener('change', function () { setTimeout(releaseEditFocus, 0); });
-            inp.addEventListener('cancel', function () { setTimeout(releaseEditFocus, 0); });
+        document.querySelectorAll('input[type="file"]').forEach(function (inp) {
+            inp.addEventListener('change', dropFileInputFocus);
+            inp.addEventListener('cancel', dropFileInputFocus);
         });
         // Ao voltar do seletor de arquivos (cancelou ou escolheu), a janela recupera o foco
-        window.addEventListener('focus', function () { setTimeout(releaseEditFocus, 300); });
+        window.addEventListener('focus', dropFileInputFocus);
         document.addEventListener('visibilitychange', function () {
-            if (!document.hidden) setTimeout(releaseEditFocus, 300);
+            if (!document.hidden) dropFileInputFocus();
         });
     }
     // Teclado fechado (Android/iOS): nome em edição perde o foco.
