@@ -2344,7 +2344,8 @@
 .p-tournament-name { display: none; }
 @media (orientation: portrait) {
     .p-tournament-name {
-        display: block; position: absolute; left: 4vw; right: 4vw; bottom: calc(0.2 * var(--vh, 1vh));
+        display: block; position: absolute; left: 1.5vw; right: 1.5vw; bottom: calc(0.2 * var(--vh, 1vh));
+        border: 1px solid var(--border-card); border-radius: 0; box-sizing: border-box; padding: 0 2vw;
         height: calc(2.4 * var(--vh, 1vh)); line-height: calc(2.4 * var(--vh, 1vh));
         font-size: calc(1.5 * var(--vh, 1vh)); font-weight: 700; letter-spacing: 1px;
         text-align: center; text-transform: uppercase; color: var(--text-main);
@@ -2367,4 +2368,9 @@
         bottom: calc(0.3 * var(--vh, 1vh));
         height: calc(2.4 * var(--vh, 1vh)); line-height: calc(2.4 * var(--vh, 1vh));
     }
+}
+
+/* Caixa do nome do torneio: moldura fina, cantos retos, quase toda a largura (só retrato) */
+@media (orientation: portrait) {
+    .p-tournament-name { border: 1px solid var(--border-card); border-radius: 0; }
 }

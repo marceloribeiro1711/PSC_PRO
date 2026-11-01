@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.33';
+    const APP_VERSION = '3.11.34';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -4666,7 +4666,14 @@
         updateTimerDisplay();
     }
 
-    let tournamentName = ''; // nome do torneio (informado no New Game, 25 caracteres)
+    const LAST_TOURNAMENT_KEY = 'psc_last_tournament';
+    function readLastTournament() {
+        try { return (localStorage.getItem(LAST_TOURNAMENT_KEY) || '').slice(0, 25); } catch (e) { return ''; }
+    }
+    function saveLastTournament(name) {
+        try { if (name) localStorage.setItem(LAST_TOURNAMENT_KEY, name.slice(0, 25)); } catch (e) {}
+    }
+    let tournamentName = readLastTournament(); // nome atual do torneio (25 caracteres)
     function forceClear() {
         sidesSwapped = false; // nova partida sempre começa sem virada
         sideNoticeLeft = 0; sideLastPlayed = 0;
@@ -4867,7 +4874,7 @@
     function askResetMatch() {
         const inp = document.getElementById('ng-tournament-name');
         const err = document.getElementById('ng-tournament-error');
-        if (inp) inp.value = '';
+        if (inp) inp.value = tournamentName || readLastTournament();
         if (err) err.style.display = 'none';
         document.getElementById('ng-overlay').classList.add('show');
         if (inp) setTimeout(function () { inp.focus(); }, 150);
@@ -4881,6 +4888,7 @@
         document.getElementById('ng-overlay').classList.remove('show');
         forceClear();
         tournamentName = name;
+        saveLastTournament(name);
         renderTournamentName();
         applyPlayerEditLock();
         saveGameState();
@@ -4902,7 +4910,7 @@
         });
         el.addEventListener('blur', function () {
             const v = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 25);
-            if (v) tournamentName = v;
+            if (v) { tournamentName = v; saveLastTournament(v); }
             el.textContent = tournamentName || '';
             saveGameState();
         });
