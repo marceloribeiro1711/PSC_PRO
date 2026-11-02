@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.41';
+    const APP_VERSION = '3.11.43';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -557,7 +557,15 @@
         const titleEl = document.getElementById('pointlog-title');
         if (titleEl) {
             const tnLabel = (((pointLogTournamentName || (state.matchOver ? '' : tournamentName)) || '')).toUpperCase();
-            const tnPre = tnLabel ? tnLabel + ' · ' : '';
+            const tnPre = '';
+            let tnLine = document.getElementById('pointlog-tn-line');
+            if (!tnLine && titleEl.parentNode) {
+                tnLine = document.createElement('div');
+                tnLine.id = 'pointlog-tn-line';
+                tnLine.className = 'tn-title-line';
+                titleEl.parentNode.insertBefore(tnLine, titleEl);
+            }
+            if (tnLine) tnLine.textContent = tnLabel;
             if (game.isSuperTie) {
                 titleEl.textContent = tnPre + 'SUPERTIE'; // não é um "set" — sem prefixo SET X
             } else if (prosetMode) {
@@ -3600,7 +3608,15 @@
         if (tnEl) {
             const hist = idx === null ? null : loadHistory()[idx];
             const tn = idx === null ? tournamentName : (hist && hist.tournamentName);
-            tnEl.textContent = (tn ? tn.toUpperCase() + ' · ' : '') + 'AI Analysis & Personal Notes';
+            tnEl.textContent = 'AI Analysis & Personal Notes';
+            let line = document.getElementById('notes-fs-tn-line');
+            if (!line && tnEl.parentNode) {
+                line = document.createElement('div');
+                line.id = 'notes-fs-tn-line';
+                line.className = 'tn-title-line';
+                tnEl.parentNode.insertBefore(line, tnEl);
+            }
+            if (line) line.textContent = tn ? tn.toUpperCase() : '';
         }
         const ta = document.getElementById('notes-fs-textarea');
         if (idx === null) {

@@ -2412,16 +2412,25 @@
 .h-game-tournament { font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; color: var(--accent-yellow); text-transform: uppercase; letter-spacing: 0.6px; }
 
 /* Nome do torneio: sempre em uma linha própria, sem quebra e sem disputar espaço */
-.tn-title {
-    grid-area: title; text-align: center; white-space: nowrap; overflow: visible;
-    font-size: calc(2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.2px;
-    text-transform: uppercase; color: var(--accent-yellow); padding: calc(0.8 * var(--vh, 1vh)) 0 calc(0.4 * var(--vh, 1vh));
-}
-.h-game-tournament-line {
-    width: 100%; white-space: nowrap; overflow: visible; text-align: left;
+.tn-title, .tn-title-line, .h-game-tournament-line {
+    white-space: nowrap; overflow: visible;
     font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1px;
-    text-transform: uppercase; color: var(--accent-yellow); margin-bottom: calc(0.6 * var(--vh, 1vh));
+    text-transform: uppercase; color: var(--accent-yellow);
 }
+.tn-title { grid-area: title; text-align: center; padding: calc(0.8 * var(--vh, 1vh)) 0 calc(0.4 * var(--vh, 1vh)); }
+.tn-title-line { display: block; text-align: center; padding-bottom: calc(0.4 * var(--vh, 1vh)); }
+.h-game-tournament-line { width: 100%; text-align: left; margin-bottom: calc(0.6 * var(--vh, 1vh)); }
 /* Histórico: a lixeira mantém o tamanho e a duração não quebra nem empurra a lixeira */
 .h-delete-btn { flex-shrink: 0; }
 .h-game-duration { white-space: nowrap; }
+
+/* End of Match em landscape: popup menor, centralizado na tela, sem cobrir a segunda dupla */
+@media (orientation: landscape) {
+    .end-match-box {
+        top: 50%; bottom: auto; transform: translate(-50%, -50%);
+        width: 44vw; max-width: 520px; padding: calc(2 * var(--vh, 1vh)) 3vw; gap: calc(1.6 * var(--vh, 1vh));
+    }
+    .end-match-title { font-size: calc(2.2 * var(--vh, 1vh)); }
+    .end-match-btn { font-size: calc(2 * var(--vh, 1vh)); padding: calc(1.6 * var(--vh, 1vh)) 2vw; }
+    .end-match-no { font-size: calc(1.8 * var(--vh, 1vh)); }
+}
