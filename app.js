@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.39';
+    const APP_VERSION = '3.11.40';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -3147,8 +3147,9 @@
         const t = (name || '').trim();
         return t ? '<div class="tn-title">' + escHtml(t) + '</div>' : '';
     }
-    function buildGrandSlamCardHtml(entry, isLive) {
-        return tournamentTitleHtml(isLive ? tournamentName : entry.tournamentName) + buildGrandSlamCardHtmlBase(entry, isLive);
+    async function buildGrandSlamCardHtml(entry, isLive) {
+        const body = await buildGrandSlamCardHtmlBase(entry, isLive);
+        return tournamentTitleHtml(isLive ? tournamentName : entry.tournamentName) + body;
     }
     function buildGrandSlamCardHtmlBase(entry, isLive) {
         const n1 = escHtml(entry.players[0] || 'Player 1');
