@@ -2374,3 +2374,12 @@
 @media (orientation: portrait) {
     .p-tournament-name { border: 1px solid var(--border-card); border-radius: 0; }
 }
+
+/* Retrato: nome do torneio com moldura de 2 px, cantos retos, fonte dourada em negrito; logos em 6 vh */
+@media (orientation: portrait) {
+    .p-header-logos { height: calc(6 * var(--vh, 1vh)); }
+    .p-tournament-name {
+        border: 2px solid var(--border-card); border-radius: 0;
+        color: var(--accent-yellow); font-weight: 800;
+    }
+}
