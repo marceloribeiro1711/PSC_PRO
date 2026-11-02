@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.37';
+    const APP_VERSION = '3.11.39';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -470,10 +470,12 @@
     // Games"). Ao contrário da versão ao vivo (que usa o estado da partida
     // em curso), aqui os dados vêm do `pointLog` gravado no histórico —
     // com TODOS os sets da partida disponíveis via tabs.
+    let pointLogTournamentName = '';
     function openPointLogFromHistory(idx) {
         const history = loadHistory();
         const entry = history[idx];
         if (!entry) return;
+        pointLogTournamentName = entry.tournamentName || '';
         const pointLog = entry.pointLog || [];
         if (pointLog.length === 0) {
             showToast('No Match Log data for this match');
@@ -554,12 +556,14 @@
         const gameNumber = pointLogWindow.indexOf(game) + 1;
         const titleEl = document.getElementById('pointlog-title');
         if (titleEl) {
+            const tnLabel = ((pointLogTournamentName || (state.matchOver ? '' : tournamentName)) || '');
+            const tnPre = tnLabel ? tnLabel + ' · ' : '';
             if (game.isSuperTie) {
-                titleEl.textContent = 'SUPERTIE'; // não é um "set" — sem prefixo SET X
+                titleEl.textContent = tnPre + 'SUPERTIE'; // não é um "set" — sem prefixo SET X
             } else if (prosetMode) {
-                titleEl.textContent = 'GAME ' + gameNumber; // ProSet é um único set — sem número
+                titleEl.textContent = tnPre + 'GAME ' + gameNumber; // ProSet é um único set — sem número
             } else {
-                titleEl.textContent = 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
+                titleEl.textContent = tnPre + 'SET ' + (game.set + 1) + ' — GAME ' + gameNumber;
             }
         }
 
@@ -3138,7 +3142,15 @@
 
     // Monta o HTML do Card do Jogo — assíncrono porque as 4 fotos vêm do
     // IndexedDB (retrato próprio da partida, ver saveMatchHistory).
+    // Nome do torneio como cabeçalho (escapado), ou vazio em partidas antigas
+    function tournamentTitleHtml(name) {
+        const t = (name || '').trim();
+        return t ? '<div class="tn-title">' + escHtml(t) + '</div>' : '';
+    }
     function buildGrandSlamCardHtml(entry, isLive) {
+        return tournamentTitleHtml(isLive ? tournamentName : entry.tournamentName) + buildGrandSlamCardHtmlBase(entry, isLive);
+    }
+    function buildGrandSlamCardHtmlBase(entry, isLive) {
         const n1 = escHtml(entry.players[0] || 'Player 1');
         const n2 = escHtml(entry.players[1] || 'Player 2');
         const n3 = escHtml(entry.players[2] || 'Player 3');
@@ -3583,6 +3595,12 @@
 
     function openNotesFs(idx) {
         _notesFsIdx = idx;
+        const tnEl = document.querySelector('#notes-fs-overlay .notes-fs-title');
+        if (tnEl) {
+            const hist = idx === null ? null : loadHistory()[idx];
+            const tn = idx === null ? tournamentName : (hist && hist.tournamentName);
+            tnEl.textContent = (tn ? tn + ' · ' : '') + 'AI Analysis & Personal Notes';
+        }
         const ta = document.getElementById('notes-fs-textarea');
         if (idx === null) {
             // Modo ao vivo — edita currentNotes directamente (ainda sem
@@ -3714,6 +3732,7 @@
                 <div class="h-game-meta">
                     <div class="h-game-meta-left">
                         <span class="h-game-date">${formatDate(entry.date)}</span>
+                        ${entry.tournamentName ? `<span class="h-game-tournament">${escHtml(entry.tournamentName)}</span>` : ''}
                         <span class="h-game-modebadge">${modeLabel}</span>
                         ${duration ? `<span class="h-game-duration">MATCH TIME: ${duration}</span>` : ''}
                     </div>
@@ -3873,6 +3892,19 @@
     }
 
     // Data e hora de INÍCIO do jogo, em horário local (partidas antigas sem startedAt usam o registro)
+    // Cabeçalho das exportações: Nome do torneio · dd/mm/aaaa · hh:mm (data e hora do evento)
+    function exportHeaderLine(entry) {
+        const p = matchStartParts(entry);
+        const d = p.date.split('-');
+        const name = ((entry.tournamentName || 'match').trim()) || 'match';
+        return name + ' \u00B7 ' + d[2] + '/' + d[1] + '/' + d[0] + ' \u00B7 ' + p.time;
+    }
+    function excelHeaderText(entry) {
+        const p = matchStartParts(entry);
+        const d = p.date.split('-');
+        const name = ((entry.tournamentName || 'match').trim()) || 'match';
+        return 'Tournament: ' + name + '   |   Date: ' + d[2] + '/' + d[1] + '/' + d[0] + '   |   Time: ' + p.time;
+    }
     // Nome base dos arquivos de exportação: Nome_do_torneio_yyyy_mm_dd (sem hora)
     function exportBaseName(entry) {
         const raw = (entry.tournamentName || 'match').replace(/[\\/:*?"<>|]+/g, '').trim();
@@ -4273,6 +4305,9 @@
         });
         logWs.autoFilter = { from: 'A1', to: 'G1' };
 
+        // Primeira linha das duas abas: nome do torneio, data e hora do evento
+        ws.spliceRows(1, 0, [excelHeaderText(entry)]);
+        logWs.spliceRows(1, 0, [excelHeaderText(entry)]);
         return wb;
     }
 
@@ -4382,6 +4417,7 @@
         const pageNos = [];
         pages.forEach(function (pg) {
             let content, imgNo = null;
+            const hdrOps = pg.header ? 'BT /F1 11 Tf 36 818 Td (' + pdfEscape(pg.header) + ') Tj ET\n' : '';
             if (pg.type === 'image') {
                 imgNo = add(['<< /Type /XObject /Subtype /Image /Width ' + pg.w + ' /Height ' + pg.h +
                     ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + pg.jpeg.length + ' >>\nstream\n',
@@ -4389,10 +4425,10 @@
                 const maxW = 595 - 72, maxH = 842 - 72;
                 const sc = Math.min(maxW / pg.w, maxH / pg.h);
                 const dw = pg.w * sc, dh = pg.h * sc, x = (595 - dw) / 2, y = (842 - dh) / 2;
-                content = 'q ' + dw.toFixed(2) + ' 0 0 ' + dh.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' cm /Im' + imgNo + ' Do Q';
+                content = hdrOps + 'q ' + dw.toFixed(2) + ' 0 0 ' + dh.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' cm /Im' + imgNo + ' Do Q';
             } else {
                 const lines = pg.lines.map(function (l) { return '(' + pdfEscape(l) + ') Tj T*'; }).join('\n');
-                content = 'BT /F1 10 Tf 12 TL 36 806 Td\n' + lines + '\nET';
+                content = hdrOps + 'BT /F1 10 Tf 12 TL 36 800 Td\n' + lines + '\nET';
             }
             const cBytes = latin1Bytes(content);
             const contentNo = add(['<< /Length ' + cBytes.length + ' >>\nstream\n', cBytes, '\nendstream']);
@@ -4425,7 +4461,7 @@
         chunks.forEach(function (c) { total.set(c, off); off += c.length; });
         return total;
     }
-    async function buildExportPdf(pageSpecs, fileName) {
+    async function buildExportPdf(pageSpecs, fileName, header) {
         const pages = [];
         for (const spec of pageSpecs) {
             if (spec.kind === 'text') {
@@ -4438,6 +4474,7 @@
             }
         }
         if (!pages.length) return null;
+        pages.forEach(function (pg) { pg.header = header || ''; });
         return new File([buildPdfBytes(pages)], fileName, { type: 'application/pdf' });
     }
     async function runExportSelection() {
@@ -4460,7 +4497,7 @@
             if (want('ex-notes') && notesFile) pdfPages.push({ kind: 'text', text: 'ANOTAÇÕES DO JOGO\n\n' + (await notesFile.text()) });
 
             const files = [];
-            const pdf = await buildExportPdf(pdfPages, exportBaseName(entry) + '.pdf');
+            const pdf = await buildExportPdf(pdfPages, exportBaseName(entry) + '.pdf', exportHeaderLine(entry));
             if (pdf) files.push(pdf);
             if (!files.length) { showToast('Nothing to export'); return; }
             showExportResult(files);
@@ -5286,7 +5323,8 @@
         } else {
             // Passos do menu: o balão sobe e fica acima do botão Skip tutorial, sem cobri-lo
             const skip = document.getElementById('tut-skip');
-            const limit = (skip && skip.offsetParent !== null) ? (skip.getBoundingClientRect().top - 10) : (r.top - 14);
+            const skipRect = skip ? skip.getBoundingClientRect() : null;
+            const limit = (skipRect && skipRect.height > 0) ? (skipRect.top - 12) : (r.top - 14);
             bubble.style.top = Math.max(12, limit - bubble.offsetHeight) + 'px';
         }
     }

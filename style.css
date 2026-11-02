@@ -2391,7 +2391,7 @@
 }
 .end-match-overlay.show { display: block; }
 .end-match-box {
-    position: fixed; left: 50%; top: 62%; transform: translate(-50%, -50%);
+    position: fixed; left: 50%; top: auto; bottom: calc(13vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
     width: 86vw; max-width: 420px; box-sizing: border-box;
     background: var(--panel-bg); border: 2px solid var(--border-card); border-radius: 14px;
     padding: calc(2.5 * var(--vh, 1vh)) 5vw; display: flex; flex-direction: column; gap: calc(2 * var(--vh, 1vh));
@@ -2405,3 +2405,7 @@
 }
 .end-match-yes { background: #16a34a; border-color: #16a34a; color: #ffffff; }
 .end-match-no { font-size: calc(1.5 * var(--vh, 1vh)); }
+
+/* Nome do torneio: cabeçalho do Match Card e rótulo no histórico */
+.tn-title { text-align: center; font-size: calc(2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent-yellow); padding: calc(0.6 * var(--vh, 1vh)) 0; }
+.h-game-tournament { font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; color: var(--accent-yellow); text-transform: uppercase; letter-spacing: 0.6px; }
