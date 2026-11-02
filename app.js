@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.40';
+    const APP_VERSION = '3.11.41';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -556,7 +556,7 @@
         const gameNumber = pointLogWindow.indexOf(game) + 1;
         const titleEl = document.getElementById('pointlog-title');
         if (titleEl) {
-            const tnLabel = ((pointLogTournamentName || (state.matchOver ? '' : tournamentName)) || '');
+            const tnLabel = (((pointLogTournamentName || (state.matchOver ? '' : tournamentName)) || '')).toUpperCase();
             const tnPre = tnLabel ? tnLabel + ' · ' : '';
             if (game.isSuperTie) {
                 titleEl.textContent = tnPre + 'SUPERTIE'; // não é um "set" — sem prefixo SET X
@@ -3144,7 +3144,7 @@
     // IndexedDB (retrato próprio da partida, ver saveMatchHistory).
     // Nome do torneio como cabeçalho (escapado), ou vazio em partidas antigas
     function tournamentTitleHtml(name) {
-        const t = (name || '').trim();
+        const t = (name || '').trim().toUpperCase();
         return t ? '<div class="tn-title">' + escHtml(t) + '</div>' : '';
     }
     async function buildGrandSlamCardHtml(entry, isLive) {
@@ -3600,7 +3600,7 @@
         if (tnEl) {
             const hist = idx === null ? null : loadHistory()[idx];
             const tn = idx === null ? tournamentName : (hist && hist.tournamentName);
-            tnEl.textContent = (tn ? tn + ' · ' : '') + 'AI Analysis & Personal Notes';
+            tnEl.textContent = (tn ? tn.toUpperCase() + ' · ' : '') + 'AI Analysis & Personal Notes';
         }
         const ta = document.getElementById('notes-fs-textarea');
         if (idx === null) {
@@ -3730,10 +3730,10 @@
         const duration = entry.duration || (legacyTimeLine ? legacyTimeLine.replace('⏱ Match Time:', '').trim() : null);
         return `
             <div class="h-game">
+                ${entry.tournamentName ? `<div class="h-game-tournament-line">${escHtml(entry.tournamentName.toUpperCase())}</div>` : ''}
                 <div class="h-game-meta">
                     <div class="h-game-meta-left">
                         <span class="h-game-date">${formatDate(entry.date)}</span>
-                        ${entry.tournamentName ? `<span class="h-game-tournament">${escHtml(entry.tournamentName)}</span>` : ''}
                         <span class="h-game-modebadge">${modeLabel}</span>
                         ${duration ? `<span class="h-game-duration">MATCH TIME: ${duration}</span>` : ''}
                     </div>
@@ -3908,7 +3908,7 @@
     }
     // Nome base dos arquivos de exportação: Nome_do_torneio_yyyy_mm_dd (sem hora)
     function exportBaseName(entry) {
-        const raw = (entry.tournamentName || 'match').replace(/[\\/:*?"<>|]+/g, '').trim();
+        const raw = (entry.tournamentName || 'match').toUpperCase().replace(/[\\/:*?"<>|]+/g, '').trim();
         const name = (raw || 'match').replace(/\s+/g, '_');
         return name + '_' + matchStartParts(entry).date.replace(/-/g, '_');
     }
@@ -4749,10 +4749,10 @@
 
     const LAST_TOURNAMENT_KEY = 'psc_last_tournament';
     function readLastTournament() {
-        try { return (localStorage.getItem(LAST_TOURNAMENT_KEY) || '').slice(0, 25); } catch (e) { return ''; }
+        try { return (localStorage.getItem(LAST_TOURNAMENT_KEY) || '').slice(0, 25).toUpperCase(); } catch (e) { return ''; }
     }
     function saveLastTournament(name) {
-        try { if (name) localStorage.setItem(LAST_TOURNAMENT_KEY, name.slice(0, 25)); } catch (e) {}
+        try { if (name) localStorage.setItem(LAST_TOURNAMENT_KEY, name.slice(0, 25).toUpperCase()); } catch (e) {}
     }
     let tournamentName = readLastTournament(); // nome atual do torneio (25 caracteres)
     function forceClear() {
@@ -4964,7 +4964,7 @@
     function ngConfirm() {
         const inp = document.getElementById('ng-tournament-name');
         const err = document.getElementById('ng-tournament-error');
-        const name = inp ? inp.value.replace(/\s+/g, ' ').trim().slice(0, 25) : '';
+        const name = inp ? inp.value.replace(/\s+/g, ' ').trim().slice(0, 25).toUpperCase() : '';
         if (!name) { if (err) err.style.display = ''; if (inp) inp.focus(); return; }
         document.getElementById('ng-overlay').classList.remove('show');
         forceClear();
@@ -4990,7 +4990,7 @@
             if (e.key.length === 1 && (el.textContent || '').length >= 25) e.preventDefault();
         });
         el.addEventListener('blur', function () {
-            const v = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 25);
+            const v = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 25).toUpperCase();
             if (v) { tournamentName = v; saveLastTournament(v); }
             el.textContent = tournamentName || '';
             saveGameState();

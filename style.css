@@ -950,6 +950,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-areas:
+                "title  title"
                 "photo1 photo2"
                 "sets   sets"
                 "stats  stats"
@@ -2409,3 +2410,18 @@
 /* Nome do torneio: cabeçalho do Match Card e rótulo no histórico */
 .tn-title { text-align: center; font-size: calc(2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent-yellow); padding: calc(0.6 * var(--vh, 1vh)) 0; }
 .h-game-tournament { font-size: calc(1.4 * var(--vh, 1vh)); font-weight: 700; color: var(--accent-yellow); text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* Nome do torneio: sempre em uma linha própria, sem quebra e sem disputar espaço */
+.tn-title {
+    grid-area: title; text-align: center; white-space: nowrap; overflow: visible;
+    font-size: calc(2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--accent-yellow); padding: calc(0.8 * var(--vh, 1vh)) 0 calc(0.4 * var(--vh, 1vh));
+}
+.h-game-tournament-line {
+    width: 100%; white-space: nowrap; overflow: visible; text-align: left;
+    font-size: calc(1.6 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--accent-yellow); margin-bottom: calc(0.6 * var(--vh, 1vh));
+}
+/* Histórico: a lixeira mantém o tamanho e a duração não quebra nem empurra a lixeira */
+.h-delete-btn { flex-shrink: 0; }
+.h-game-duration { white-space: nowrap; }
