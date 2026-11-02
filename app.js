@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.46';
+    const APP_VERSION = '3.11.47';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1904,13 +1904,14 @@
     }
     // Em landscape (TV Mode) fecha as telas de histórico; o histórico mostra a mensagem de indisponibilidade
     function closeHistoryOnlyViewsForTv() {
-        ['pointlog-overlay', 'gs-card-overlay', 'notes-fs-overlay', 'export-pick-overlay', 'export-result-overlay'].forEach(function (id) {
+        ['pointlog-overlay', 'gs-card-overlay', 'notes-fs-overlay', 'ai-view-overlay', 'ai-wait-overlay', 'ai-error-overlay', 'export-pick-overlay', 'export-result-overlay'].forEach(function (id) {
             const el = document.getElementById(id);
             if (el) el.classList.remove('show');
         });
         if (typeof closePointLogPopup === 'function') { try { closePointLogPopup(); } catch (e) {} }
         if (typeof closeGrandSlamCard === 'function') { try { closeGrandSlamCard(); } catch (e) {} }
         if (typeof closeNotesFs === 'function') { try { closeNotesFs(); } catch (e) {} }
+        if (typeof closeAiViewer === 'function') { try { closeAiViewer(); } catch (e) {} }
     }
     if (window.matchMedia) {
         var _lsOrientationMq = window.matchMedia('(orientation: landscape)');
