@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.44';
+    const APP_VERSION = '3.11.46';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1902,9 +1902,21 @@
         updateScreen();
         _syncLsHeader();
     }
+    // Em landscape (TV Mode) fecha as telas de histórico; o histórico mostra a mensagem de indisponibilidade
+    function closeHistoryOnlyViewsForTv() {
+        ['pointlog-overlay', 'gs-card-overlay', 'notes-fs-overlay', 'export-pick-overlay', 'export-result-overlay'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('show');
+        });
+        if (typeof closePointLogPopup === 'function') { try { closePointLogPopup(); } catch (e) {} }
+        if (typeof closeGrandSlamCard === 'function') { try { closeGrandSlamCard(); } catch (e) {} }
+        if (typeof closeNotesFs === 'function') { try { closeNotesFs(); } catch (e) {} }
+    }
     if (window.matchMedia) {
         var _lsOrientationMq = window.matchMedia('(orientation: landscape)');
         var _onOrientationChange = function() {
+            // TV Mode: histórico, Match Log, Match Card, Notas e exportação não ficam abertos em landscape
+            if (_lsOrientationMq.matches) closeHistoryOnlyViewsForTv();
             // Pequeno atraso para garantir que o layout já trocou de display antes do refresh
             setTimeout(_forceFullRefresh, 50);
         };
@@ -2046,6 +2058,7 @@
                 state.isSuperTieBreak = superTieMode;
                 initServeNewSet(lastServer);
                 showSetIntervalCardBtn();
+                requestSetConfirm();
             } else {
                 requestEndMatch();
             }
@@ -2054,6 +2067,7 @@
         } else {
             initServeNewSet(lastServer);
             showSetIntervalCardBtn();
+            requestSetConfirm();
         }
     }
 
@@ -2155,6 +2169,43 @@
         const ov = document.getElementById('end-match-overlay');
         if (ov) ov.classList.remove('show');
         try { localStorage.removeItem(PENDING_END_KEY); } catch (e) {}
+    }
+    const PENDING_SET_KEY = 'psc_pending_set';
+    function requestSetConfirm() {
+        try { localStorage.setItem(PENDING_SET_KEY, lastPointPreSnap || ''); } catch (e) {}
+        setTimeout(showSetConfirmPopup, 0);
+    }
+    function showSetConfirmPopup() {
+        const ov = document.getElementById('set-confirm-overlay');
+        if (ov) ov.classList.add('show');
+    }
+    function hideSetConfirmPopup() {
+        const ov = document.getElementById('set-confirm-overlay');
+        if (ov) ov.classList.remove('show');
+        try { localStorage.removeItem(PENDING_SET_KEY); } catch (e) {}
+    }
+    function setConfirmYes() {
+        hideSetConfirmPopup();
+    }
+    function setConfirmNo() {
+        const pre = lastPointPreSnap || (function () { try { return localStorage.getItem(PENDING_SET_KEY); } catch (e) { return null; } })();
+        hideSetConfirmPopup();
+        restorePreviousPoint(pre);
+    }
+    // Restaura o estado completo anterior ao último ponto; o relógio não volta
+    function restorePreviousPoint(pre) {
+        if (!pre) return;
+        const keepTimer = timerSeconds;
+        try { localStorage.setItem(GAME_STATE_KEY, pre); } catch (e) {}
+        restoreGameState();
+        timerSeconds = keepTimer;
+        updateTimerDisplay();
+        applyPlayerEditLock();
+        updateScreen();
+        applyStatsVisibility();
+        renderServeBalls();
+        lastPointPreSnap = null;
+        saveGameState();
     }
     function endMatchYes() {
         hideEndMatchPopup();
@@ -5499,7 +5550,7 @@
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
     applyPlayerEditLock();
-    try { if (localStorage.getItem(PENDING_END_KEY)) setTimeout(showEndMatchPopup, 300); } catch (e) {}
+    try { if (localStorage.getItem(PENDING_END_KEY)) setTimeout(showEndMatchPopup, 300); else if (localStorage.getItem(PENDING_SET_KEY) !== null) setTimeout(showSetConfirmPopup, 300); } catch (e) {}
     const aiMigration = migrateAiAnalysisToStore();
     removeAiFromNotesMigrated();
     if (aiMigration.copied > 0) showToast('AI analyses saved: ' + aiMigration.copied);
@@ -5871,6 +5922,7 @@
         openExportPicker, closeExportPicker, exportPickerSync, runExportSelection,
         exportExcelOnly,
         endMatchYes, endMatchNo,
+        setConfirmYes, setConfirmNo,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
         // Point Log — popup de pausa técnica
