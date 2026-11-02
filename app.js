@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.43';
+    const APP_VERSION = '3.11.44';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -565,7 +565,7 @@
                 tnLine.className = 'tn-title-line';
                 titleEl.parentNode.insertBefore(tnLine, titleEl);
             }
-            if (tnLine) tnLine.textContent = tnLabel;
+            if (tnLine) { tnLine.textContent = tnLabel; if (tnLine.parentNode) tnLine.parentNode.style.flexWrap = 'wrap'; }
             if (game.isSuperTie) {
                 titleEl.textContent = tnPre + 'SUPERTIE'; // não é um "set" — sem prefixo SET X
             } else if (prosetMode) {
@@ -3616,7 +3616,7 @@
                 line.className = 'tn-title-line';
                 tnEl.parentNode.insertBefore(line, tnEl);
             }
-            if (line) line.textContent = tn ? tn.toUpperCase() : '';
+            if (line) { line.textContent = tn ? tn.toUpperCase() : ''; if (line.parentNode) line.parentNode.style.flexWrap = 'wrap'; }
         }
         const ta = document.getElementById('notes-fs-textarea');
         if (idx === null) {
@@ -3926,7 +3926,8 @@
     function exportBaseName(entry) {
         const raw = (entry.tournamentName || 'match').toUpperCase().replace(/[\\/:*?"<>|]+/g, '').trim();
         const name = (raw || 'match').replace(/\s+/g, '_');
-        return name + '_' + matchStartParts(entry).date.replace(/-/g, '_');
+        const p = matchStartParts(entry);
+        return name + '_' + p.date.replace(/-/g, '_') + '_' + p.time.replace(':', '-');
     }
     function matchStartParts(entry) {
         const d = new Date(entry.startedAt || entry.date);
@@ -4348,7 +4349,11 @@
     // EXPORTAÇÃO: escolha dos itens, PDF único (imagens + textos) e Excel separado
     // ============================================================
     const EXPORT_PDF_ITEMS = ['ex-final', 'ex-ai', 'ex-pairs', 'ex-card', 'ex-notes'];
+    function isTvLandscape() {
+        return !!(window.matchMedia && window.matchMedia('(orientation: landscape)').matches);
+    }
     function openExportPicker() {
+        if (isTvLandscape()) { showToast('History not available in TV Mode'); return; }
         if (carouselIdx == null || !loadHistory()[carouselIdx]) return;
         const defaults = { 'ex-final': true, 'ex-ai': true, 'ex-pairs': false, 'ex-card': false, 'ex-notes': false };
         Object.keys(defaults).forEach(function (id) { document.getElementById(id).checked = defaults[id]; });
@@ -4524,6 +4529,7 @@
     }
     // Botão Export Excel do Histórico: gera e compartilha só o Excel, sem seleção
     async function exportExcelOnly() {
+        if (isTvLandscape()) { showToast('History not available in TV Mode'); return; }
         const history = loadHistory();
         const entry = history[carouselIdx];
         if (!entry) return;
