@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.11.35';
+    const APP_VERSION = '3.11.37';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2025,7 +2025,7 @@
         state.currentSet++;
         if (prosetMode) {
             // PROSET: o match termina quando o único set (índice 2) termina
-            endMatch();
+            requestEndMatch();
             return;
         }
         if (state.currentSet === 2) {
@@ -2035,10 +2035,10 @@
                 initServeNewSet(lastServer);
                 showSetIntervalCardBtn();
             } else {
-                endMatch();
+                requestEndMatch();
             }
         } else if (state.currentSet >= 3) {
-            endMatch();
+            requestEndMatch();
         } else {
             initServeNewSet(lastServer);
             showSetIntervalCardBtn();
@@ -2124,8 +2124,51 @@
         }
     }
 
+    // ============================================================
+    // END OF MATCH: confirmação antes de encerrar a partida decisiva
+    // "Yes" encerra como antes; "No" restaura o estado completo anterior ao último ponto
+    // ============================================================
+    const PENDING_END_KEY = 'psc_pending_end';
+    let lastPointPreSnap = null;
+    function requestEndMatch() {
+        if (!lastPointPreSnap) { endMatch(); return; }
+        try { localStorage.setItem(PENDING_END_KEY, lastPointPreSnap); } catch (e) {}
+        setTimeout(showEndMatchPopup, 0);
+    }
+    function showEndMatchPopup() {
+        const ov = document.getElementById('end-match-overlay');
+        if (ov) ov.classList.add('show');
+    }
+    function hideEndMatchPopup() {
+        const ov = document.getElementById('end-match-overlay');
+        if (ov) ov.classList.remove('show');
+        try { localStorage.removeItem(PENDING_END_KEY); } catch (e) {}
+    }
+    function endMatchYes() {
+        hideEndMatchPopup();
+        endMatch();
+    }
+    function endMatchNo() {
+        const pre = lastPointPreSnap || (function () { try { return localStorage.getItem(PENDING_END_KEY); } catch (e) { return null; } })();
+        hideEndMatchPopup();
+        if (!pre) return;
+        const keepTimer = timerSeconds; // o relógio não volta: segue correndo
+        try { localStorage.setItem(GAME_STATE_KEY, pre); } catch (e) {}
+        restoreGameState();
+        timerSeconds = keepTimer;
+        updateTimerDisplay();
+        applyPlayerEditLock();
+        updateScreen();
+        applyStatsVisibility();
+        renderServeBalls();
+        lastPointPreSnap = null;
+        saveGameState();
+    }
     function addPoint(teamIndex) {
         if (state.matchOver) return;
+        // Estado completo antes deste ponto: usado se o operador responder "No" no End of Match
+        saveGameState();
+        lastPointPreSnap = localStorage.getItem(GAME_STATE_KEY);
         // Set decidido por ajuste manual aguarda encerramento explícito
         if (isOpenSetFinished()) { renderSetLockedLabel(); return; }
         // No modo PROSET, saltar directamente para o 3º set (índice 2)
@@ -5241,7 +5284,10 @@
         if (spaceBelow > 140) {
             bubble.style.top = (r.bottom + 14) + 'px';
         } else {
-            bubble.style.top = Math.max(12, r.top - 14 - bubble.offsetHeight) + 'px';
+            // Passos do menu: o balão sobe e fica acima do botão Skip tutorial, sem cobri-lo
+            const skip = document.getElementById('tut-skip');
+            const limit = (skip && skip.offsetParent !== null) ? (skip.getBoundingClientRect().top - 10) : (r.top - 14);
+            bubble.style.top = Math.max(12, limit - bubble.offsetHeight) + 'px';
         }
     }
 
@@ -5392,6 +5438,7 @@
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
     applyPlayerEditLock();
+    try { if (localStorage.getItem(PENDING_END_KEY)) setTimeout(showEndMatchPopup, 300); } catch (e) {}
     const aiMigration = migrateAiAnalysisToStore();
     removeAiFromNotesMigrated();
     if (aiMigration.copied > 0) showToast('AI analyses saved: ' + aiMigration.copied);
@@ -5762,6 +5809,7 @@
         exportHistoryGameToExcel,
         openExportPicker, closeExportPicker, exportPickerSync, runExportSelection,
         exportExcelOnly,
+        endMatchYes, endMatchNo,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
         // Point Log — popup de pausa técnica

@@ -2383,3 +2383,25 @@
         color: var(--accent-yellow); font-weight: 800;
     }
 }
+
+/* End of Match: confirmação centralizada na horizontal e um pouco abaixo do centro, abaixo do placar */
+.end-match-overlay {
+    position: fixed; inset: 0; z-index: 5600; display: none;
+    background: rgba(5, 10, 20, 0.45);
+}
+.end-match-overlay.show { display: block; }
+.end-match-box {
+    position: fixed; left: 50%; top: 62%; transform: translate(-50%, -50%);
+    width: 86vw; max-width: 420px; box-sizing: border-box;
+    background: var(--panel-bg); border: 2px solid var(--border-card); border-radius: 14px;
+    padding: calc(2.5 * var(--vh, 1vh)) 5vw; display: flex; flex-direction: column; gap: calc(2 * var(--vh, 1vh));
+}
+.end-match-title { text-align: center; font-size: calc(2.2 * var(--vh, 1vh)); font-weight: 800; letter-spacing: 1.5px; color: var(--text-main); text-transform: uppercase; }
+.end-match-buttons { display: flex; flex-direction: column; gap: calc(1.2 * var(--vh, 1vh)); }
+.end-match-btn {
+    width: 100%; box-sizing: border-box; padding: calc(1.6 * var(--vh, 1vh)) 3vw; border-radius: 10px;
+    border: 1.5px solid var(--border-card); background: var(--card-bg); color: var(--text-main);
+    font-size: calc(1.8 * var(--vh, 1vh)); font-weight: 700; cursor: pointer; white-space: normal; text-align: center;
+}
+.end-match-yes { background: #16a34a; border-color: #16a34a; color: #ffffff; }
+.end-match-no { font-size: calc(1.5 * var(--vh, 1vh)); }

@@ -432,7 +432,7 @@
             <button class="config-tut-btn" onclick="startTutorialFromConfig()">Show Tutorial</button>
         </div>
 
-        <div class="config-version" id="config-version-label">V 3.11.35</div>
+        <div class="config-version" id="config-version-label">V 3.11.37</div>
         <div class="config-modal-footer">
             <button class="config-back-btn" onclick="closeConfig()">BACK</button>
         </div>
@@ -738,6 +738,15 @@
         <div class="ng-buttons">
             <button class="ng-btn ng-cancel" onclick="closeExportPicker()">Cancel</button>
             <button class="ng-btn ng-confirm" id="export-pick-go" onclick="runExportSelection()">Export PDF</button>
+        </div>
+    </div>
+</div>
+<div class="end-match-overlay" id="end-match-overlay">
+    <div class="end-match-box">
+        <div class="end-match-title">End of Match?</div>
+        <div class="end-match-buttons">
+            <button class="end-match-btn end-match-yes" onclick="endMatchYes()">Yes</button>
+            <button class="end-match-btn end-match-no" onclick="endMatchNo()">No, undo the last point and back to the game</button>
         </div>
     </div>
 </div>
