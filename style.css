@@ -2447,3 +2447,12 @@
 
 /* 23) Match Card centralizado na tela de histórico */
 #h-track .gs-card, .history-carousel .gs-card { margin-left: auto; margin-right: auto; }
+
+/* ── Tablet em modo TV: cabeçalho Set 1 / Set 2 / SuperTie / Points ── */
+@media (orientation: landscape) and (min-width: 768px) {
+    .ls-sets-header-row .ls-set-label,
+    .ls-sets-header-row .ls-pts-label-header {
+        font-size: calc(2.6 * var(--vh, 1vh));
+        white-space: nowrap;
+    }
+}

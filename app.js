@@ -4952,16 +4952,23 @@
         if ((g1 >= 6 || g2 >= 6) && Math.abs(g1 - g2) >= 2) return g1 > g2 ? 0 : 1;
         return -1;
     }
+    // SuperTie (3º set): vence quem chegar a 10 com diferença de 2 (sem regra de games)
+    function superTieWinner(p1, p2) {
+        if ((p1 >= 10 || p2 >= 10) && Math.abs(p1 - p2) >= 2) return p1 > p2 ? 0 : 1;
+        return -1;
+    }
     // Verdadeiro quando o set aberto já está decidido pelo placar (ex.: 6-3 após ajuste manual)
     function isOpenSetFinished() {
         if (!state || state.matchOver || state.isSuperTieBreak) return false;
         if (state.currentSet > 2) return false;
         const g = state.sets[state.currentSet];
+        if (superTieMode && !prosetMode && state.currentSet === 2) return superTieWinner(g[0], g[1]) !== -1;
         return setWinnerByGames(g[0], g[1]) !== -1;
     }
     // Após qualquer ajuste manual de games: entra ou sai do tie-break conforme o placar
     function reconcileOpenSet() {
         if (!state || state.matchOver || state.isSuperTieBreak || state.currentSet > 2) return;
+        if (superTieMode && !prosetMode && state.currentSet === 2) return; // SuperTie não entra em tie-break 6-6
         const i = state.currentSet;
         const g1 = state.sets[i][0], g2 = state.sets[i][1];
         const tbAt = prosetMode ? 8 : 6;
