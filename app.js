@@ -2361,6 +2361,7 @@
             state.sets[setIndex][idx]--;
             reconcileOpenSet();
             updateScreen();
+            checkSuperTieInvalid(setIndex);
             if (setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
@@ -2379,6 +2380,7 @@
             state.sets[setIndex][idx]++;
             reconcileOpenSet();
             updateScreen();
+            checkSuperTieInvalid(setIndex);
             if (setIndex === state.currentSet && isOpenSetFinished()) showCloseSetConfirm();
         }
     }
@@ -4953,9 +4955,24 @@
         return -1;
     }
     // SuperTie (3º set): vence quem chegar a 10 com diferença de 2 (sem regra de games)
+    // Placar final válido do SuperTie: vencedor com 10+ e 2 de vantagem (ex.: 10-8, 11-9, 12-10),
+    // ou 10 contra no máximo 8 (ex.: 10-0 a 10-8). Ex.: 13-7 é inválido.
+    function superTieValid(p1, p2) {
+        const w = Math.max(p1, p2), l = Math.min(p1, p2);
+        return w >= 10 && (w - l === 2 || (w === 10 && l <= 8));
+    }
     function superTieWinner(p1, p2) {
-        if ((p1 >= 10 || p2 >= 10) && Math.abs(p1 - p2) >= 2) return p1 > p2 ? 0 : 1;
-        return -1;
+        if (!superTieValid(p1, p2)) return -1;
+        return p1 > p2 ? 0 : 1;
+    }
+    // Aviso quando o SuperTie fica num placar impossível (ex.: 13-7): não encerra, pede ajuste
+    function checkSuperTieInvalid(setIndex) {
+        if (setIndex !== 2 || !superTieMode || prosetMode || !state || !state.sets[2]) return;
+        const g = state.sets[2];
+        const w = Math.max(g[0], g[1]), l = Math.min(g[0], g[1]);
+        if (w >= 10 && w - l >= 2 && !superTieValid(g[0], g[1])) {
+            showToast('Invalid SuperTie score. Adjust the SuperTie points.', '#c0392b');
+        }
     }
     // Verdadeiro quando o set aberto já está decidido pelo placar (ex.: 6-3 após ajuste manual)
     function isOpenSetFinished() {
