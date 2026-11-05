@@ -1,7 +1,7 @@
 // Padel Coaching — Service Worker
 // Compatível com Android 8 (Chrome 67+)
 
-const CACHE_VERSION = 'v3.12.06';
+const CACHE_VERSION = 'v3.12.08';
 
 const PRECACHE_URLS = [
   './tutorial-court.jpg',

@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.12.06';
+    const APP_VERSION = '3.12.08';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -99,29 +99,8 @@
     function updateVersionLabels() {
         var cfgVerEl = document.getElementById('config-version-label');
         if (cfgVerEl) cfgVerEl.textContent = 'V ' + APP_VERSION;
-        bindHiddenCircuitAccess();
     }
 
-    // ── Acesso oculto ao circuitopadel: 3 toques seguidos na versão ──
-    // Só conta toques (não chama preventDefault nem stopPropagation),
-    // por isso não interfere nos botões da tela de configuração.
-    var _verTapCount = 0;
-    var _verTapTimer = null;
-    function bindHiddenCircuitAccess() {
-        var el = document.getElementById('config-version-label');
-        if (!el || el.getAttribute('data-circuit-bound')) return;
-        el.setAttribute('data-circuit-bound', '1');
-        el.addEventListener('click', function () {
-            _verTapCount++;
-            if (_verTapTimer) clearTimeout(_verTapTimer);
-            _verTapTimer = setTimeout(function () { _verTapCount = 0; }, 700);
-            if (_verTapCount >= 3) {
-                _verTapCount = 0;
-                clearTimeout(_verTapTimer);
-                openCircuitOverlay();
-            }
-        });
-    }
     // Sobreposição do circuitopadel: criada ao abrir e removida ao fechar.
     // Não recarrega o app nem toca no estado da partida.
     function openCircuitOverlay() {
@@ -156,92 +135,6 @@
     });
 
     updateVersionLabels(); // liga o toque triplo depois que as funções acima estão definidas
-
-    // ── Painel de diagnóstico de tela (oculto) ────────────────────────────────
-    // 5 toques seguidos na linha de versão do Setup mostram as medidas reais da tela
-    // (innerHeight, vh/dvh/svh/lvh, safe-area...). Serve para calibrar iOS/Android.
-    (function () {
-        var taps = 0, timer = null;
-        function px(v) { return (v === null || v === undefined || isNaN(v)) ? 'n/d' : (Math.round(v * 10) / 10) + 'px'; }
-        function unitPx(unit, prop) {
-            try {
-                var d = document.createElement('div');
-                d.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;width:1px;height:0;';
-                document.body.appendChild(d);
-                d.style[prop] = '100' + unit;
-                var v = d.getBoundingClientRect()[prop];
-                document.body.removeChild(d);
-                return v > 0 ? v : null;
-            } catch (e) { return null; }
-        }
-        function inset(side) {
-            try {
-                var d = document.createElement('div');
-                d.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;padding-' + side + ':env(safe-area-inset-' + side + ',0px);';
-                document.body.appendChild(d);
-                var v = parseFloat(getComputedStyle(d)['padding' + side.charAt(0).toUpperCase() + side.slice(1)]) || 0;
-                document.body.removeChild(d);
-                return v;
-            } catch (e) { return null; }
-        }
-        function rect(sel) {
-            var e = document.querySelector(sel); if (!e) return 'n/d';
-            var r = e.getBoundingClientRect();
-            return 'top ' + Math.round(r.top) + ' | bottom ' + Math.round(r.bottom) + ' | h ' + Math.round(r.height);
-        }
-        function mm(q) { try { return window.matchMedia(q).matches ? 'sim' : 'não'; } catch (e) { return 'n/d'; } }
-        function build() {
-            var vv = window.visualViewport, root = document.documentElement;
-            var L = [];
-            L.push('PSC PRO ' + APP_VERSION + ' — diagnóstico de tela');
-            L.push('');
-            L.push('innerHeight      ' + px(window.innerHeight) + '   innerWidth ' + px(window.innerWidth));
-            L.push('outerHeight      ' + px(window.outerHeight));
-            L.push('visualViewport   h ' + (vv ? px(vv.height) + ' | top ' + px(vv.offsetTop) + ' | esc ' + vv.scale : 'n/d'));
-            L.push('screen           ' + screen.width + 'x' + screen.height + ' | avail ' + screen.availWidth + 'x' + screen.availHeight);
-            L.push('documentElement  clientH ' + root.clientHeight + ' | scrollH ' + root.scrollHeight);
-            L.push('body             clientH ' + document.body.clientHeight + ' | scrollH ' + document.body.scrollHeight);
-            L.push('');
-            L.push('100vh  ' + px(unitPx('vh', 'height')) + '   100dvh ' + px(unitPx('dvh', 'height')));
-            L.push('100svh ' + px(unitPx('svh', 'height')) + '   100lvh ' + px(unitPx('lvh', 'height')));
-            L.push('--app-h ' + (getComputedStyle(root).getPropertyValue('--app-h').trim() || 'n/d') + '   classe has-app-h: ' + root.classList.contains('has-app-h'));
-            L.push('');
-            L.push('safe-area  topo ' + px(inset('top')) + ' | base ' + px(inset('bottom')) + ' | esq ' + px(inset('left')) + ' | dir ' + px(inset('right')));
-            L.push('');
-            L.push('#layout-portrait  ' + rect('#layout-portrait'));
-            L.push('cabeçalho         ' + rect('#layout-portrait > :first-child'));
-            L.push('.p-teams          ' + rect('.p-teams'));
-            L.push('#p-tabbar         ' + rect('#p-tabbar'));
-            L.push('');
-            L.push('DPR ' + window.devicePixelRatio + ' | standalone ' + mm('(display-mode: standalone)') + ' | fullscreen ' + mm('(display-mode: fullscreen)') + ' | ' + (mm('(orientation: portrait)') === 'sim' ? 'retrato' : 'paisagem'));
-            L.push((navigator.userAgent || '').replace(/\s+/g, ' ').slice(0, 120));
-            return L.join('\n');
-        }
-        function show() {
-            var old = document.getElementById('diag-overlay'); if (old) old.parentNode.removeChild(old);
-            var o = document.createElement('div');
-            o.id = 'diag-overlay';
-            o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:999999;background:rgba(0,0,0,0.92);color:#9fe870;padding:12px;box-sizing:border-box;overflow:auto;-webkit-overflow-scrolling:touch;';
-            var pre = document.createElement('pre');
-            pre.style.cssText = 'margin:0 0 12px;font:11px/1.45 Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;';
-            pre.textContent = build();
-            var b1 = document.createElement('button'); b1.textContent = 'Atualizar';
-            var b2 = document.createElement('button'); b2.textContent = 'Fechar';
-            [b1, b2].forEach(function (b) { b.style.cssText = 'margin-right:10px;padding:10px 18px;font:600 14px sans-serif;border:0;border-radius:8px;background:#f5c518;color:#1a1200;'; });
-            b1.onclick = function () { pre.textContent = build(); };
-            b2.onclick = function () { if (o.parentNode) o.parentNode.removeChild(o); };
-            o.appendChild(pre); o.appendChild(b1); o.appendChild(b2);
-            document.body.appendChild(o);
-        }
-        // Desativado por enquanto (reativar junto com a chamada oficial do circuito)
-        var DIAG_ENABLED = false;
-        var el = document.getElementById('config-version-label');
-        if (DIAG_ENABLED && el) el.addEventListener('click', function () {
-            taps++; clearTimeout(timer);
-            timer = setTimeout(function () { taps = 0; }, 2500);
-            if (taps >= 5) { taps = 0; show(); }
-        });
-    })();
 
     // ============================================================
     // SERVE INDICATOR SYSTEM
@@ -1594,7 +1487,6 @@
 
     function updateScreen() {
         syncSuperTieSuspension();
-        applyAdjLock(!!(state && state.adjMode));
         if (!state.startedAt && hasMatchScore()) state.startedAt = new Date().toISOString();
         saveGameState(); // persistir estado a cada alteração
         applyPlayerEditLock();
@@ -2236,7 +2128,6 @@
     }
     function addPoint(teamIndex) {
         if (state.matchOver) return;
-        if (state.adjMode) { showToast('Manual adjustment in progress: tap "All done, back to the game".', '#c0392b'); return; }
         if (state.stSuspended) { showToast('Match suspended: adjust the SuperTie to a valid score first.', '#c0392b'); return; }
         // Estado completo antes deste ponto: usado se o operador responder "No" no End of Match
         saveGameState();
@@ -2348,7 +2239,6 @@
 
     function removePoint(event, teamIndex) {
         if (event && event.preventDefault) event.preventDefault();
-        if (state.adjMode) return;
         const idx = teamIndex - 1;
         const inDC = pointMode === 'star'
             && state.deuceCount > 0
@@ -2388,7 +2278,7 @@
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
         if (state.sets[setIndex][idx] > 0) {
-            if (isLiveSuperTieAdjustable(setIndex) && !state.adjMode) enterAdjMode();
+            if (isLiveSuperTieAdjustable(setIndex)) { return; }
             state.sets[setIndex][idx]--;
             reconcileOpenSet();
             updateScreen();
@@ -2409,7 +2299,7 @@
         // Set aberto já decidido: só é possível corrigir para baixo (evita 7-4 etc.)
         if (setIndex === state.currentSet && isOpenSetFinished()) { showCloseSetConfirm(); return; }
         if (state.sets[setIndex][idx] < limit) {
-            if (isLiveSuperTieAdjustable(setIndex) && !state.adjMode) enterAdjMode();
+            if (isLiveSuperTieAdjustable(setIndex)) { return; }
             state.sets[setIndex][idx]++;
             reconcileOpenSet();
             updateScreen();
@@ -5025,84 +4915,10 @@
         }
         b.style.display = 'block';
     }
-    // ── Modo "Ajuste manual" do SuperTie ────────────────────────────────────
-    // O primeiro ajuste manual congela o estado anterior (adjSnap) e bloqueia o app inteiro,
-    // exceto as células do SuperTie e a barra "All done / Cancel". Só sai com placar válido.
-    let adjEndPending = false; // true quando o End of Match veio de um ajuste manual (muda o texto do "No")
+    // SuperTie em andamento: o resultado só é definido ao encerrar a partida
+    let adjEndPending = false; // true quando o End of Match veio de um ajuste manual (não usado hoje)
     function isLiveSuperTieAdjustable(setIndex) {
         return setIndex === 2 && superTieMode && !prosetMode && state.isSuperTieBreak && state.currentSet === 2 && !state.matchOver;
-    }
-    function enterAdjMode() {
-        saveGameState();
-        state.adjSnap = localStorage.getItem(GAME_STATE_KEY);
-        state.adjMode = true;
-        saveGameState();
-        applyAdjLock(true);
-    }
-    function ensureAdjBar() {
-        if (document.getElementById('adj-lock-bar')) return;
-        const bar = document.createElement('div');
-        bar.id = 'adj-lock-bar';
-        bar.innerHTML = '<button id="adj-cancel-btn" onclick="adjCancel()">Cancel</button>' +
-                        '<button id="adj-done-btn" onclick="adjDone()">All done, back to the game</button>';
-        document.body.appendChild(bar);
-    }
-    function applyAdjLock(on) {
-        if (!document.body) return;
-        ensureAdjBar();
-        document.body.classList.toggle('adj-lock', !!on);
-        ['t1-s3-cell', 't2-s3-cell', 'ls-t1-s3-cell', 'ls-t2-s3-cell'].forEach(function (id) {
-            const el = document.getElementById(id);
-            if (el) el.classList.toggle('adj-allow', !!on);
-        });
-    }
-    function adjDone() {
-        if (!state || !state.adjMode) return;
-        const g = state.sets[2];
-        if (superTieImpossible(g[0], g[1])) {
-            showToast('Invalid SuperTie score. Keep adjusting until a valid score.', '#c0392b');
-            return;
-        }
-        const snap = state.adjSnap;
-        const isEnd = superTieValid(g[0], g[1]);
-        state.adjMode = false;
-        state.adjSnap = null;
-        applyAdjLock(false);
-        if (isEnd) {
-            // Encerramento: "No" no End of Match restaura o estado anterior ao ajuste
-            state.pts = [0, 0];
-            lastPointPreSnap = snap;
-            adjEndPending = true;
-            winSet();
-            updateScreen();
-            return;
-        }
-        // Placar válido para jogo aberto: volta ao jogo com o placar digitado
-        state.stSuspended = false;
-        saveGameState();
-        updateScreen();
-    }
-    function adjCancel() {
-        if (!state || !state.adjMode) return;
-        const snap = state.adjSnap;
-        state.adjMode = false;
-        state.adjSnap = null;
-        applyAdjLock(false);
-        if (snap) restorePreviousPoint(snap);
-        else updateScreen();
-    }
-    // Ajuste manual que deixa o SuperTie num placar válido de encerramento finaliza o SuperTie
-    // pelo mesmo caminho do fim por pontos (winSet -> End of Match).
-    function finishSuperTieIfValid(setIndex) {
-        if (setIndex !== 2 || !superTieMode || prosetMode || !state || state.matchOver) return false;
-        if (!state.isSuperTieBreak || state.currentSet !== 2) return false;
-        if (state.stSuspended) return false;
-        const g = state.sets[2];
-        if (!superTieValid(g[0], g[1])) return false;
-        state.pts = [0, 0];
-        winSet();
-        updateScreen();
-        return true;
     }
     function checkSuperTieInvalid(setIndex) {
         if (setIndex !== 2) return;
@@ -6082,7 +5898,7 @@
         exportHistoryGameToExcel,
         openExportPicker, closeExportPicker, exportPickerSync, runExportSelection,
         exportExcelOnly,
-        endMatchYes, endMatchNo, adjDone, adjCancel,
+        endMatchYes, endMatchNo,
         setConfirmYes, setConfirmNo,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,
