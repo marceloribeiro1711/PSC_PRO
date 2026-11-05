@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.12.0';
+    const APP_VERSION = '3.12.05';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -1593,6 +1593,8 @@
     }
 
     function updateScreen() {
+        syncSuperTieSuspension();
+        applyAdjLock(!!(state && state.adjMode));
         if (!state.startedAt && hasMatchScore()) state.startedAt = new Date().toISOString();
         saveGameState(); // persistir estado a cada alteração
         applyPlayerEditLock();
@@ -2163,6 +2165,8 @@
         setTimeout(showEndMatchPopup, 0);
     }
     function showEndMatchPopup() {
+        const nb = document.getElementById('end-match-no-btn');
+        if (nb) nb.textContent = adjEndPending ? 'No, forget all adjustments and back to game' : 'No, undo the last point and back to the game';
         const ov = document.getElementById('end-match-overlay');
         if (ov) ov.classList.add('show');
     }
@@ -2209,10 +2213,12 @@
         saveGameState();
     }
     function endMatchYes() {
+        adjEndPending = false;
         hideEndMatchPopup();
         endMatch();
     }
     function endMatchNo() {
+        adjEndPending = false;
         const pre = lastPointPreSnap || (function () { try { return localStorage.getItem(PENDING_END_KEY); } catch (e) { return null; } })();
         hideEndMatchPopup();
         if (!pre) return;
@@ -2230,6 +2236,8 @@
     }
     function addPoint(teamIndex) {
         if (state.matchOver) return;
+        if (state.adjMode) { showToast('Manual adjustment in progress: tap "All done, back to the game".', '#c0392b'); return; }
+        if (state.stSuspended) { showToast('Match suspended: adjust the SuperTie to a valid score first.', '#c0392b'); return; }
         // Estado completo antes deste ponto: usado se o operador responder "No" no End of Match
         saveGameState();
         lastPointPreSnap = localStorage.getItem(GAME_STATE_KEY);
@@ -2340,6 +2348,7 @@
 
     function removePoint(event, teamIndex) {
         if (event && event.preventDefault) event.preventDefault();
+        if (state.adjMode) return;
         const idx = teamIndex - 1;
         const inDC = pointMode === 'star'
             && state.deuceCount > 0
@@ -2358,6 +2367,7 @@
         if (prosetMode && setIndex < 2) return; // sets 1 e 2 desactivados no PROSET
         const idx = teamIndex - 1;
         if (state.sets[setIndex][idx] > 0) {
+            if (isLiveSuperTieAdjustable(setIndex) && !state.adjMode) enterAdjMode();
             state.sets[setIndex][idx]--;
             reconcileOpenSet();
             updateScreen();
@@ -2374,9 +2384,11 @@
         const idx = teamIndex - 1;
         const isThirdSetSuperTie = (setIndex === 2 && superTieMode);
         const limit = isThirdSetSuperTie ? Infinity : 7;
+
         // Set aberto já decidido: só é possível corrigir para baixo (evita 7-4 etc.)
         if (setIndex === state.currentSet && isOpenSetFinished()) { showCloseSetConfirm(); return; }
         if (state.sets[setIndex][idx] < limit) {
+            if (isLiveSuperTieAdjustable(setIndex) && !state.adjMode) enterAdjMode();
             state.sets[setIndex][idx]++;
             reconcileOpenSet();
             updateScreen();
@@ -4961,17 +4973,120 @@
         const w = Math.max(p1, p2), l = Math.min(p1, p2);
         return w >= 10 && (w - l === 2 || (w === 10 && l <= 8));
     }
+    // Placar impossível para o SuperTie: 10+ com diferença >= 2 que não é um final válido
+    function superTieImpossible(p1, p2) {
+        const w = Math.max(p1, p2), l = Math.min(p1, p2);
+        return w >= 10 && w - l >= 2 && !superTieValid(p1, p2);
+    }
     function superTieWinner(p1, p2) {
         if (!superTieValid(p1, p2)) return -1;
         return p1 > p2 ? 0 : 1;
     }
-    // Aviso quando o SuperTie fica num placar impossível (ex.: 13-7): não encerra, pede ajuste
-    function checkSuperTieInvalid(setIndex) {
-        if (setIndex !== 2 || !superTieMode || prosetMode || !state || !state.sets[2]) return;
+    // Partida suspensa enquanto o SuperTie em andamento estiver num placar impossível (ex.: 13-9).
+    // Ajustes manuais continuam permitidos; pontos só voltam quando o placar for válido.
+    function syncSuperTieSuspension() {
+        if (!state) return false;
+        const live = !!(superTieMode && !prosetMode && state.isSuperTieBreak && state.currentSet === 2 && !state.matchOver);
+        const bad = !!(live && state.sets[2] && superTieImpossible(state.sets[2][0], state.sets[2][1]));
+        state.stSuspended = bad;
+        renderSuperTieBanner(bad);
+        return bad;
+    }
+    function renderSuperTieBanner(on) {
+        let b = document.getElementById('st-suspended-banner');
+        if (!on) { if (b) b.style.display = 'none'; return; }
+        if (!b) {
+            b = document.createElement('div');
+            b.id = 'st-suspended-banner';
+            b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9000;background:#c0392b;color:#fff;text-align:center;font-weight:700;font-size:14px;padding:8px 12px;pointer-events:none;';
+            b.textContent = 'INVALID SUPERTIE SCORE - MATCH SUSPENDED. Keep adjusting the SuperTie points until the score is valid.';
+            document.body.appendChild(b);
+        }
+        b.style.display = 'block';
+    }
+    // ── Modo "Ajuste manual" do SuperTie ────────────────────────────────────
+    // O primeiro ajuste manual congela o estado anterior (adjSnap) e bloqueia o app inteiro,
+    // exceto as células do SuperTie e a barra "All done / Cancel". Só sai com placar válido.
+    let adjEndPending = false; // true quando o End of Match veio de um ajuste manual (muda o texto do "No")
+    function isLiveSuperTieAdjustable(setIndex) {
+        return setIndex === 2 && superTieMode && !prosetMode && state.isSuperTieBreak && state.currentSet === 2 && !state.matchOver;
+    }
+    function enterAdjMode() {
+        saveGameState();
+        state.adjSnap = localStorage.getItem(GAME_STATE_KEY);
+        state.adjMode = true;
+        saveGameState();
+        applyAdjLock(true);
+    }
+    function ensureAdjBar() {
+        if (document.getElementById('adj-lock-bar')) return;
+        const bar = document.createElement('div');
+        bar.id = 'adj-lock-bar';
+        bar.innerHTML = '<button id="adj-cancel-btn" onclick="adjCancel()">Cancel</button>' +
+                        '<button id="adj-done-btn" onclick="adjDone()">All done, back to the game</button>';
+        document.body.appendChild(bar);
+    }
+    function applyAdjLock(on) {
+        if (!document.body) return;
+        ensureAdjBar();
+        document.body.classList.toggle('adj-lock', !!on);
+        ['t1-s3-cell', 't2-s3-cell', 'ls-t1-s3-cell', 'ls-t2-s3-cell'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('adj-allow', !!on);
+        });
+    }
+    function adjDone() {
+        if (!state || !state.adjMode) return;
         const g = state.sets[2];
-        const w = Math.max(g[0], g[1]), l = Math.min(g[0], g[1]);
-        if (w >= 10 && w - l >= 2 && !superTieValid(g[0], g[1])) {
-            showToast('Invalid SuperTie score. Adjust the SuperTie points.', '#c0392b');
+        if (superTieImpossible(g[0], g[1])) {
+            showToast('Invalid SuperTie score. Keep adjusting until a valid score.', '#c0392b');
+            return;
+        }
+        const snap = state.adjSnap;
+        const isEnd = superTieValid(g[0], g[1]);
+        state.adjMode = false;
+        state.adjSnap = null;
+        applyAdjLock(false);
+        if (isEnd) {
+            // Encerramento: "No" no End of Match restaura o estado anterior ao ajuste
+            state.pts = [0, 0];
+            lastPointPreSnap = snap;
+            adjEndPending = true;
+            winSet();
+            updateScreen();
+            return;
+        }
+        // Placar válido para jogo aberto: volta ao jogo com o placar digitado
+        state.stSuspended = false;
+        saveGameState();
+        updateScreen();
+    }
+    function adjCancel() {
+        if (!state || !state.adjMode) return;
+        const snap = state.adjSnap;
+        state.adjMode = false;
+        state.adjSnap = null;
+        applyAdjLock(false);
+        if (snap) restorePreviousPoint(snap);
+        else updateScreen();
+    }
+    // Ajuste manual que deixa o SuperTie num placar válido de encerramento finaliza o SuperTie
+    // pelo mesmo caminho do fim por pontos (winSet -> End of Match).
+    function finishSuperTieIfValid(setIndex) {
+        if (setIndex !== 2 || !superTieMode || prosetMode || !state || state.matchOver) return false;
+        if (!state.isSuperTieBreak || state.currentSet !== 2) return false;
+        if (state.stSuspended) return false;
+        const g = state.sets[2];
+        if (!superTieValid(g[0], g[1])) return false;
+        state.pts = [0, 0];
+        winSet();
+        updateScreen();
+        return true;
+    }
+    function checkSuperTieInvalid(setIndex) {
+        if (setIndex !== 2) return;
+        if (syncSuperTieSuspension()) {
+            showToast('Invalid SuperTie score. Keep adjusting until a valid score.', '#c0392b');
         }
     }
     // Verdadeiro quando o set aberto já está decidido pelo placar (ex.: 6-3 após ajuste manual)
@@ -5946,7 +6061,7 @@
         exportHistoryGameToExcel,
         openExportPicker, closeExportPicker, exportPickerSync, runExportSelection,
         exportExcelOnly,
-        endMatchYes, endMatchNo,
+        endMatchYes, endMatchNo, adjDone, adjCancel,
         setConfirmYes, setConfirmNo,
         // Estatísticas — não têm onclick mas expostas por segurança
         incStat, decStatById,

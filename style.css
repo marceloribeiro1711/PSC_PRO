@@ -2456,3 +2456,13 @@
         white-space: nowrap;
     }
 }
+
+/* ── Modo "Ajuste manual" do SuperTie: app bloqueado exceto células e barra de ajuste ── */
+body.adj-lock * { pointer-events: none !important; }
+body.adj-lock .adj-allow, body.adj-lock .adj-allow * { pointer-events: auto !important; }
+#adj-lock-bar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 9500; background: #0b1c3a; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); gap: 8px; justify-content: center; align-items: center; box-sizing: border-box; }
+body.adj-lock #adj-lock-bar, body.adj-lock #adj-lock-bar * { pointer-events: auto !important; }
+body.adj-lock #adj-lock-bar { display: flex; }
+#adj-lock-bar button { border: none; border-radius: 10px; padding: 10px 14px; font-size: 15px; font-weight: 700; color: #fff; }
+#adj-done-btn { background: #1e8e3e; flex: 1; max-width: 520px; }
+#adj-cancel-btn { background: #5b6b82; }
