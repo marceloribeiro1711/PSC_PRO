@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.12.08';
+    const APP_VERSION = '3.12.09';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2260,6 +2260,27 @@
                     lastPointPreSnap = localStorage.getItem(GAME_STATE_KEY); // "No" desfaz esta retirada
                     state.sets[2][0] = next[0];
                     state.sets[2][1] = next[1];
+                    state.pts = [0, 0];
+                    winSet();
+                    updateScreen();
+                    return;
+                }
+            }
+            // Tie-break normal em andamento: decremento não pode levar a placar impossível (ex.: 8-5)
+            // e, se levar a final válido (ex.: 8-6 ou 7-5), encerra o tie-break na hora.
+            const liveTB = state.isTieBreakMode && !state.isSuperTieBreak && !prosetMode && !state.matchOver;
+            if (liveTB) {
+                const nextTB = [state.pts[0], state.pts[1]];
+                nextTB[idx]--;
+                if (tbImpossible(nextTB[0], nextTB[1])) {
+                    return;
+                }
+                if (tbValid(nextTB[0], nextTB[1])) {
+                    saveGameState();
+                    lastPointPreSnap = localStorage.getItem(GAME_STATE_KEY); // "No" desfaz esta retirada
+                    const winnerIdx = nextTB[0] > nextTB[1] ? 0 : 1;
+                    state.tiebreakPts[state.currentSet] = Math.min(nextTB[0], nextTB[1]);
+                    state.sets[state.currentSet][winnerIdx]++;
                     state.pts = [0, 0];
                     winSet();
                     updateScreen();
@@ -4888,6 +4909,16 @@
     function superTieImpossible(p1, p2) {
         const w = Math.max(p1, p2), l = Math.min(p1, p2);
         return w >= 10 && w - l >= 2 && !superTieValid(p1, p2);
+    }
+    // Tie-break normal (alvo 7): final válido = 7 com até 5 do adversário, ou 2 de vantagem a partir de 8
+    function tbValid(p1, p2) {
+        const w = Math.max(p1, p2), l = Math.min(p1, p2);
+        return w >= 7 && (w - l === 2 || (w === 7 && l <= 5));
+    }
+    // Placar impossível no tie-break normal: vencedor com 8+ e 3 ou mais de vantagem
+    function tbImpossible(p1, p2) {
+        const w = Math.max(p1, p2), l = Math.min(p1, p2);
+        return w >= 8 && w - l >= 3;
     }
     function superTieWinner(p1, p2) {
         if (!superTieValid(p1, p2)) return -1;
