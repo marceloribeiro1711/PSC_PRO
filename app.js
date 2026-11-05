@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.12.05';
+    const APP_VERSION = '3.12.06';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -2355,6 +2355,27 @@
             && state.pts[0] === 3 && state.pts[1] === 3;
         if (inDC) return;
         if (state.pts[idx] > 0) {
+            // SuperTie em andamento: decremento não pode levar a placar impossível (ex.: 15-12)
+            // e, se levar a placar final válido (ex.: 15-13), encerra na hora com End of Match.
+            const liveST = superTieMode && !prosetMode && state.isSuperTieBreak && state.currentSet === 2 && !state.matchOver;
+            if (liveST) {
+                const next = [state.pts[0], state.pts[1]];
+                next[idx]--;
+                if (superTieImpossible(next[0], next[1])) {
+                    showToast('Invalid SuperTie score. Keep adjusting until a valid score.', '#c0392b');
+                    return;
+                }
+                if (superTieValid(next[0], next[1])) {
+                    saveGameState();
+                    lastPointPreSnap = localStorage.getItem(GAME_STATE_KEY); // "No" desfaz esta retirada
+                    state.sets[2][0] = next[0];
+                    state.sets[2][1] = next[1];
+                    state.pts = [0, 0];
+                    winSet();
+                    updateScreen();
+                    return;
+                }
+            }
             state.pts[idx]--;
         }
         updateScreen();
