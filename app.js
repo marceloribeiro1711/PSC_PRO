@@ -123,6 +123,35 @@
         var ov = document.getElementById('circuit-overlay');
         if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
     }
+    // Política de privacidade dentro do app (mesma sobreposição do Padel Calendar), com BACK
+    var PRIVACY_POLICY_URL = 'https://marceloribeiro1711.github.io/PrivacyPolicy/privacy.html';
+    function openPrivacyOverlay() {
+        if (document.getElementById('privacy-overlay')) return;
+        var ov = document.createElement('div');
+        ov.id = 'privacy-overlay';
+        ov.className = 'circuit-overlay show';
+        ov.setAttribute('role', 'dialog');
+        ov.setAttribute('aria-label', 'Privacy Policy');
+        var fr = document.createElement('iframe');
+        fr.className = 'circuit-frame';
+        fr.title = 'Privacy Policy';
+        fr.src = PRIVACY_POLICY_URL;
+        ov.appendChild(fr);
+        var back = document.createElement('button');
+        back.id = 'privacy-back-btn';
+        back.className = 'config-back-btn';
+        back.textContent = 'BACK';
+        back.style.cssText = 'position:absolute;left:0;right:0;bottom:0;z-index:2;padding-bottom:calc(1.2 * var(--vh, 1vh) + env(safe-area-inset-bottom, 0px));background:var(--bg);';
+        back.onclick = closePrivacyOverlay;
+        ov.appendChild(back);
+        fr.style.paddingBottom = '0';
+        fr.style.height = 'calc(100% - 7vh)';
+        document.body.appendChild(ov);
+    }
+    function closePrivacyOverlay() {
+        var ov = document.getElementById('privacy-overlay');
+        if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    }
     // Compatibilidade: o circuito pode chamar window.parent.closeCircuitOverlay()
     function closeCircuitOverlay() { fecharCircuitoPadel(); }
 
@@ -5913,6 +5942,7 @@
         ngConfirm, ngCancel,
         closeLockInfo, closeOpenSet, confirmCloseSet, declineCloseSet,
         openCircuitOverlay, closeCircuitOverlay, fecharCircuitoPadel,
+        openPrivacyOverlay, closePrivacyOverlay,
         openAiViewer, closeAiViewer,
         closeExportResult, shareExportResult,
         closeShareFallback, downloadShareFallback,
