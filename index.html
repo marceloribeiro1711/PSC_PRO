@@ -778,8 +778,12 @@
   .filter-chip.active.luciana{ background: var(--luciana); border-color: var(--luciana); }
   .filter-chip.active.marcelo{ background: var(--marcelo); border-color: var(--marcelo); }
 
-  .search-row{ flex: none; padding: 8px 16px 0; }
+  .search-row{ flex: none; padding: 8px 16px 8px; border-bottom: 1px solid var(--border); }
+  .search-line{ display: flex; align-items: center; gap: 8px; }
+  .search-label{ flex: none; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
   .search-input{
+    flex: 1;
+    min-width: 0;
     width: 100%;
     box-sizing: border-box;
     padding: 9px 12px;
@@ -1019,12 +1023,15 @@
       <span id="monthLabel">—</span>
       <button class="icon-btn" id="nextMonthBtn" aria-label="Mês seguinte">›</button>
     </div>
-    <div class="search-row">
-      <input type="search" class="search-input" id="histSearchInput" placeholder="Buscar na descrição (últimos 100)" autocomplete="off">
-      <div class="search-sugg" id="histSearchSugg"></div>
-    </div>
     <div class="filter-strip" id="filterStripPagador"></div>
     <div class="filter-strip" id="filterStripCategoria"></div>
+    <div class="search-row">
+      <div class="search-line">
+        <label class="search-label" for="histSearchInput">Filtrar por:</label>
+        <input type="search" class="search-input" id="histSearchInput" placeholder="Texto da descrição (últimos 100)" autocomplete="off">
+      </div>
+      <div class="search-sugg" id="histSearchSugg"></div>
+    </div>
     <div class="screen-body scrollable">
       <div class="alt-table" id="altTableBody"></div>
     </div>
@@ -3127,7 +3134,7 @@
 </script>
 <script>
   // Sincronizar com CACHE_VERSION em service-worker.js a cada nova versão.
-  var APP_VERSION = "1.19.0";
+  var APP_VERSION = "1.19.1";
   document.title = 'Despesas de Casa · v' + APP_VERSION;
   document.getElementById('versionTag').textContent = 'v' + APP_VERSION;
 
