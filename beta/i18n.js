@@ -13,7 +13,16 @@ const PSC_LANG_TABLE = {
     'Change Sides': ['Trocar Lado', 'Trocar Lado', 'Cambiar Lado'],
     'Golden Point': ['Ponto de Ouro', 'Ponto de Ouro', 'Punto de Oro'],
     'GOLDEN POINT': ['PONTO DE OURO', 'PONTO DE OURO', 'PUNTO DE ORO'],
+    'STATISTIC': ['ESTATÍSTICA', 'ESTATÍSTICA', 'ESTADÍSTICA'],
+    'PLAYER': ['JOGADOR', 'JOGADOR', 'JUGADOR'],
+    'Break Points opportunities:': ['Oportunidades de Break:', 'Oportunidades de Break:', 'Oportunidades de Break:'],
+    'Match Log': ['Ponto a Ponto', 'Ponto a Ponto', 'Punto a Punto'],
+    'Statistic': ['Estatística', 'Estatística', 'Estadística'],
+    'Loading…': ['A carregar…', 'Carregando…', 'Cargando…'],
+    'BROKEN': ['BREAKS', 'BREAKS', 'BREAKS'],
     'Points': ['Pontos', 'Pontos', 'Puntos'],
+    'No point-by-point data available for this game.': ['Sem dados ponto a ponto para este jogo.', 'Sem dados ponto a ponto para este jogo.', 'No hay datos punto a punto para este juego.'],
+    'No Match Log data for this match': ['Sem dados do Ponto a Ponto nesta partida', 'Sem dados do Ponto a Ponto nesta partida', 'No hay datos de Punto a Punto en este partido'],
     'Player 1': ['Jogador 1', 'Jogador 1', 'Jugador 1'],
     'Player 2': ['Jogador 2', 'Jogador 2', 'Jugador 2'],
     'Player 3': ['Jogador 3', 'Jogador 3', 'Jugador 3'],
@@ -97,6 +106,15 @@ const PSC_LANG_TABLE = {
     'No games recorded yet.': ['Ainda não há jogos registados.', 'Ainda não há jogos registrados.', 'Aún no hay partidos registrados.'],
 };
 
+// Frases que aparecem dentro de textos gerados pelo app (ex.: "Ana was serving 🎾").
+// Só são trocadas quando o texto inteiro não está na tabela acima.
+const PSC_PHRASES = {
+    'was serving': ['no serviço', 'no saque', 'sacando'],
+    'GAME ': ['JOGO ', 'JOGO ', 'JUEGO '],
+    'Won ': ['Vencidos ', 'Vencidos ', 'Ganados '],
+    'Broken ': ['Breaks ', 'Quebras ', 'Breaks '],
+};
+
 const PSC_LANG_INDEX = { 'pt-PT': 0, 'pt-BR': 1, 'es': 2 };
 const PSC_TRANSLATED_ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
 
@@ -110,14 +128,30 @@ function pscComputeOut(en, raw, lang) {
     const lead = raw.match(/^\s*/)[0];
     const trail = raw.match(/\s*$/)[0];
     const idx = PSC_LANG_INDEX[lang];
-    const entry = PSC_LANG_TABLE[en];
-    const shown = (lang === 'en' || idx === undefined || !entry) ? en : entry[idx];
+    let shown = en;
+    if (lang !== 'en' && idx !== undefined) {
+        const entry = PSC_LANG_TABLE[en];
+        if (entry) {
+            shown = entry[idx] || en;
+        } else {
+            Object.keys(PSC_PHRASES).forEach(function (phrase) {
+                const t = PSC_PHRASES[phrase][idx];
+                if (t && shown.indexOf(phrase) !== -1) shown = shown.split(phrase).join(t);
+            });
+        }
+    }
     return lead + shown + trail;
+}
+
+function pscIsEditable(node) {
+    const p = node.parentNode;
+    return !!(p && p.closest && p.closest('[contenteditable="true"]'));
 }
 
 function pscUpdateTextNode(node, lang) {
     const raw = node.nodeValue;
     if (!raw || !raw.trim()) return;
+    if (pscIsEditable(node)) return;
     const state = pscTextState.get(node);
     // Se o valor é o que nós mesmos escrevemos, o inglês original continua valendo.
     // Se veio novo do app (texto em inglês), ele vira a nova fonte.
@@ -149,6 +183,7 @@ function pscApplyTo(root, lang) {
             if (!p || !p.nodeName) return NodeFilter.FILTER_REJECT;
             const tag = p.nodeName;
             if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA') return NodeFilter.FILTER_REJECT;
+            if (pscIsEditable(n)) return NodeFilter.FILTER_REJECT;
             return NodeFilter.FILTER_ACCEPT;
         }
     });
