@@ -9,6 +9,7 @@ const PRECACHE_URLS = [
   './index.html',
   './app.js',
   './i18n.js',
+  './i18n-tutorial.js',
   './style.css',
   './manifest.json',
   './icons/icon-192x192.png',

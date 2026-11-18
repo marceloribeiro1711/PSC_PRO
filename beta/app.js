@@ -5223,7 +5223,7 @@
     const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/></svg>';
 
     const TUTORIAL_STEPS = [
-        { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
+        { title: "Padel Coaching Pro Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Coaching Pro supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
         { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
         { text: "Plus insights into mental performance and game strategy.", anchor: null, advance: 'next' },
         { text: "Suggested setup: place each player where they stand on court, as seen from behind the Glass Wall. Change Sides flips the layout at any time.", anchor: null, figure: true, advance: 'next' },
@@ -5235,14 +5235,14 @@
         { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie, or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
         { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
-        { text: "Choose the language for the AI Analysis. Next returns to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
-        { text: "NEW GAME starts a new match.", anchor: '#tab-newgame', ring: true, advance: 'next' },
+        { text: "Choose the app language. It applies to the whole app and to the AI Analysis. Next returns to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
+        { text: "New Game starts a new match.", anchor: '#tab-newgame', ring: true, advance: 'next' },
         { text: "The first serve is chosen by tapping the ball, for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, center: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
         { text: "Each point is added by tapping the Points box for the team that won it.", anchor: '.pts-box[data-team="1"]', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box[data-team="1"]'], actionEvent: ['click'] },
         { text: "Hold any value for a moment to decrease it.", anchor: '.pts-box[data-team="1"]', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box[data-team="1"]'], actionEvent: ['padel:hold-decrement'] },
         { title: "Change Sides", text: "At the end of a game, tap Change Sides whenever you want to switch sides, then tap Yes.", anchor: '#switch-sides-btn', ring: true, low: true, advance: 'action', actionTargets: ['#sw-overlay .ng-confirm'], actionEvent: ['click'] },
         { text: "Tap Change Sides again and Yes to undo the switch, until the first point after the change.", anchor: '#switch-sides-btn', ring: true, low: true, advance: 'action', actionTargets: ['#sw-overlay .ng-confirm'], actionEvent: ['click'] },
-        { title: "Tutorial complete", text: "Enjoy Padel Score and Coaching PRO, and make the most of the app!", anchor: null, advance: 'next', nextLabel: 'Got it' },
+        { title: "Tutorial complete", text: "Enjoy Padel Coaching Pro, and make the most of the app!", anchor: null, advance: 'next', nextLabel: 'Got it' },
     ];
 
     // "Skip step" no passo NEW GAME: os passos seguintes (escolher o sacador, marcar pontos) precisam
@@ -5398,7 +5398,7 @@
         const bubble = document.getElementById('tut-bubble');
         const hl = document.getElementById('tut-highlight');
         if (hl) hl.style.display = 'none';
-        document.getElementById('tut-bubble-text').textContent = 'Simulating a match — Pair 1 wins both sets…';
+        document.getElementById('tut-bubble-text').textContent = tutT('Simulating a match — Pair 1 wins both sets…');
         bubble.classList.add('tut-tip');
         tutPositionBubbleLow(bubble);
         bubble.querySelector('.tut-bubble-footer').style.display = 'none';
@@ -5563,14 +5563,20 @@
 
         const titleEl = document.getElementById('tut-bubble-title');
         const subEl = document.getElementById('tut-bubble-subtitle');
-        titleEl.textContent = step.title || '';
-        subEl.textContent = step.subtitle || '';
+        titleEl.textContent = tutT(step.title || '');
+        subEl.textContent = tutT(step.subtitle || '');
+        const tipLabel = document.querySelector('#tut-bubble .tut-bubble-label');
+        if (tipLabel) tipLabel.textContent = tutT('💡 Tip');
+        const skipEl = document.getElementById('tut-skip');
+        if (skipEl) skipEl.textContent = tutT('Skip tutorial');
         titleEl.style.display = step.title ? 'block' : 'none';
         subEl.style.display = step.subtitle ? 'block' : 'none';
-        document.getElementById('tut-bubble-text').textContent = step.text;
+        document.getElementById('tut-bubble-text').textContent = tutT(step.text);
         const figEl = document.getElementById('tut-figure');
         if (figEl) {
             if (step.figure && !figEl.firstChild) figEl.innerHTML = TUT_FIGURE_SVG;
+            const figSvg = figEl.querySelector('svg');
+            if (figSvg) figSvg.setAttribute('aria-label', tutT('Suggested player positions'));
             figEl.style.display = step.figure ? 'block' : 'none';
         }
         if (step.figure) requestAnimationFrame(tutDrawFigureLinks); else tutRemoveFigureLinks();
@@ -5580,10 +5586,10 @@
         // Passos de ação real têm "Skip step" (nunca deixa o usuário preso); os demais têm Next
         const btn = document.getElementById('tut-next-btn');
         if (step.advance === 'action') {
-            btn.textContent = 'Skip step';
+            btn.textContent = tutT('Skip step');
             btn.classList.add('tut-skip-step');
         } else {
-            btn.textContent = step.nextLabel || (isLast ? 'Got it' : 'Next');
+            btn.textContent = tutT(step.nextLabel || (isLast ? 'Got it' : 'Next'));
             btn.classList.remove('tut-skip-step');
         }
 
