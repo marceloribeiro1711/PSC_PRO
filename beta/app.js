@@ -1202,6 +1202,10 @@
             const file = this.files && this.files[0];
             if (!file) return;
             _processImageFile(file, 300, function(dataUrl) {
+                if (side === 'left') {
+                    currentOrgLogo = 'custom';
+                    try { localStorage.setItem(ORG_LOGO_KEY, 'custom'); } catch (e) {}
+                }
                 applyLogo(side, dataUrl);
                 hideToast();
             });
@@ -1270,19 +1274,205 @@
         });
     }
 
+    // ── LOGOS DE ORGANIZADORES (pacote, escolhidos por idioma) ─────
+    // Pasta logos/. Nome do arquivo: Logo_Org_{PT|BR|ES|WW} + qualquer texto + .jpeg
+    // A lista vem da própria pasta logos/ no GitHub (API), guardada no aparelho.
+    // Salvamos o NOME do arquivo escolhido (não a imagem).
+    const ORG_LOGO_KEY = 'padel_org_logo';
+    const ORG_LANG_CODE = { 'pt-PT': 'PT', 'pt-BR': 'BR', 'es': 'ES' }; // demais idiomas → WW
+    const ORG_CODE_NAME = { PT: 'Portugal', BR: 'Brasil', ES: 'España', WW: 'Internacional' };
+    let orgFiles = null;          // [{ file, code, src }] — null até carregar
+    let orgLoading = null;        // Promise do carregamento
+    let currentOrgLogo = null;    // nome do arquivo escolhido | 'custom' | null
+
+    const ORG_REPO_API = 'https://api.github.com/repos/marceloribeiro1711/PSC_PRO/contents/logos';
+    const ORG_LIST_KEY = 'padel_org_list';
+    const ORG_LIST_TTL = 24 * 60 * 60 * 1000; // lista válida por 24 h
+    const ORG_FORCE_MIN = 5 * 60 * 1000;      // ao abrir o seletor, rebusca no máximo a cada 5 min
+    const ORG_NAME_RE = /^Logo_Org_(PT|BR|ES|WW)(?![A-Za-z])(.*)\.(jpe?g)$/i;
+
+    function readOrgCache() {
+        try {
+            const c = JSON.parse(localStorage.getItem(ORG_LIST_KEY));
+            return (c && Array.isArray(c.files) && c.ts) ? c : null;
+        } catch (e) { return null; }
+    }
+
+    function toOrgFiles(names) {
+        return names
+            .filter(function (n) { return ORG_NAME_RE.test(n); })
+            .sort()
+            .map(function (n) {
+                return { file: n, code: ORG_NAME_RE.exec(n)[1].toUpperCase(), src: 'logos/' + encodeURIComponent(n) };
+            });
+    }
+
+    function fetchOrgNames() {
+        if (typeof fetch !== 'function') return Promise.reject(new Error('no fetch'));
+        return fetch(ORG_REPO_API, { headers: { Accept: 'application/vnd.github+json' } })
+            .then(function (r) { if (!r.ok) throw new Error('api ' + r.status); return r.json(); })
+            .then(function (items) {
+                return (Array.isArray(items) ? items : [])
+                    .filter(function (i) { return i && i.type === 'file'; })
+                    .map(function (i) { return i.name; });
+            });
+    }
+
+    // force = true ao abrir o seletor (ainda assim respeita o intervalo mínimo)
+    function loadOrgIndex(force) {
+        const cache = readOrgCache();
+        const age = cache ? Date.now() - cache.ts : Infinity;
+        const useCache = cache && (force ? age < ORG_FORCE_MIN : age < ORG_LIST_TTL);
+        if (useCache) {
+            orgFiles = toOrgFiles(cache.files);
+            orgLoading = Promise.resolve(orgFiles);
+            return orgLoading;
+        }
+        orgLoading = fetchOrgNames()
+            .then(function (names) {
+                try { localStorage.setItem(ORG_LIST_KEY, JSON.stringify({ ts: Date.now(), files: names })); } catch (e) {}
+                orgFiles = toOrgFiles(names);
+                return orgFiles;
+            })
+            .catch(function () {
+                // Sem internet ou limite da API: usa a última lista salva
+                orgFiles = cache ? toOrgFiles(cache.files) : [];
+                return orgFiles;
+            });
+        return orgLoading;
+    }
+
+    function orgByFile(name) {
+        return (orgFiles || []).find(function (o) { return o.file === name; }) || null;
+    }
+    function orgFirstOfCode(code) {
+        return (orgFiles || []).find(function (o) { return o.code === code; }) || null;
+    }
+    // Arquivo padrão para o idioma: primeiro do código do idioma; senão, primeiro WW
+    function defaultOrgForLang(lang) {
+        const code = ORG_LANG_CODE[lang] || 'WW';
+        return orgFirstOfCode(code) || orgFirstOfCode('WW');
+    }
+    // Interpreta o valor salvo: nome de arquivo, código antigo (PT/BR/ES/WW) ou 'custom'
+    function resolveSavedOrg(saved) {
+        if (!saved || saved === 'custom') return null;
+        return orgByFile(saved) || orgFirstOfCode(saved) || null;
+    }
+
+    function setLeftLogoImg(src) {
+        const slot = document.getElementById('logo-left-slot');
+        if (!slot) return;
+        const ph = document.getElementById('logo-left-placeholder');
+        const existing = slot.querySelector('img');
+        if (existing) existing.remove();
+        const img = document.createElement('img');
+        img.alt = 'Logo';
+        img.onerror = function () { img.remove(); if (ph) ph.style.display = ''; };
+        img.src = src;
+        if (ph) ph.style.display = 'none';
+        slot.appendChild(img);
+    }
+
+    function applyOrgLogo(org, persist) {
+        if (!org) return;
+        currentOrgLogo = org.file;
+        setLeftLogoImg(org.src);
+        if (persist) { try { localStorage.setItem(ORG_LOGO_KEY, org.file); } catch (e) {} }
+    }
+
     // Recuperar logos guardados ao iniciar
     function restoreLogos() {
-        ['left', 'right'].forEach(side => {
-            idbGet('logo_' + side).then(val => {
-                if (val) applyLogo(side, val);
-            }).catch(() => {
-                // Fallback: tentar localStorage (dados guardados antes da migração IDB)
-                try {
-                    const saved = localStorage.getItem('padel_logo_' + side);
-                    if (saved) applyLogo(side, saved); // também migra para IDB
-                } catch(e) {}
-            });
+        let saved = null;
+        try { saved = localStorage.getItem(ORG_LOGO_KEY); } catch (e) {}
+
+        const orgP = loadOrgIndex();
+        const leftP = idbGet('logo_left').catch(function () {
+            try { return localStorage.getItem('padel_logo_left'); } catch (e) { return null; }
+        }).then(function (v) { return v || null; });
+
+        Promise.all([orgP, leftP]).then(function (res) {
+            const leftVal = res[1];
+            const org = resolveSavedOrg(saved);
+            if (org) {
+                applyOrgLogo(org, false);                // escolha salva tem prioridade
+            } else if (leftVal) {
+                currentOrgLogo = 'custom';               // logo enviado pelo usuário
+                applyLogo('left', leftVal);
+            } else {
+                applyOrgLogo(defaultOrgForLang(uiLanguage), true);
+            }
         });
+
+        idbGet('logo_right').then(function (val) {
+            if (val) applyLogo('right', val);
+        }).catch(function () {
+            try {
+                const saved = localStorage.getItem('padel_logo_right');
+                if (saved) applyLogo('right', saved);
+            } catch (e) {}
+        });
+    }
+
+    // ── SELETOR DE LOGO DO TORNEIO ──────────────────────────────────
+    function openOrgLogoPicker() {
+        let ov = document.getElementById('org-logo-overlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'org-logo-overlay';
+            ov.className = 'org-logo-overlay';
+            ov.addEventListener('click', function (e) { if (e.target === ov) closeOrgLogoPicker(); });
+            document.body.appendChild(ov);
+        }
+        loadOrgIndex(true).then(function () {
+            renderOrgLogoPicker(false);
+            ov.classList.add('show');
+        });
+    }
+
+    function renderOrgLogoPicker(showAll) {
+        const ov = document.getElementById('org-logo-overlay');
+        if (!ov) return;
+        const all = orgFiles || [];
+        const langCode = ORG_LANG_CODE[uiLanguage] || 'WW';
+        const short = all.filter(function (o) { return o.code === langCode || o.code === 'WW'; });
+        const list = showAll ? all : short;
+        let html = '<div class="org-logo-box"><div class="org-logo-title">Choose tournament logo</div>';
+        if (!all.length) {
+            html += '<div class="org-logo-empty">Nenhum logo disponível</div>';
+        } else {
+            html += '<div class="org-logo-grid">';
+            list.forEach(function (o) {
+                html += '<button class="org-logo-opt' + (currentOrgLogo === o.file ? ' active' : '') +
+                        '" onclick="chooseOrgLogo(\'' + o.file.replace(/'/g, "\\'") + '\')">' +
+                        '<img src="' + o.src + '" alt="" onerror="this.parentNode.remove()">' +
+                        '</button>';
+            });
+            html += '</div>';
+            if (!showAll && all.length > list.length) {
+                html += '<button class="org-logo-more" onclick="renderOrgLogoPicker(true)">More</button>';
+            }
+        }
+        html += '<button class="org-logo-upload" onclick="orgLogoUpload()">Send another image</button>' +
+                '<button class="org-logo-cancel" onclick="closeOrgLogoPicker()">Cancel</button>' +
+                '</div>';
+        ov.innerHTML = html;
+    }
+
+    function chooseOrgLogo(file) {
+        const org = orgByFile(file);
+        if (org) applyOrgLogo(org, true);
+        closeOrgLogoPicker();
+    }
+
+    function closeOrgLogoPicker() {
+        const ov = document.getElementById('org-logo-overlay');
+        if (ov) ov.classList.remove('show');
+    }
+
+    function orgLogoUpload() {
+        closeOrgLogoPicker();
+        const input = document.getElementById('fi-logo-left');
+        if (input) input.click();
     }
 
     // Nomes editáveis + sincronização
@@ -3387,7 +3577,8 @@
             tournamentName: tournamentName || '',
             duration: formatDuration(timerSeconds),
             notes: currentNotes,
-            pointLog: matchGameLogs
+            pointLog: matchGameLogs,
+            orgLogo: currentOrgLogo || null
         };
 
         // Retrato das 4 fotos atuais, preso a esta partida específica — os
@@ -5910,7 +6101,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
+        setGameLogMode, openGameLogMenu, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
         handleAiButtonForEntry,

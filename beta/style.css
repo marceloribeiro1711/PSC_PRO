@@ -2459,3 +2459,15 @@
         white-space: nowrap;
     }
 }
+
+/* ── Seletor de logo do torneio ── */
+.org-logo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px; }
+.org-logo-overlay.show { display: flex; }
+.org-logo-box { background: #0f1724; border: 1px solid #1f2d44; border-radius: 12px; padding: 18px; width: min(92vw, 560px); max-height: 86vh; overflow-y: auto; color: #fff; }
+.org-logo-title { font-weight: 700; margin-bottom: 12px; letter-spacing: 0.04em; }
+.org-logo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.org-logo-opt { background: #000; border: 2px solid transparent; border-radius: 8px; padding: 0; cursor: pointer; overflow: hidden; }
+.org-logo-opt img { display: block; width: 100%; height: auto; }
+.org-logo-opt.active { border-color: #f5c518; }
+.org-logo-more, .org-logo-upload, .org-logo-cancel { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #1f2d44; background: #16213a; color: #fff; font: inherit; cursor: pointer; }
+.org-logo-cancel { background: transparent; }
