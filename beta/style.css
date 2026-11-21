@@ -2474,3 +2474,17 @@
 
 .org-logo-status { font-size: 12px; color: #9fb0c8; margin-top: 10px; text-align: center; min-height: 1em; }
 .org-logo-refresh { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #f5c518; background: transparent; color: #f5c518; font: inherit; cursor: pointer; }
+
+/* ── Seletor de jogadores recentes (abaixo das fotos, nunca sobre elas) ── */
+.pp-backdrop { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: none; z-index: 9000; }
+.pp-backdrop.show { display: block; }
+.pp-sheet { position: fixed; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; background: #0f1724; border-top: 1px solid #1f2d44; border-radius: 12px 12px 0 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 9001; color: #fff; }
+.pp-sheet.show { display: flex; }
+.pp-title { font-weight: 700; margin-bottom: 8px; letter-spacing: 0.04em; text-align: center; }
+.pp-empty { color: #9fb0c8; text-align: center; padding: 12px 0; font-size: 13px; }
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, 75px); justify-content: center; gap: 10px; margin-bottom: 10px; }
+.pp-opt { width: 75px; background: none; border: 2px solid transparent; border-radius: 8px; padding: 0; color: #fff; cursor: pointer; overflow: hidden; }
+.pp-opt img { display: block; width: 75px; height: 75px; object-fit: cover; }
+.pp-opt span { display: block; font-size: 11px; line-height: 1.2; padding: 2px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.pp-btn { display: block; width: 100%; padding: 10px; margin-top: 6px; border-radius: 8px; border: 1px solid #1f2d44; background: #16213a; color: #fff; font: inherit; cursor: pointer; }
+.pp-cancel { background: transparent; }

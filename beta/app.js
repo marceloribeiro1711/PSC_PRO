@@ -1146,6 +1146,152 @@
         });
     }
 
+    // ── JOGADORES RECENTES (últimos 10 jogos, foto por nome) ─────────
+    // Fonte: o próprio histórico. Cada jogador entra uma vez (nome normalizado),
+    // com a foto mais recente que ele tiver. Sem foto = fica de fora.
+    const PICKER_SLOTS = ['t1-img1', 't1-img2', 't2-img1', 't2-img2']; // mesma ordem de entry.players
+    const PICKER_MAX = 16;
+
+    function normPlayerKey(name) {
+        return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+    function isDefaultPlayerName(name) {
+        return /^(Player|Team)\s*\d$/i.test(String(name || '').trim());
+    }
+
+    // Monta a lista: getPhoto(entry, slotId) -> Promise<dataUrl|null>
+    function buildRecentPlayers(history, getPhoto) {
+        const out = [];
+        const seen = {};
+        const jobs = [];
+        (history || []).slice(0, HISTORY_MAX).forEach(function (entry) {
+            PICKER_SLOTS.forEach(function (slot, i) { jobs.push({ entry: entry, slot: slot, i: i }); });
+        });
+        return jobs.reduce(function (p, job) {
+            return p.then(function () {
+                if (out.length >= PICKER_MAX) return;
+                const name = String((job.entry.players && job.entry.players[job.i]) || '').trim();
+                const key = normPlayerKey(name);
+                if (!key || isDefaultPlayerName(name) || seen[key]) return;
+                return Promise.resolve(getPhoto(job.entry, job.slot)).then(function (photo) {
+                    if (!photo || seen[key] || out.length >= PICKER_MAX) return;
+                    seen[key] = true;
+                    out.push({ name: name, photo: photo });
+                });
+            });
+        }, Promise.resolve()).then(function () { return out; });
+    }
+
+    function getHistoryPhoto(entry, slot) {
+        return idbGet('photo_hist_' + entry.date + '_' + slot).catch(function () { return null; });
+    }
+
+    function readHistory() {
+        try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (e) { return []; }
+    }
+
+    let pickerSlot = null;   // slot de foto que está sendo editado (ex.: 't1-img1')
+    let pickerItems = [];    // lista mostrada no seletor
+
+    function pickerSheetEls() {
+        let bd = document.getElementById('pp-backdrop');
+        let sh = document.getElementById('pp-sheet');
+        if (!bd) {
+            bd = document.createElement('div');
+            bd.id = 'pp-backdrop';
+            bd.className = 'pp-backdrop';
+            bd.addEventListener('click', closePlayerPicker);
+            document.body.appendChild(bd);
+        }
+        if (!sh) {
+            sh = document.createElement('div');
+            sh.id = 'pp-sheet';
+            sh.className = 'pp-sheet';
+            document.body.appendChild(sh);
+        }
+        return { bd: bd, sh: sh };
+    }
+
+    // O seletor fica sempre abaixo das caixas de foto: nunca as cobre
+    function placePlayerPicker() {
+        const els = pickerSheetEls();
+        let bottom = 0;
+        PICKER_SLOTS.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) { const r = el.getBoundingClientRect(); if (r.bottom > bottom) bottom = r.bottom; }
+        });
+        const top = Math.round(bottom + 6);
+        els.bd.style.top = top + 'px';
+        els.sh.style.top = top + 'px';
+    }
+
+    function openPlayerPicker(slotId) {
+        if (isTvLandscape()) return; // sem seletor no TV Mode
+        if (isMatchLocked()) return; // mesma trava das fotos: só libera entre games
+        pickerSlot = slotId;
+        const els = pickerSheetEls();
+        placePlayerPicker();
+        els.sh.innerHTML = '<div class="pp-title">Choose player photo</div><div class="pp-empty">…</div>';
+        els.bd.classList.add('show');
+        els.sh.classList.add('show');
+        const hist = readHistory();
+        buildRecentPlayers(hist, getHistoryPhoto).then(function (list) {
+            pickerItems = list;
+            renderPlayerPicker();
+        });
+    }
+
+    function renderPlayerPicker() {
+        const els = pickerSheetEls();
+        let html = '<div class="pp-title">Choose player photo</div>';
+        if (!pickerItems.length) {
+            html += '<div class="pp-empty">No recent players with photo</div>';
+        } else {
+            html += '<div class="pp-grid">';
+            pickerItems.forEach(function (it, idx) {
+                html += '<button class="pp-opt" onclick="choosePlayerPhoto(' + idx + ')">' +
+                        '<img src="' + it.photo + '" alt="">' +
+                        '<span>' + escHtml(it.name) + '</span></button>';
+            });
+            html += '</div>';
+        }
+        html += '<button class="pp-btn" onclick="playerPickerUpload()">Send another image</button>' +
+                '<button class="pp-btn pp-cancel" onclick="closePlayerPicker()">Cancel</button>';
+        els.sh.innerHTML = html;
+    }
+
+    function closePlayerPicker() {
+        const els = pickerSheetEls();
+        els.bd.classList.remove('show');
+        els.sh.classList.remove('show');
+    }
+
+    function choosePlayerPhoto(idx) {
+        const it = pickerItems[idx];
+        if (!it || !pickerSlot) { closePlayerPicker(); return; }
+        applyPhoto(pickerSlot, it.photo);
+        const nameId = pickerSlot.replace('img', 'p');
+        const nameEl = document.getElementById(nameId);
+        if (nameEl) nameEl.textContent = it.name;
+        try { saveGameState(); } catch (e) {}
+        closePlayerPicker();
+    }
+
+    function playerPickerUpload() {
+        const slot = pickerSlot;
+        closePlayerPicker();
+        const input = slot ? document.getElementById('fi-' + slot) : null;
+        if (input) input.click();
+    }
+
+    window.addEventListener('resize', function () {
+        const sh = document.getElementById('pp-sheet');
+        if (!sh || !sh.classList.contains('show')) return;
+        if (isTvLandscape()) closePlayerPicker(); // girou para TV com o seletor aberto: fecha
+        else placePlayerPicker();
+    });
+
     function _processImageFile(file, maxSize, onDone) {
         if (!file) return;
         showToast('⏳ Processing...');
@@ -1192,6 +1338,17 @@
                 hideToast();
             });
             try { input.value = ''; } catch(e) {}
+        });
+    });
+
+    // Toque na foto do jogador: abre o seletor de jogadores recentes
+    document.querySelectorAll('label.photo-label').forEach(function (lbl) {
+        lbl.addEventListener('click', function (e) {
+            const target = (lbl.getAttribute('for') || '').replace('fi-', '');
+            if (!target || PICKER_SLOTS.indexOf(target) === -1) return;
+            if (isTvLandscape()) return; // TV Mode: sem seletor, a foto abre o seletor de arquivo como antes
+            e.preventDefault();
+            openPlayerPicker(target);
         });
     });
 
@@ -6146,7 +6303,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, refreshOrgLogoList, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
+        setGameLogMode, openGameLogMenu, openPlayerPicker, choosePlayerPhoto, playerPickerUpload, closePlayerPicker, buildRecentPlayers, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, refreshOrgLogoList, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
         handleAiButtonForEntry,
