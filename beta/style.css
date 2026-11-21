@@ -2471,3 +2471,6 @@
 .org-logo-opt.active { border-color: #f5c518; }
 .org-logo-more, .org-logo-upload, .org-logo-cancel { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #1f2d44; background: #16213a; color: #fff; font: inherit; cursor: pointer; }
 .org-logo-cancel { background: transparent; }
+
+.org-logo-status { font-size: 12px; color: #9fb0c8; margin-top: 10px; text-align: center; min-height: 1em; }
+.org-logo-refresh { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #f5c518; background: transparent; color: #f5c518; font: inherit; cursor: pointer; }

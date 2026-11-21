@@ -1326,12 +1326,18 @@
     }
 
     // force = true ao abrir o seletor (ainda assim respeita o intervalo mínimo)
-    function loadOrgIndex(force) {
+    // Diagnóstico visível no seletor (sem console): origem, quantidade, hora e erro
+    let orgStatus = { source: '', count: 0, ts: 0, error: '' };
+
+    function loadOrgIndex(force, hard) {
         const cache = readOrgCache();
         const age = cache ? Date.now() - cache.ts : Infinity;
-        const useCache = cache && (force ? age < ORG_FORCE_MIN : age < ORG_LIST_TTL);
+        // Lista salva sem arquivo do idioma atual (nem WW) é inválida: busca de novo
+        const cacheOk = !!cache && orgListUsable(toOrgFiles(cache.files));
+        const useCache = !hard && cacheOk && (force ? age < ORG_FORCE_MIN : age < ORG_LIST_TTL);
         if (useCache) {
             orgFiles = toOrgFiles(cache.files);
+            orgStatus = { source: 'cache', count: orgFiles.length, ts: cache.ts, error: '' };
             orgLoading = Promise.resolve(orgFiles);
             return orgLoading;
         }
@@ -1339,18 +1345,37 @@
             .then(function (names) {
                 orgFiles = toOrgFiles(names);
                 if (orgListUsable(orgFiles)) {
-                    try { localStorage.setItem(ORG_LIST_KEY, JSON.stringify({ ts: Date.now(), files: names })); } catch (e) {}
-                } else if (cache) {
+                    const ts = Date.now();
+                    try { localStorage.setItem(ORG_LIST_KEY, JSON.stringify({ ts: ts, files: names })); } catch (e) {}
+                    orgStatus = { source: 'GitHub', count: orgFiles.length, ts: ts, error: '' };
+                } else if (cacheOk) {
                     orgFiles = toOrgFiles(cache.files); // resposta incompleta: mantém a última lista boa
+                    orgStatus = { source: 'cache', count: orgFiles.length, ts: cache.ts, error: 'resposta incompleta' };
+                } else {
+                    orgStatus = { source: 'GitHub', count: orgFiles.length, ts: Date.now(), error: 'sem logos do idioma' };
                 }
                 return orgFiles;
             })
-            .catch(function () {
-                // Sem internet ou limite da API: usa a última lista salva
-                orgFiles = cache ? toOrgFiles(cache.files) : [];
+            .catch(function (err) {
+                // Sem internet ou limite da API: usa a última lista salva, se ela servir
+                orgFiles = cacheOk ? toOrgFiles(cache.files) : [];
+                const msg = (err && err.message && /^api /.test(err.message)) ? err.message.replace('api ', 'erro ') : 'sem resposta';
+                orgStatus = { source: cacheOk ? 'cache' : '-', count: orgFiles.length, ts: cacheOk ? cache.ts : 0, error: msg };
                 return orgFiles;
             });
         return orgLoading;
+    }
+
+    // Botão "Atualizar lista": consulta o GitHub sem cache e redesenha o seletor
+    function refreshOrgLogoList() {
+        loadOrgIndex(false, true).then(function () { renderOrgLogoPicker(false); });
+    }
+
+    function orgStatusText() {
+        const st = orgStatus;
+        if (!st.source) return '';
+        const hora = st.ts ? new Date(st.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        return 'Lista: ' + st.count + ' · ' + st.source + ' · ' + hora + (st.error ? ' · ' + st.error : '');
     }
 
     function orgByFile(name) {
@@ -1463,7 +1488,9 @@
                 html += '<button class="org-logo-more" onclick="renderOrgLogoPicker(true)">More</button>';
             }
         }
-        html += '<button class="org-logo-upload" onclick="orgLogoUpload()">Send another image</button>' +
+        html += '<div class="org-logo-status">' + orgStatusText() + '</div>' +
+                '<button class="org-logo-refresh" onclick="refreshOrgLogoList()">Atualizar lista</button>' +
+                '<button class="org-logo-upload" onclick="orgLogoUpload()">Send another image</button>' +
                 '<button class="org-logo-cancel" onclick="closeOrgLogoPicker()">Cancel</button>' +
                 '</div>';
         ov.innerHTML = html;
@@ -6119,7 +6146,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
+        setGameLogMode, openGameLogMenu, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, refreshOrgLogoList, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
         handleAiButtonForEntry,
