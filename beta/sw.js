@@ -65,6 +65,9 @@ self.addEventListener('fetch', function(event) {
   if (!event.request.url.startsWith('http')) return;
 
   var url = new URL(event.request.url);
+  // Requisições para outros domínios (ex.: API do GitHub) não passam pelo cache do app:
+  // senão a lista de logos ficaria presa numa resposta antiga.
+  if (url.origin !== self.location.origin) return;
   var pathname = url.pathname;
 
   var isCode = pathname.endsWith('.html')
