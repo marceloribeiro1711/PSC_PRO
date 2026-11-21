@@ -1544,18 +1544,6 @@
         return orgLoading;
     }
 
-    // Botão "Atualizar lista": consulta o GitHub sem cache e redesenha o seletor
-    function refreshOrgLogoList() {
-        loadOrgIndex(false, true).then(function () { renderOrgLogoPicker(false); });
-    }
-
-    function orgStatusText() {
-        const st = orgStatus;
-        if (!st.source) return '';
-        const hora = st.ts ? new Date(st.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-        return 'Lista: ' + st.count + ' · ' + st.source + ' · ' + hora + (st.error ? ' · ' + st.error : '');
-    }
-
     function orgByFile(name) {
         return (orgFiles || []).find(function (o) { return o.file === name; }) || null;
     }
@@ -1650,7 +1638,7 @@
         const langCode = ORG_LANG_CODE[uiLanguage] || 'WW';
         const short = all.filter(function (o) { return o.code === langCode || o.code === 'WW'; });
         const list = showAll ? all : short;
-        let html = '<div class="org-logo-box"><div class="org-logo-title">Choose tournament logo</div>';
+        let html = '<div class="org-logo-box">';
         if (!all.length) {
             html += '<div class="org-logo-empty">Nenhum logo disponível</div>';
         } else {
@@ -1666,10 +1654,10 @@
                 html += '<button class="org-logo-more" onclick="renderOrgLogoPicker(true)">More</button>';
             }
         }
-        html += '<div class="org-logo-status">' + orgStatusText() + '</div>' +
-                '<button class="org-logo-refresh" onclick="refreshOrgLogoList()">Atualizar lista</button>' +
-                '<button class="org-logo-upload" onclick="orgLogoUpload()">Send another image</button>' +
-                '<button class="org-logo-cancel" onclick="closeOrgLogoPicker()">Cancel</button>' +
+        html += '<div class="pp-actions">' +
+                '<button class="pp-btn" onclick="orgLogoUpload()">Outra imagem</button>' +
+                '<button class="pp-btn pp-cancel" onclick="closeOrgLogoPicker()">Cancel</button>' +
+                '</div>' +
                 '</div>';
         ov.innerHTML = html;
     }
@@ -6324,7 +6312,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, openPlayerPicker, choosePlayerPhoto, playerPickerUpload, closePlayerPicker, buildRecentPlayers, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, refreshOrgLogoList, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
+        setGameLogMode, openGameLogMenu, openPlayerPicker, choosePlayerPhoto, playerPickerUpload, closePlayerPicker, buildRecentPlayers, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
         handleAiButtonForEntry,

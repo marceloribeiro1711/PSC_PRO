@@ -23,7 +23,7 @@ const PSC_LANG_TABLE = {
     'WHO IS SERVING FIRST?': ['QUEM SERVE PRIMEIRO?', 'QUEM SACA PRIMEIRO?', '¿QUIÉN SACA PRIMERO?'],
     'Choose tournament logo': ['Escolher logo do torneio', 'Escolher logo do torneio', 'Elegir logo del torneo'],
     'More': ['Mais', 'Mais', 'Más'],
-    'Send another image': ['Enviar outra imagem', 'Enviar outra imagem', 'Enviar otra imagen'],
+    'Outra imagem': ['Outra imagem', 'Outra imagem', 'Otra imagen'],
     'Logo size 320 x 106 pixels': ['Tamanho do logo: 320 x 106 px', 'Tamanho do logo: 320 x 106 px', 'Tamaño del logo: 320 x 106 px'],
     'Choose player photo': ['Escolher foto do jogador', 'Escolher foto do jogador', 'Elegir foto del jugador'],
     'No recent players with photo': ['Nenhum jogador recente com foto', 'Nenhum jogador recente com foto', 'Ningún jugador reciente con foto'],

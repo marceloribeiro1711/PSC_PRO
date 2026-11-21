@@ -2469,11 +2469,7 @@
 .org-logo-opt { background: #000; border: 2px solid transparent; border-radius: 8px; padding: 0; cursor: pointer; overflow: hidden; }
 .org-logo-opt img { display: block; width: 100%; height: auto; }
 .org-logo-opt.active { border-color: #f5c518; }
-.org-logo-more, .org-logo-upload, .org-logo-cancel { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #1f2d44; background: #16213a; color: #fff; font: inherit; cursor: pointer; }
-.org-logo-cancel { background: transparent; }
 
-.org-logo-status { font-size: 12px; color: #9fb0c8; margin-top: 10px; text-align: center; min-height: 1em; }
-.org-logo-refresh { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #f5c518; background: transparent; color: #f5c518; font: inherit; cursor: pointer; }
 
 /* ── Seletor de jogadores recentes: quadro branco compacto, centralizado sobre o placar ── */
 .pp-backdrop { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); display: none; z-index: 9000; }
@@ -2489,3 +2485,4 @@
 .pp-actions { display: flex; gap: 8px; margin-top: 4px; }
 .pp-btn { flex: 1 1 auto; padding: 8px 10px; border-radius: 8px; border: 1px solid #c9d1dd; background: #f1f3f7; color: #0f1724; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
 .pp-cancel { background: transparent; }
+.org-logo-more { display: block; width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #1f2d44; background: #16213a; color: #fff; font: inherit; cursor: pointer; }
