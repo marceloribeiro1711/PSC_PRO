@@ -1213,21 +1213,18 @@
         return { bd: bd, sh: sh };
     }
 
-    // Posiciona o seletor: centralizado na tela; se o centro cobrir a fileira de fotos
-    // tocada, sai para o lado livre do placar (foto de cima → abaixo do placar;
-    // foto de baixo → acima do placar).
+    // Posiciona o seletor centralizado verticalmente sobre o bloco de placar (sets e pontos)
     function placePlayerPicker() {
         const els = pickerSheetEls();
         const sh = els.sh, bd = els.bd;
         const vh = window.innerHeight;
-        const maxH = Math.round(vh * 0.7);
+        const maxH = Math.round(vh * 0.8);
         sh.style.top = '0px';
         sh.style.bottom = 'auto';
         sh.style.height = 'auto';
         sh.style.maxHeight = maxH + 'px';
         const h = Math.min(sh.offsetHeight, maxH);
 
-        // Placar: sets e quadros de pontos (das duas duplas)
         let sTop = Infinity, sBottom = -Infinity;
         document.querySelectorAll('.scores-labels, .scores-box, .pts-box').forEach(function (el) {
             const r = el.getBoundingClientRect();
@@ -1235,27 +1232,11 @@
             sTop = Math.min(sTop, r.top);
             sBottom = Math.max(sBottom, r.bottom);
         });
+        const mid = isFinite(sTop) ? (sTop + sBottom) / 2 : vh / 2;
+        let top = Math.round(mid - h / 2);
+        if (top < 8) top = 8;
+        if (top + h > vh - 8) top = Math.max(8, vh - 8 - h);
 
-        // Fileira de fotos da dupla tocada
-        const team = (pickerSlot || '').slice(0, 2); // 't1' ou 't2'
-        const rowIds = team === 't2' ? ['t2-img1', 't2-img2'] : ['t1-img1', 't1-img2'];
-        let rTop = Infinity, rBottom = -Infinity;
-        rowIds.forEach(function (id) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const r = el.getBoundingClientRect();
-            rTop = Math.min(rTop, r.top);
-            rBottom = Math.max(rBottom, r.bottom);
-        });
-
-        let top = Math.round((vh - h) / 2);                       // centralizado
-        const cobreFotos = isFinite(rTop) && top < rBottom && top + h > rTop;
-        if (cobreFotos && isFinite(sTop)) {
-            top = team === 't2'
-                ? Math.round(sTop - 8 - h)                        // foto de baixo → acima do placar
-                : Math.round(sBottom + 8);                        // foto de cima → abaixo do placar
-            if (top < 0) top = 0;
-        }
         sh.style.top = top + 'px';
         sh.style.height = h + 'px';
         bd.style.top = '0px';
