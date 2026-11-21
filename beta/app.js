@@ -1213,17 +1213,52 @@
         return { bd: bd, sh: sh };
     }
 
-    // O seletor fica sempre abaixo das caixas de foto: nunca as cobre
+    // Posiciona o seletor: centralizado na tela; se o centro cobrir a fileira de fotos
+    // tocada, sai para o lado livre do placar (foto de cima → abaixo do placar;
+    // foto de baixo → acima do placar).
     function placePlayerPicker() {
         const els = pickerSheetEls();
-        let bottom = 0;
-        PICKER_SLOTS.forEach(function (id) {
-            const el = document.getElementById(id);
-            if (el) { const r = el.getBoundingClientRect(); if (r.bottom > bottom) bottom = r.bottom; }
+        const sh = els.sh, bd = els.bd;
+        const vh = window.innerHeight;
+        const maxH = Math.round(vh * 0.7);
+        sh.style.top = '0px';
+        sh.style.bottom = 'auto';
+        sh.style.height = 'auto';
+        sh.style.maxHeight = maxH + 'px';
+        const h = Math.min(sh.offsetHeight, maxH);
+
+        // Placar: sets e quadros de pontos (das duas duplas)
+        let sTop = Infinity, sBottom = -Infinity;
+        document.querySelectorAll('.scores-labels, .scores-box, .pts-box').forEach(function (el) {
+            const r = el.getBoundingClientRect();
+            if (!r.height) return;
+            sTop = Math.min(sTop, r.top);
+            sBottom = Math.max(sBottom, r.bottom);
         });
-        const top = Math.round(bottom + 6);
-        els.bd.style.top = top + 'px';
-        els.sh.style.top = top + 'px';
+
+        // Fileira de fotos da dupla tocada
+        const team = (pickerSlot || '').slice(0, 2); // 't1' ou 't2'
+        const rowIds = team === 't2' ? ['t2-img1', 't2-img2'] : ['t1-img1', 't1-img2'];
+        let rTop = Infinity, rBottom = -Infinity;
+        rowIds.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const r = el.getBoundingClientRect();
+            rTop = Math.min(rTop, r.top);
+            rBottom = Math.max(rBottom, r.bottom);
+        });
+
+        let top = Math.round((vh - h) / 2);                       // centralizado
+        const cobreFotos = isFinite(rTop) && top < rBottom && top + h > rTop;
+        if (cobreFotos && isFinite(sTop)) {
+            top = team === 't2'
+                ? Math.round(sTop - 8 - h)                        // foto de baixo → acima do placar
+                : Math.round(sBottom + 8);                        // foto de cima → abaixo do placar
+            if (top < 0) top = 0;
+        }
+        sh.style.top = top + 'px';
+        sh.style.height = h + 'px';
+        bd.style.top = '0px';
     }
 
     function openPlayerPicker(slotId) {
@@ -1231,10 +1266,10 @@
         if (isMatchLocked()) return; // mesma trava das fotos: só libera entre games
         pickerSlot = slotId;
         const els = pickerSheetEls();
-        placePlayerPicker();
         els.sh.innerHTML = '<div class="pp-title">Choose player photo</div><div class="pp-empty">…</div>';
         els.bd.classList.add('show');
         els.sh.classList.add('show');
+        placePlayerPicker();
         const hist = readHistory();
         buildRecentPlayers(hist, getHistoryPhoto).then(function (list) {
             pickerItems = list;
@@ -1259,6 +1294,7 @@
         html += '<button class="pp-btn" onclick="playerPickerUpload()">Send another image</button>' +
                 '<button class="pp-btn pp-cancel" onclick="closePlayerPicker()">Cancel</button>';
         els.sh.innerHTML = html;
+        placePlayerPicker();
     }
 
     function closePlayerPicker() {
