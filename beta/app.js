@@ -1218,13 +1218,6 @@
         const els = pickerSheetEls();
         const sh = els.sh, bd = els.bd;
         const vh = window.innerHeight;
-        const maxH = Math.round(vh * 0.8);
-        sh.style.top = '0px';
-        sh.style.bottom = 'auto';
-        sh.style.height = 'auto';
-        sh.style.maxHeight = maxH + 'px';
-        const h = Math.min(sh.offsetHeight, maxH);
-
         let sTop = Infinity, sBottom = -Infinity;
         document.querySelectorAll('.scores-labels, .scores-box, .pts-box').forEach(function (el) {
             const r = el.getBoundingClientRect();
@@ -1232,6 +1225,15 @@
             sTop = Math.min(sTop, r.top);
             sBottom = Math.max(sBottom, r.bottom);
         });
+        // Altura máxima = altura do placar: o seletor nunca passa para cima das fotos
+        const scoreH = isFinite(sTop) ? (sBottom - sTop) : 0;
+        const maxH = scoreH > 0 ? Math.round(Math.min(scoreH, vh * 0.8)) : Math.round(vh * 0.8);
+        sh.style.top = '0px';
+        sh.style.bottom = 'auto';
+        sh.style.height = 'auto';
+        sh.style.maxHeight = maxH + 'px';
+        const h = Math.min(sh.offsetHeight, maxH);
+
         const mid = isFinite(sTop) ? (sTop + sBottom) / 2 : vh / 2;
         let top = Math.round(mid - h / 2);
         if (top < 8) top = 8;
@@ -1272,8 +1274,10 @@
             });
             html += '</div>';
         }
-        html += '<button class="pp-btn" onclick="playerPickerUpload()">Send another image</button>' +
-                '<button class="pp-btn pp-cancel" onclick="closePlayerPicker()">Cancel</button>';
+        html += '<div class="pp-actions">' +
+                '<button class="pp-btn" onclick="playerPickerUpload()">Search image</button>' +
+                '<button class="pp-btn pp-cancel" onclick="closePlayerPicker()">Cancel</button>' +
+                '</div>';
         els.sh.innerHTML = html;
         placePlayerPicker();
     }

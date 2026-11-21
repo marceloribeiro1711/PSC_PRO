@@ -27,6 +27,7 @@ const PSC_LANG_TABLE = {
     'Logo size 320 x 106 pixels': ['Tamanho do logo: 320 x 106 px', 'Tamanho do logo: 320 x 106 px', 'Tamaño del logo: 320 x 106 px'],
     'Choose player photo': ['Escolher foto do jogador', 'Escolher foto do jogador', 'Elegir foto del jugador'],
     'No recent players with photo': ['Nenhum jogador recente com foto', 'Nenhum jogador recente com foto', 'Ningún jugador reciente con foto'],
+    'Search image': ['Procurar imagem', 'Procurar imagem', 'Buscar imagen'],
     'Points': ['Pontos', 'Pontos', 'Puntos'],
     'No point-by-point data available for this game.': ['Sem dados ponto a ponto para este jogo.', 'Sem dados ponto a ponto para este jogo.', 'No hay datos punto a punto para este juego.'],
     'No Match Log data for this match': ['Sem dados do Ponto a Ponto neste jogo', 'Sem dados do Ponto a Ponto neste jogo', 'No hay datos de Punto a Punto en este partido'],
