@@ -21,7 +21,7 @@ PWA de placar e coaching para padel: pontuação ao vivo, Histórico de jogos, M
 | `circuitopadel.html` | Página de inscrições do circuito, aberta dentro do app |
 | `sw.js` | Service worker (cache offline) |
 | `manifest.json` | Manifest da PWA (`id`, `start_url` e `scope` apontam para a raiz do app) |
-| `logos/` | Logos de organizadores (ver seção própria) |
+| `logos/` | Logos de organizadores. **Não vai no pacote:** ficam só no repositório (ver seção própria) |
 | `tutorial-court.jpg` | Figura usada no tutorial |
 | `VERSION` | Número da versão |
 | `_config.yml` | Configuração do GitHub Pages |
@@ -69,7 +69,7 @@ Exemplo: `Logo_Org_PT_FPP_320_x_106.jpeg`. Use o separador `_`, `.` ou espaço d
 
 **Formato:** JPEG, 320 × 106 px, sem transparência (alguns logos têm fundo colorido).
 
-**Como o app encontra os arquivos:** o app lê a lista da pasta `logos/` pela API do GitHub. Para acrescentar um organizador, envie o arquivo para `logos/` pela interface web do GitHub. Não é preciso rodar script nem editar índice.
+**Como o app encontra os arquivos:** o app lê a lista da pasta `logos/` pela API do GitHub. Para acrescentar um organizador, envie o arquivo para `logos/` pela interface web do GitHub. Não é preciso rodar script nem editar índice. A pasta `logos/` é gerenciada direto no repositório e não faz parte do ZIP do pacote.
 
 - A lista fica salva no aparelho por 24 horas. Ao abrir o seletor, a lista é rebuscada no máximo a cada 5 minutos.
 - Sem internet, o app usa a última lista salva.
@@ -101,7 +101,7 @@ Os textos novos precisam entrar nas tabelas de tradução (`i18n.js` e, para o t
 
 **Testar uma versão nova sem afetar a produção (pasta `beta/`):**
 
-1. Crie a pasta `beta/` na raiz do repositório e coloque dentro os arquivos da versão nova, incluindo `logos/`.
+1. Crie a pasta `beta/` na raiz do repositório e coloque dentro os arquivos da versão nova (sem `logos/`: o seletor sempre lê a pasta `logos/` da raiz).
 2. Copie `icons/` e `torneiosjson.json` da raiz para `beta/`, se o `sw.js` e o app os referenciarem.
 3. Em `beta/manifest.json`, troque `id`, `start_url` e `scope` para `https://marceloribeiro1711.github.io/PSC_PRO/beta/`. Sem isso, a versão beta conflita com a de produção ao ser instalada como app.
 4. Teste em `https://marceloribeiro1711.github.io/PSC_PRO/beta/`.
@@ -136,6 +136,8 @@ A função de backup e restauração foi removida da versão 3.13.00 (não estav
 - **Nomes padrão dos jogadores** ("Player 1" etc.) continuam em inglês em todos os idiomas.
 - **Logo não aparece no Match Card.** O logo usado em cada jogo é salvo no histórico, mas o card ainda não o exibe.
 - **Golden, Star e Won** das estatísticas do histórico ainda não foram revisados.
+- **Tutorial e TV Mode:** o tutorial não abre em paisagem (TV Mode). Se o aparelho girar durante o tutorial, ele é encerrado.
+- **Tradução automática do navegador:** o app pede ao navegador que não traduza a página (`translate="no"` e meta `notranslate`), mas isso precisa ser confirmado no Chrome do Android.
 - **Espanhol** de alguns termos (por exemplo, Break Point e Star Point) segue o glossário, mas ainda aguarda revisão de técnicos espanhóis.
 
 ---

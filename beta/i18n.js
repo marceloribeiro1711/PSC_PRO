@@ -15,11 +15,12 @@ const PSC_LANG_TABLE = {
     'GOLDEN POINT': ['PONTO DE OURO', 'PONTO DE OURO', 'PUNTO DE ORO'],
     'STATISTIC': ['ESTATÍSTICA', 'ESTATÍSTICA', 'ESTADÍSTICA'],
     'PLAYER': ['JOGADOR', 'JOGADOR', 'JUGADOR'],
-    'Break Points opportunities:': ['Oportunidades de Break:', 'Oportunidades de Break:', 'Oportunidades de Break:'],
+    'Break Points opportunities:': ['Oportunidades de Break:', 'Oportunidades de Quebra:', 'Oportunidades de Break:'],
     'Match Log': ['Ponto a Ponto', 'Ponto a Ponto', 'Punto a Punto'],
     'Statistic': ['Estatística', 'Estatística', 'Estadística'],
     'Loading…': ['A carregar…', 'Carregando…', 'Cargando…'],
-    'BROKEN': ['BREAKS', 'BREAKS', 'BREAKS'],
+    'BROKEN': ['BREAKS', 'QUEBRADO', 'BREAKS'],
+    'WHO IS SERVING FIRST?': ['QUEM SERVE PRIMEIRO?', 'QUEM SACA PRIMEIRO?', '¿QUIÉN SACA PRIMERO?'],
     'Choose tournament logo': ['Escolher logo do torneio', 'Escolher logo do torneio', 'Elegir logo del torneo'],
     'More': ['Mais', 'Mais', 'Más'],
     'Send another image': ['Enviar outra imagem', 'Enviar outra imagem', 'Enviar otra imagen'],
@@ -116,7 +117,7 @@ const PSC_PHRASES = {
     'was serving': ['no serviço', 'no saque', 'sacando'],
     'GAME ': ['JOGO ', 'JOGO ', 'JUEGO '],
     'Won ': ['Vencidos ', 'Saques Confirmados ', 'Ganados '],
-    'Broken ': ['Breaks ', 'Saques Quebrados ', 'Breaks '],
+    'Broken ': ['Breaks ', 'Quebrado ', 'Breaks '],
 };
 
 const PSC_LANG_INDEX = { 'pt-PT': 0, 'pt-BR': 1, 'es': 2 };

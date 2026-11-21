@@ -10,7 +10,6 @@ const PRECACHE_URLS = [
   './app.js',
   './i18n.js',
   './i18n-tutorial.js',
-  './logos/Logo_Org_PT_FPP_320_x_106.jpeg',
   './style.css',
   './manifest.json',
   './icons/icon-192x192.png',

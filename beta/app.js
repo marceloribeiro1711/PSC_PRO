@@ -1309,13 +1309,20 @@
 
     function fetchOrgNames() {
         if (typeof fetch !== 'function') return Promise.reject(new Error('no fetch'));
-        return fetch(ORG_REPO_API, { headers: { Accept: 'application/vnd.github+json' } })
+        return fetch(ORG_REPO_API, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } })
             .then(function (r) { if (!r.ok) throw new Error('api ' + r.status); return r.json(); })
             .then(function (items) {
                 return (Array.isArray(items) ? items : [])
                     .filter(function (i) { return i && i.type === 'file'; })
                     .map(function (i) { return i.name; });
             });
+    }
+
+    // Lista só é guardada se tiver arquivo do idioma atual ou WW
+    function orgListUsable(files) {
+        if (!files.length) return false;
+        const code = ORG_LANG_CODE[uiLanguage] || 'WW';
+        return files.some(function (f) { return f.code === code || f.code === 'WW'; });
     }
 
     // force = true ao abrir o seletor (ainda assim respeita o intervalo mínimo)
@@ -1330,8 +1337,12 @@
         }
         orgLoading = fetchOrgNames()
             .then(function (names) {
-                try { localStorage.setItem(ORG_LIST_KEY, JSON.stringify({ ts: Date.now(), files: names })); } catch (e) {}
                 orgFiles = toOrgFiles(names);
+                if (orgListUsable(orgFiles)) {
+                    try { localStorage.setItem(ORG_LIST_KEY, JSON.stringify({ ts: Date.now(), files: names })); } catch (e) {}
+                } else if (cache) {
+                    orgFiles = toOrgFiles(cache.files); // resposta incompleta: mantém a última lista boa
+                }
                 return orgFiles;
             })
             .catch(function () {
@@ -5491,6 +5502,13 @@
     }
 
     function tutStart(steps, key) {
+        if (isTvLandscape()) return; // tutorial não roda em TV Mode (paisagem)
+        if (!window.__tutOrientWatch && window.matchMedia) {
+            window.__tutOrientWatch = true;
+            window.matchMedia('(orientation: landscape)').addEventListener('change', function (e) {
+                if (e.matches && tutActive) tutEnd();
+            });
+        }
         tutSteps = steps;
         tutDoneKey = key;
         tutActive = true;
