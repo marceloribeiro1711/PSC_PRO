@@ -1280,6 +1280,20 @@
                 '</div>';
         els.sh.innerHTML = html;
         placePlayerPicker();
+        fitPlayerCarousel();
+    }
+
+    // Faixa: N miniaturas inteiras + metade da próxima, para indicar que há mais para rolar
+    function fitPlayerCarousel() {
+        const sh = document.getElementById('pp-sheet');
+        const grid = sh ? sh.querySelector('.pp-grid') : null;
+        if (!grid) return;
+        const item = 60, gap = 8;
+        const avail = sh.clientWidth - 20; // descontando o padding do quadro
+        if (avail <= 0) return;
+        if (pickerItems.length * (item + gap) - gap <= avail) { grid.style.width = ''; return; } // cabe tudo
+        const n = Math.max(1, Math.floor((avail + gap) / (item + gap)));
+        grid.style.width = Math.min(avail, n * (item + gap) + item / 2) + 'px';
     }
 
     function closePlayerPicker() {
@@ -1310,7 +1324,7 @@
         const sh = document.getElementById('pp-sheet');
         if (!sh || !sh.classList.contains('show')) return;
         if (isTvLandscape()) closePlayerPicker(); // girou para TV com o seletor aberto: fecha
-        else placePlayerPicker();
+        else { placePlayerPicker(); fitPlayerCarousel(); }
     });
 
     function _processImageFile(file, maxSize, onDone) {
@@ -1631,13 +1645,12 @@
         });
     }
 
-    function renderOrgLogoPicker(showAll) {
+    function renderOrgLogoPicker() {
         const ov = document.getElementById('org-logo-overlay');
         if (!ov) return;
         const all = orgFiles || [];
         const langCode = ORG_LANG_CODE[uiLanguage] || 'WW';
-        const short = all.filter(function (o) { return o.code === langCode || o.code === 'WW'; });
-        const list = showAll ? all : short;
+        const list = all.filter(function (o) { return o.code === langCode || o.code === 'WW'; }); // idioma atual + WW
         let html = '<div class="org-logo-box">';
         if (!all.length) {
             html += '<div class="org-logo-empty">Nenhum logo disponível</div>';
@@ -1650,9 +1663,6 @@
                         '</button>';
             });
             html += '</div>';
-            if (!showAll && all.length > list.length) {
-                html += '<button class="org-logo-more" onclick="renderOrgLogoPicker(true)">More</button>';
-            }
         }
         html += '<div class="pp-actions">' +
                 '<button class="pp-btn" onclick="orgLogoUpload()">Outra imagem</button>' +
