@@ -1575,6 +1575,9 @@
             font-size: calc(3 * var(--vh, 1vh)); line-height: 1; transition: border-color 0.2s, background 0.2s;
             opacity: 0.5;
         }
+        .config-lang-img {
+            display: block; height: calc(3 * var(--vh, 1vh)); width: auto; border-radius: 2px;
+        }
         .config-lang-opt.active {
             border-color: var(--accent-blue); background: rgba(56, 189, 248, 0.12);
             opacity: 1;
@@ -2456,3 +2459,32 @@
         white-space: nowrap;
     }
 }
+
+/* ── Seletor de logo do torneio ── */
+.org-logo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px; }
+.org-logo-overlay.show { display: flex; }
+.org-logo-box { background: #0f1724; border: 1px solid #1f2d44; border-radius: 12px; padding: 18px; width: min(92vw, 560px); max-height: 86vh; overflow-y: auto; color: #fff; }
+.org-logo-title { font-weight: 700; margin-bottom: 12px; letter-spacing: 0.04em; }
+.org-logo-grid { display: grid; grid-template-columns: repeat(auto-fill, 75px); justify-content: center; gap: 10px; margin-bottom: 14px; }
+.org-logo-opt { background: #000; border: 2px solid transparent; border-radius: 8px; padding: 0; cursor: pointer; overflow: hidden; }
+.org-logo-opt img { display: block; width: 100%; height: auto; }
+.org-logo-opt.active { border-color: #f5c518; }
+
+
+/* ── Seletor de jogadores recentes: quadro branco compacto, centralizado sobre o placar ── */
+.pp-backdrop { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); display: none; z-index: 9000; }
+.pp-backdrop.show { display: block; }
+.pp-sheet { position: fixed; left: 10px; right: 10px; display: none; flex-direction: column; background: #ffffff; color: #0f1724; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); padding: 8px 10px; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 9001; }
+.pp-sheet.show { display: flex; }
+.pp-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; letter-spacing: 0.03em; text-align: center; color: #0f1724; }
+.pp-empty { color: #5b6878; text-align: center; padding: 8px 0; font-size: 13px; }
+.pp-grid { display: flex; flex-wrap: nowrap; gap: 8px; align-self: flex-start; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px; margin-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.pp-opt { flex: 0 0 60px; width: 60px; background: none; border: 2px solid #d5dbe5; border-radius: 8px; padding: 0; color: #0f1724; cursor: pointer; overflow: hidden; }
+.pp-opt img { display: block; width: 60px; height: 80px; object-fit: contain; background: #111; }
+.pp-opt span { display: block; font-size: 10px; line-height: 1.2; padding: 2px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; color: #0f1724; }
+.pp-actions { display: flex; gap: 8px; margin-top: 4px; }
+.pp-btn { flex: 1 1 auto; padding: 8px 10px; border-radius: 8px; border: 1px solid #c9d1dd; background: #f1f3f7; color: #0f1724; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.pp-cancel { background: transparent; }
+/* Botões do seletor de logos: sobre o fundo escuro da caixa */
+.org-logo-box .pp-btn { background: #16213a; color: #ffffff; border: 1px solid #1f2d44; }
+.org-logo-box .pp-cancel { background: transparent; color: #ffffff; }

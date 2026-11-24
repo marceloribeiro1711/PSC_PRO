@@ -1,13 +1,15 @@
 // Padel Coaching — Service Worker
 // Compatível com Android 8 (Chrome 67+)
 
-const CACHE_VERSION = 'v3.12.10';
+const CACHE_VERSION = 'v3.13.00';
 
 const PRECACHE_URLS = [
   './tutorial-court.jpg',
   './',
   './index.html',
   './app.js',
+  './i18n.js',
+  './i18n-tutorial.js',
   './style.css',
   './manifest.json',
   './icons/icon-192x192.png',
@@ -63,6 +65,9 @@ self.addEventListener('fetch', function(event) {
   if (!event.request.url.startsWith('http')) return;
 
   var url = new URL(event.request.url);
+  // Requisições para outros domínios (ex.: API do GitHub) não passam pelo cache do app:
+  // senão a lista de logos ficaria presa numa resposta antiga.
+  if (url.origin !== self.location.origin) return;
   var pathname = url.pathname;
 
   var isCode = pathname.endsWith('.html')

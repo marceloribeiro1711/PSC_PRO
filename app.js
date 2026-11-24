@@ -20,7 +20,7 @@
     // dentro do app. O gerador de Device ID abaixo é mantido: a Análise
     // por IA usa `_deviceId` para o rate-limit no Worker (ver worker.js).
     // ============================================================
-    const APP_VERSION = '3.12.10';
+    const APP_VERSION = '3.13.00';
 
     // ---- Device fingerprint (usado só para o rate-limit da IA) ----
     async function sha256hex(str) {
@@ -250,7 +250,8 @@
     let currentGameBreakPoints = [0, 0]; // oportunidades de quebra no game em curso, por dupla
     let gameLogEnabled = false;    // Sempre Off — sem toggle na UI. Popup automático da troca de
                                     // campo desligado; acesso manual (menu/histórico) não depende disto.
-    let aiAnalysisLanguage = 'en'; // Config: idioma da Análise por IA — en (padrão), es, pt, fr, it, de
+    let aiAnalysisLanguage = 'en'; // Código enviado ao worker: en | es | pt (PT-PT e PT-BR usam 'pt')
+    let uiLanguage = 'en';         // Idioma da interface: en | pt-PT | pt-BR | es (escolhido no Setup)
 
     let currentGameBpPeak = 0;     // maior diferença (recebedora - sacadora) já atingida no game em curso
 
@@ -1145,6 +1146,187 @@
         });
     }
 
+    // ── JOGADORES RECENTES (últimos 10 jogos, foto por nome) ─────────
+    // Fonte: o próprio histórico. Cada jogador entra uma vez (nome normalizado),
+    // com a foto mais recente que ele tiver. Sem foto = fica de fora.
+    const PICKER_SLOTS = ['t1-img1', 't1-img2', 't2-img1', 't2-img2']; // mesma ordem de entry.players
+    const PICKER_MAX = 16;
+
+    function normPlayerKey(name) {
+        return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+    function isDefaultPlayerName(name) {
+        return /^(Player|Team)\s*\d$/i.test(String(name || '').trim());
+    }
+
+    // Monta a lista: getPhoto(entry, slotId) -> Promise<dataUrl|null>
+    function buildRecentPlayers(history, getPhoto) {
+        const out = [];
+        const seen = {};
+        const jobs = [];
+        (history || []).slice(0, HISTORY_MAX).forEach(function (entry) {
+            PICKER_SLOTS.forEach(function (slot, i) { jobs.push({ entry: entry, slot: slot, i: i }); });
+        });
+        return jobs.reduce(function (p, job) {
+            return p.then(function () {
+                if (out.length >= PICKER_MAX) return;
+                const name = String((job.entry.players && job.entry.players[job.i]) || '').trim();
+                const key = normPlayerKey(name);
+                if (!key || isDefaultPlayerName(name) || seen[key]) return;
+                return Promise.resolve(getPhoto(job.entry, job.slot)).then(function (photo) {
+                    if (!photo || seen[key] || out.length >= PICKER_MAX) return;
+                    seen[key] = true;
+                    out.push({ name: name, photo: photo });
+                });
+            });
+        }, Promise.resolve()).then(function () { return out; });
+    }
+
+    function getHistoryPhoto(entry, slot) {
+        return idbGet('photo_hist_' + entry.date + '_' + slot).catch(function () { return null; });
+    }
+
+    function readHistory() {
+        try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (e) { return []; }
+    }
+
+    let pickerSlot = null;   // slot de foto que está sendo editado (ex.: 't1-img1')
+    let pickerItems = [];    // lista mostrada no seletor
+
+    function pickerSheetEls() {
+        let bd = document.getElementById('pp-backdrop');
+        let sh = document.getElementById('pp-sheet');
+        if (!bd) {
+            bd = document.createElement('div');
+            bd.id = 'pp-backdrop';
+            bd.className = 'pp-backdrop';
+            bd.addEventListener('click', closePlayerPicker);
+            document.body.appendChild(bd);
+        }
+        if (!sh) {
+            sh = document.createElement('div');
+            sh.id = 'pp-sheet';
+            sh.className = 'pp-sheet';
+            document.body.appendChild(sh);
+        }
+        return { bd: bd, sh: sh };
+    }
+
+    // Posiciona o seletor centralizado verticalmente sobre o bloco de placar (sets e pontos)
+    function placePlayerPicker() {
+        const els = pickerSheetEls();
+        const sh = els.sh, bd = els.bd;
+        const vh = window.innerHeight;
+        let sTop = Infinity, sBottom = -Infinity;
+        document.querySelectorAll('.scores-labels, .scores-box, .pts-box').forEach(function (el) {
+            const r = el.getBoundingClientRect();
+            if (!r.height) return;
+            sTop = Math.min(sTop, r.top);
+            sBottom = Math.max(sBottom, r.bottom);
+        });
+        // Altura máxima = altura do placar: o seletor nunca passa para cima das fotos
+        const scoreH = isFinite(sTop) ? (sBottom - sTop) : 0;
+        const maxH = scoreH > 0 ? Math.round(Math.min(scoreH, vh * 0.8)) : Math.round(vh * 0.8);
+        sh.style.top = '0px';
+        sh.style.bottom = 'auto';
+        sh.style.height = 'auto';
+        sh.style.maxHeight = maxH + 'px';
+        const h = Math.min(sh.offsetHeight, maxH);
+
+        const mid = isFinite(sTop) ? (sTop + sBottom) / 2 : vh / 2;
+        let top = Math.round(mid - h / 2);
+        if (top < 8) top = 8;
+        if (top + h > vh - 8) top = Math.max(8, vh - 8 - h);
+
+        sh.style.top = top + 'px';
+        sh.style.height = h + 'px';
+        bd.style.top = '0px';
+    }
+
+    function openPlayerPicker(slotId) {
+        if (isTvLandscape()) return; // sem seletor no TV Mode
+        if (isMatchLocked()) return; // mesma trava das fotos: só libera entre games
+        pickerSlot = slotId;
+        const els = pickerSheetEls();
+        els.sh.innerHTML = '<div class="pp-title">Choose player photo</div><div class="pp-empty">…</div>';
+        els.bd.classList.add('show');
+        els.sh.classList.add('show');
+        placePlayerPicker();
+        const hist = readHistory();
+        buildRecentPlayers(hist, getHistoryPhoto).then(function (list) {
+            pickerItems = list;
+            renderPlayerPicker();
+        });
+    }
+
+    function renderPlayerPicker() {
+        const els = pickerSheetEls();
+        let html = '<div class="pp-title">Choose player photo</div>';
+        if (!pickerItems.length) {
+            html += '<div class="pp-empty">No recent players with photo</div>';
+        } else {
+            html += '<div class="pp-grid">';
+            pickerItems.forEach(function (it, idx) {
+                html += '<button class="pp-opt" onclick="choosePlayerPhoto(' + idx + ')">' +
+                        '<img src="' + it.photo + '" alt="">' +
+                        '<span>' + escHtml(it.name) + '</span></button>';
+            });
+            html += '</div>';
+        }
+        html += '<div class="pp-actions">' +
+                '<button class="pp-btn" onclick="playerPickerUpload()">Search image</button>' +
+                '<button class="pp-btn pp-cancel" onclick="closePlayerPicker()">Cancel</button>' +
+                '</div>';
+        els.sh.innerHTML = html;
+        placePlayerPicker();
+        fitPlayerCarousel();
+    }
+
+    // Faixa: N miniaturas inteiras + metade da próxima, para indicar que há mais para rolar
+    function fitPlayerCarousel() {
+        const sh = document.getElementById('pp-sheet');
+        const grid = sh ? sh.querySelector('.pp-grid') : null;
+        if (!grid) return;
+        const item = 60, gap = 8;
+        const avail = sh.clientWidth - 20; // descontando o padding do quadro
+        if (avail <= 0) return;
+        if (pickerItems.length * (item + gap) - gap <= avail) { grid.style.width = ''; return; } // cabe tudo
+        const n = Math.max(1, Math.floor((avail + gap) / (item + gap)));
+        grid.style.width = Math.min(avail, n * (item + gap) + item / 2) + 'px';
+    }
+
+    function closePlayerPicker() {
+        const els = pickerSheetEls();
+        els.bd.classList.remove('show');
+        els.sh.classList.remove('show');
+    }
+
+    function choosePlayerPhoto(idx) {
+        const it = pickerItems[idx];
+        if (!it || !pickerSlot) { closePlayerPicker(); return; }
+        applyPhoto(pickerSlot, it.photo);
+        const nameId = pickerSlot.replace('img', 'p');
+        const nameEl = document.getElementById(nameId);
+        if (nameEl) nameEl.textContent = it.name;
+        try { saveGameState(); } catch (e) {}
+        closePlayerPicker();
+    }
+
+    function playerPickerUpload() {
+        const slot = pickerSlot;
+        closePlayerPicker();
+        const input = slot ? document.getElementById('fi-' + slot) : null;
+        if (input) input.click();
+    }
+
+    window.addEventListener('resize', function () {
+        const sh = document.getElementById('pp-sheet');
+        if (!sh || !sh.classList.contains('show')) return;
+        if (isTvLandscape()) closePlayerPicker(); // girou para TV com o seletor aberto: fecha
+        else { placePlayerPicker(); fitPlayerCarousel(); }
+    });
+
     function _processImageFile(file, maxSize, onDone) {
         if (!file) return;
         showToast('⏳ Processing...');
@@ -1194,6 +1376,17 @@
         });
     });
 
+    // Toque na foto do jogador: abre o seletor de jogadores recentes
+    document.querySelectorAll('label.photo-label').forEach(function (lbl) {
+        lbl.addEventListener('click', function (e) {
+            const target = (lbl.getAttribute('for') || '').replace('fi-', '');
+            if (!target || PICKER_SLOTS.indexOf(target) === -1) return;
+            if (isTvLandscape()) return; // TV Mode: sem seletor, a foto abre o seletor de arquivo como antes
+            e.preventDefault();
+            openPlayerPicker(target);
+        });
+    });
+
     ['left','right'].forEach(function(side) {
         const input = document.getElementById('fi-logo-' + side);
         if (!input) return;
@@ -1201,6 +1394,10 @@
             const file = this.files && this.files[0];
             if (!file) return;
             _processImageFile(file, 300, function(dataUrl) {
+                if (side === 'left') {
+                    currentOrgLogo = 'custom';
+                    try { localStorage.setItem(ORG_LOGO_KEY, 'custom'); } catch (e) {}
+                }
                 applyLogo(side, dataUrl);
                 hideToast();
             });
@@ -1269,19 +1466,227 @@
         });
     }
 
+    // ── LOGOS DE ORGANIZADORES (pacote, escolhidos por idioma) ─────
+    // Pasta logos/. Nome do arquivo: Logo_Org_{PT|BR|ES|WW} + qualquer texto + .jpeg
+    // A lista vem da própria pasta logos/ no GitHub (API), guardada no aparelho.
+    // Salvamos o NOME do arquivo escolhido (não a imagem).
+    const ORG_LOGO_KEY = 'padel_org_logo';
+    const ORG_LANG_CODE = { 'pt-PT': 'PT', 'pt-BR': 'BR', 'es': 'ES' }; // demais idiomas → WW
+    const ORG_CODE_NAME = { PT: 'Portugal', BR: 'Brasil', ES: 'España', WW: 'Internacional' };
+    let orgFiles = null;          // [{ file, code, src }] — null até carregar
+    let orgLoading = null;        // Promise do carregamento
+    let currentOrgLogo = null;    // nome do arquivo escolhido | 'custom' | null
+
+    const ORG_REPO_API = 'https://api.github.com/repos/marceloribeiro1711/PSC_PRO/contents/logos';
+    const ORG_LIST_KEY = 'padel_org_list';
+    const ORG_LIST_TTL = 24 * 60 * 60 * 1000; // lista válida por 24 h
+    const ORG_FORCE_MIN = 5 * 60 * 1000;      // ao abrir o seletor, rebusca no máximo a cada 5 min
+    const ORG_NAME_RE = /^Logo_Org_(PT|BR|ES|WW)(?![A-Za-z])(.*)\.(jpe?g)$/i;
+
+    function readOrgCache() {
+        try {
+            const c = JSON.parse(localStorage.getItem(ORG_LIST_KEY));
+            return (c && Array.isArray(c.files) && c.ts) ? c : null;
+        } catch (e) { return null; }
+    }
+
+    function toOrgFiles(names) {
+        return names
+            .filter(function (n) { return ORG_NAME_RE.test(n); })
+            .sort()
+            .map(function (n) {
+                return { file: n, code: ORG_NAME_RE.exec(n)[1].toUpperCase(), src: 'logos/' + encodeURIComponent(n) };
+            });
+    }
+
+    function fetchOrgNames() {
+        if (typeof fetch !== 'function') return Promise.reject(new Error('no fetch'));
+        return fetch(ORG_REPO_API, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } })
+            .then(function (r) { if (!r.ok) throw new Error('api ' + r.status); return r.json(); })
+            .then(function (items) {
+                return (Array.isArray(items) ? items : [])
+                    .filter(function (i) { return i && i.type === 'file'; })
+                    .map(function (i) { return i.name; });
+            });
+    }
+
+    // Lista só é guardada se tiver arquivo do idioma atual ou WW
+    function orgListUsable(files) {
+        if (!files.length) return false;
+        const code = ORG_LANG_CODE[uiLanguage] || 'WW';
+        return files.some(function (f) { return f.code === code || f.code === 'WW'; });
+    }
+
+    // force = true ao abrir o seletor (ainda assim respeita o intervalo mínimo)
+    // Diagnóstico visível no seletor (sem console): origem, quantidade, hora e erro
+    let orgStatus = { source: '', count: 0, ts: 0, error: '' };
+
+    function loadOrgIndex(force, hard) {
+        const cache = readOrgCache();
+        const age = cache ? Date.now() - cache.ts : Infinity;
+        // Lista salva sem arquivo do idioma atual (nem WW) é inválida: busca de novo
+        const cacheOk = !!cache && orgListUsable(toOrgFiles(cache.files));
+        const useCache = !hard && cacheOk && (force ? age < ORG_FORCE_MIN : age < ORG_LIST_TTL);
+        if (useCache) {
+            orgFiles = toOrgFiles(cache.files);
+            orgStatus = { source: 'cache', count: orgFiles.length, ts: cache.ts, error: '' };
+            orgLoading = Promise.resolve(orgFiles);
+            return orgLoading;
+        }
+        orgLoading = fetchOrgNames()
+            .then(function (names) {
+                orgFiles = toOrgFiles(names);
+                if (orgListUsable(orgFiles)) {
+                    const ts = Date.now();
+                    try { localStorage.setItem(ORG_LIST_KEY, JSON.stringify({ ts: ts, files: names })); } catch (e) {}
+                    orgStatus = { source: 'GitHub', count: orgFiles.length, ts: ts, error: '' };
+                } else if (cacheOk) {
+                    orgFiles = toOrgFiles(cache.files); // resposta incompleta: mantém a última lista boa
+                    orgStatus = { source: 'cache', count: orgFiles.length, ts: cache.ts, error: 'resposta incompleta' };
+                } else {
+                    orgStatus = { source: 'GitHub', count: orgFiles.length, ts: Date.now(), error: 'sem logos do idioma' };
+                }
+                return orgFiles;
+            })
+            .catch(function (err) {
+                // Sem internet ou limite da API: usa a última lista salva, se ela servir
+                orgFiles = cacheOk ? toOrgFiles(cache.files) : [];
+                const msg = (err && err.message && /^api /.test(err.message)) ? err.message.replace('api ', 'erro ') : 'sem resposta';
+                orgStatus = { source: cacheOk ? 'cache' : '-', count: orgFiles.length, ts: cacheOk ? cache.ts : 0, error: msg };
+                return orgFiles;
+            });
+        return orgLoading;
+    }
+
+    function orgByFile(name) {
+        return (orgFiles || []).find(function (o) { return o.file === name; }) || null;
+    }
+    function orgFirstOfCode(code) {
+        return (orgFiles || []).find(function (o) { return o.code === code; }) || null;
+    }
+    // Arquivo padrão para o idioma: primeiro do código do idioma; senão, primeiro WW
+    function defaultOrgForLang(lang) {
+        const code = ORG_LANG_CODE[lang] || 'WW';
+        return orgFirstOfCode(code) || orgFirstOfCode('WW');
+    }
+    // Interpreta o valor salvo: nome de arquivo, código antigo (PT/BR/ES/WW) ou 'custom'
+    function resolveSavedOrg(saved) {
+        if (!saved || saved === 'custom') return null;
+        return orgByFile(saved) || orgFirstOfCode(saved) || null;
+    }
+
+    function setLeftLogoImg(src) {
+        const slot = document.getElementById('logo-left-slot');
+        if (!slot) return;
+        const ph = document.getElementById('logo-left-placeholder');
+        const existing = slot.querySelector('img');
+        if (existing) existing.remove();
+        const img = document.createElement('img');
+        img.alt = 'Logo';
+        img.onerror = function () { img.remove(); if (ph) ph.style.display = ''; };
+        img.src = src;
+        if (ph) ph.style.display = 'none';
+        slot.appendChild(img);
+    }
+
+    function applyOrgLogo(org, persist) {
+        if (!org) return;
+        currentOrgLogo = org.file;
+        setLeftLogoImg(org.src);
+        if (persist) { try { localStorage.setItem(ORG_LOGO_KEY, org.file); } catch (e) {} }
+    }
+
     // Recuperar logos guardados ao iniciar
     function restoreLogos() {
-        ['left', 'right'].forEach(side => {
-            idbGet('logo_' + side).then(val => {
-                if (val) applyLogo(side, val);
-            }).catch(() => {
-                // Fallback: tentar localStorage (dados guardados antes da migração IDB)
-                try {
-                    const saved = localStorage.getItem('padel_logo_' + side);
-                    if (saved) applyLogo(side, saved); // também migra para IDB
-                } catch(e) {}
-            });
+        let saved = null;
+        try { saved = localStorage.getItem(ORG_LOGO_KEY); } catch (e) {}
+
+        const orgP = loadOrgIndex();
+        const leftP = idbGet('logo_left').catch(function () {
+            try { return localStorage.getItem('padel_logo_left'); } catch (e) { return null; }
+        }).then(function (v) { return v || null; });
+
+        Promise.all([orgP, leftP]).then(function (res) {
+            const leftVal = res[1];
+            const org = resolveSavedOrg(saved);
+            if (org) {
+                applyOrgLogo(org, false);                // escolha salva tem prioridade
+            } else if (leftVal) {
+                currentOrgLogo = 'custom';               // logo enviado pelo usuário
+                applyLogo('left', leftVal);
+            } else {
+                applyOrgLogo(defaultOrgForLang(uiLanguage), true);
+            }
         });
+
+        idbGet('logo_right').then(function (val) {
+            if (val) applyLogo('right', val);
+        }).catch(function () {
+            try {
+                const saved = localStorage.getItem('padel_logo_right');
+                if (saved) applyLogo('right', saved);
+            } catch (e) {}
+        });
+    }
+
+    // ── SELETOR DE LOGO DO TORNEIO ──────────────────────────────────
+    function openOrgLogoPicker() {
+        let ov = document.getElementById('org-logo-overlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'org-logo-overlay';
+            ov.className = 'org-logo-overlay';
+            ov.addEventListener('click', function (e) { if (e.target === ov) closeOrgLogoPicker(); });
+            document.body.appendChild(ov);
+        }
+        loadOrgIndex(true).then(function () {
+            renderOrgLogoPicker(false);
+            ov.classList.add('show');
+        });
+    }
+
+    function renderOrgLogoPicker() {
+        const ov = document.getElementById('org-logo-overlay');
+        if (!ov) return;
+        const all = orgFiles || [];
+        const langCode = ORG_LANG_CODE[uiLanguage] || 'WW';
+        const list = all.filter(function (o) { return o.code === langCode || o.code === 'WW'; }); // idioma atual + WW
+        let html = '<div class="org-logo-box">';
+        if (!all.length) {
+            html += '<div class="org-logo-empty">Nenhum logo disponível</div>';
+        } else {
+            html += '<div class="org-logo-grid">';
+            list.forEach(function (o) {
+                html += '<button class="org-logo-opt' + (currentOrgLogo === o.file ? ' active' : '') +
+                        '" onclick="chooseOrgLogo(\'' + o.file.replace(/'/g, "\\'") + '\')">' +
+                        '<img src="' + o.src + '" alt="" onerror="this.parentNode.remove()">' +
+                        '</button>';
+            });
+            html += '</div>';
+        }
+        html += '<div class="pp-actions">' +
+                '<button class="pp-btn" onclick="orgLogoUpload()">Outra imagem</button>' +
+                '<button class="pp-btn pp-cancel" onclick="closeOrgLogoPicker()">Cancel</button>' +
+                '</div>' +
+                '</div>';
+        ov.innerHTML = html;
+    }
+
+    function chooseOrgLogo(file) {
+        const org = orgByFile(file);
+        if (org) applyOrgLogo(org, true);
+        closeOrgLogoPicker();
+    }
+
+    function closeOrgLogoPicker() {
+        const ov = document.getElementById('org-logo-overlay');
+        if (ov) ov.classList.remove('show');
+    }
+
+    function orgLogoUpload() {
+        closeOrgLogoPicker();
+        const input = document.getElementById('fi-logo-left');
+        if (input) input.click();
     }
 
     // Nomes editáveis + sincronização
@@ -1458,9 +1863,9 @@
         // AI Analysis: geração é 100% manual pelo Histórico (sem chamada
         // automática ao fim de partida) — não há mais toggle On/Off aqui.
         // AI Analysis language
-        ['en', 'es', 'pt', 'fr', 'it', 'de'].forEach(function (lang) {
-            var el = document.getElementById('cfg-ai-lang-' + lang);
-            if (el) el.classList.toggle('active', aiAnalysisLanguage === lang);
+        ['en', 'es', 'pt-PT', 'pt-BR'].forEach(function (lang) {
+            var el = document.getElementById('cfg-ai-lang-' + lang.toLowerCase());
+            if (el) el.classList.toggle('active', uiLanguage === lang);
         });
     }
 
@@ -1473,10 +1878,40 @@
         saveGameState();
     }
 
-    function setAiAnalysisLanguage(lang) {
-        aiAnalysisLanguage = lang;
+    // ── IDIOMA DA INTERFACE (Setup) ───────────────────────────────
+    // Um único seletor: o mesmo idioma vale para a tela e para a Análise por IA.
+    // PT-PT e PT-BR chegam ao worker como 'pt' (o worker só conhece 'pt').
+    const UI_LANG_KEY = 'padel_ui_lang';
+    const UI_LANGS = ['en', 'pt-PT', 'pt-BR', 'es'];
+
+    function aiCodeFor(lang) {
+        return (lang && lang.indexOf('pt') === 0) ? 'pt' : (lang || 'en');
+    }
+
+    function detectUiLanguage() {
+        var nav = (navigator.language || 'en').toLowerCase();
+        if (nav === 'pt-br') return 'pt-BR';
+        if (nav.indexOf('pt') === 0) return 'pt-PT'; // pt, pt-PT e demais variantes
+        if (nav.indexOf('es') === 0) return 'es';
+        return 'en';
+    }
+
+    function initUiLanguage() {
+        var saved = null;
+        try { saved = localStorage.getItem(UI_LANG_KEY); } catch (e) {}
+        uiLanguage = UI_LANGS.indexOf(saved) !== -1 ? saved : detectUiLanguage();
+        aiAnalysisLanguage = aiCodeFor(uiLanguage);
+        pscLangApply(uiLanguage);
+        updateConfig(); // marca o botão ativo (updateConfig já rodou antes deste ponto)
+    }
+
+    function setUiLanguage(lang) {
+        if (UI_LANGS.indexOf(lang) === -1) return;
+        uiLanguage = lang;
+        aiAnalysisLanguage = aiCodeFor(lang);
+        try { localStorage.setItem(UI_LANG_KEY, lang); } catch (e) {}
+        pscLangApply(lang);
         updateConfig();
-        saveGameState();
     }
 
     // ============================================================
@@ -2482,7 +2917,7 @@
         tournamentName = snap.tournamentName || '';
         renderTournamentName();
         gameLogEnabled = false; // sempre Off — sem toggle na UI, ignora valor salvo em snapshots antigos
-        aiAnalysisLanguage = (snap.aiAnalysisLanguage !== undefined) ? snap.aiAnalysisLanguage : 'en';
+        aiAnalysisLanguage = aiCodeFor(uiLanguage); // idioma vem do seletor, não do jogo salvo
         matchGameLogs  = snap.matchGameLogs || [];
         currentGamePoints = snap.currentGamePoints || [];
         currentGameServingTeam = (snap.currentGameServingTeam !== undefined) ? snap.currentGameServingTeam : null;
@@ -3356,7 +3791,8 @@
             tournamentName: tournamentName || '',
             duration: formatDuration(timerSeconds),
             notes: currentNotes,
-            pointLog: matchGameLogs
+            pointLog: matchGameLogs,
+            orgLogo: currentOrgLogo || null
         };
 
         // Retrato das 4 fotos atuais, preso a esta partida específica — os
@@ -5192,7 +5628,7 @@
     const TUT_FIGURE_SVG = '<svg viewBox="0 0 1024 1536" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Suggested player positions"><image href="tutorial-court.jpg" x="0" y="0" width="1024" height="1536" preserveAspectRatio="none"/></svg>';
 
     const TUTORIAL_STEPS = [
-        { title: "Padel Score and Coaching PRO Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Score and Coaching supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
+        { title: "Padel Coaching Pro Tutorial", subtitle: "Step by step to enjoy all the features", text: "Padel Coaching Pro supports your athlete's development, turning match data into insights for your coaching.", anchor: null, advance: 'next' },
         { text: "It generates stats that highlight where more training focus is needed.", anchor: null, advance: 'next' },
         { text: "Plus insights into mental performance and game strategy.", anchor: null, advance: 'next' },
         { text: "Suggested setup: place each player where they stand on court, as seen from behind the Glass Wall. Change Sides flips the layout at any time.", anchor: null, figure: true, advance: 'next' },
@@ -5204,14 +5640,14 @@
         { text: "Choose the match format: 3 Sets, 2 Sets + SuperTie, or ProSet.", anchor: '#cfg-set-toggle', advance: 'next' },
         { text: "Pick Golden Point or Star Point for deuce.", anchor: '#cfg-point-toggle', advance: 'next' },
         { text: "Turn point statistics on or off for this match.", anchor: '#cfg-stats-toggle', advance: 'next' },
-        { text: "Choose the language for the AI Analysis. Next returns to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
-        { text: "NEW GAME starts a new match.", anchor: '#tab-newgame', ring: true, advance: 'next' },
+        { text: "Choose the app language. It applies to the whole app and to the AI Analysis. Next returns to the scoreboard.", anchor: '#cfg-ai-lang-toggle', advance: 'next', onLeave: function() { tutOpenedConfig = false; closeConfig(); } },
+        { text: "New Game starts a new match.", anchor: '#tab-newgame', ring: true, advance: 'next' },
         { text: "The first serve is chosen by tapping the ball, for both pairs. This happens every time a match or set starts.", anchor: '#whos-serve-p', ring: true, center: true, advance: 'action', actionTargets: ['#serve-ball-t1-p1', '#serve-ball-t1-p2', '#serve-ball-t2-p1', '#serve-ball-t2-p2'], actionEvent: ['click', 'touchend'] },
         { text: "Each point is added by tapping the Points box for the team that won it.", anchor: '.pts-box[data-team="1"]', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box[data-team="1"]'], actionEvent: ['click'] },
         { text: "Hold any value for a moment to decrease it.", anchor: '.pts-box[data-team="1"]', ring: true, low: true, advance: 'action', actionTargets: ['.pts-box[data-team="1"]'], actionEvent: ['padel:hold-decrement'] },
         { title: "Change Sides", text: "At the end of a game, tap Change Sides whenever you want to switch sides, then tap Yes.", anchor: '#switch-sides-btn', ring: true, low: true, advance: 'action', actionTargets: ['#sw-overlay .ng-confirm'], actionEvent: ['click'] },
         { text: "Tap Change Sides again and Yes to undo the switch, until the first point after the change.", anchor: '#switch-sides-btn', ring: true, low: true, advance: 'action', actionTargets: ['#sw-overlay .ng-confirm'], actionEvent: ['click'] },
-        { title: "Tutorial complete", text: "Enjoy Padel Score and Coaching PRO, and make the most of the app!", anchor: null, advance: 'next', nextLabel: 'Got it' },
+        { title: "Tutorial complete", text: "Enjoy Padel Coaching Pro, and make the most of the app!", anchor: null, advance: 'next', nextLabel: 'Got it' },
     ];
 
     // "Skip step" no passo NEW GAME: os passos seguintes (escolher o sacador, marcar pontos) precisam
@@ -5269,6 +5705,13 @@
     }
 
     function tutStart(steps, key) {
+        if (isTvLandscape()) return; // tutorial não roda em TV Mode (paisagem)
+        if (!window.__tutOrientWatch && window.matchMedia) {
+            window.__tutOrientWatch = true;
+            window.matchMedia('(orientation: landscape)').addEventListener('change', function (e) {
+                if (e.matches && tutActive) tutEnd();
+            });
+        }
         tutSteps = steps;
         tutDoneKey = key;
         tutActive = true;
@@ -5367,7 +5810,7 @@
         const bubble = document.getElementById('tut-bubble');
         const hl = document.getElementById('tut-highlight');
         if (hl) hl.style.display = 'none';
-        document.getElementById('tut-bubble-text').textContent = 'Simulating a match — Pair 1 wins both sets…';
+        document.getElementById('tut-bubble-text').textContent = tutT('Simulating a match — Pair 1 wins both sets…');
         bubble.classList.add('tut-tip');
         tutPositionBubbleLow(bubble);
         bubble.querySelector('.tut-bubble-footer').style.display = 'none';
@@ -5532,14 +5975,20 @@
 
         const titleEl = document.getElementById('tut-bubble-title');
         const subEl = document.getElementById('tut-bubble-subtitle');
-        titleEl.textContent = step.title || '';
-        subEl.textContent = step.subtitle || '';
+        titleEl.textContent = tutT(step.title || '');
+        subEl.textContent = tutT(step.subtitle || '');
+        const tipLabel = document.querySelector('#tut-bubble .tut-bubble-label');
+        if (tipLabel) tipLabel.textContent = tutT('💡 Tip');
+        const skipEl = document.getElementById('tut-skip');
+        if (skipEl) skipEl.textContent = tutT('Skip tutorial');
         titleEl.style.display = step.title ? 'block' : 'none';
         subEl.style.display = step.subtitle ? 'block' : 'none';
-        document.getElementById('tut-bubble-text').textContent = step.text;
+        document.getElementById('tut-bubble-text').textContent = tutT(step.text);
         const figEl = document.getElementById('tut-figure');
         if (figEl) {
             if (step.figure && !figEl.firstChild) figEl.innerHTML = TUT_FIGURE_SVG;
+            const figSvg = figEl.querySelector('svg');
+            if (figSvg) figSvg.setAttribute('aria-label', tutT('Suggested player positions'));
             figEl.style.display = step.figure ? 'block' : 'none';
         }
         if (step.figure) requestAnimationFrame(tutDrawFigureLinks); else tutRemoveFigureLinks();
@@ -5549,10 +5998,10 @@
         // Passos de ação real têm "Skip step" (nunca deixa o usuário preso); os demais têm Next
         const btn = document.getElementById('tut-next-btn');
         if (step.advance === 'action') {
-            btn.textContent = 'Skip step';
+            btn.textContent = tutT('Skip step');
             btn.classList.add('tut-skip-step');
         } else {
-            btn.textContent = step.nextLabel || (isLast ? 'Got it' : 'Next');
+            btn.textContent = tutT(step.nextLabel || (isLast ? 'Got it' : 'Next'));
             btn.classList.remove('tut-skip-step');
         }
 
@@ -5584,6 +6033,7 @@
     updateSet3Labels();
     updateConfig();
 
+    initUiLanguage();
     // Restaurar jogo em curso se existir, caso contrário arrancar do zero
     const hadSavedGame = restoreGameState();
     applyPlayerEditLock();
@@ -5604,98 +6054,6 @@
     if (!hadSavedGame) setTimeout(tutMaybeStart, 2600);
 
     // ── Expor funções públicas no window (chamadas por onclick no HTML) ──────
-
-    // ── BACKUP / RESTORE DOS DADOS LOCAIS ─────────────────────────
-    // Exporta e importa todas as chaves padel_* do localStorage (histórico,
-    // jogo em andamento, nomes, fotos, logos, análises de IA, tutorial).
-    // Não altera nenhum formato de dado: apenas copia o que já está gravado.
-    const APP_BUILD_VERSION = APP_VERSION;
-    const BACKUP_FORMAT = 'psc-pro-backup';
-    const BACKUP_PREFIX = 'padel_';
-
-    function collectLocalData() {
-        const data = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(BACKUP_PREFIX)) data[key] = localStorage.getItem(key);
-        }
-        return data;
-    }
-
-    // Retorna true se o backup foi entregue (compartilhado ou baixado), false se o usuário cancelou.
-    async function backupAllData() {
-        const createdAt = new Date().toISOString();
-        const payload = {
-            format: BACKUP_FORMAT,
-            appVersion: APP_BUILD_VERSION,
-            createdAt: createdAt,
-            data: collectLocalData(),
-        };
-        const stamp = createdAt.slice(0, 16).replace(/[:T]/g, '-');
-        const file = new File([JSON.stringify(payload)], 'psc_backup_' + stamp + '.json', { type: 'application/json' });
-
-        // Mesmo caminho do envio de partidas: compartilhamento nativo primeiro (funciona no iOS e no Android)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: file.name });
-                return true;
-            } catch (e) {
-                if (e && e.name === 'AbortError') return false;
-                // outro erro: segue para o download
-            }
-        }
-        downloadTextFile(file);
-        return true;
-    }
-
-    function restoreAllDataPrompt() {
-        document.getElementById('restore-file-input').click();
-    }
-
-    function restoreAllDataFile(event) {
-        const input = event.target;
-        const file = input.files && input.files[0];
-        input.value = '';
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async function () {
-            let payload;
-            try { payload = JSON.parse(reader.result); } catch (e) { alert('Arquivo inválido.'); return; }
-            if (!payload || payload.format !== BACKUP_FORMAT || !payload.data || typeof payload.data !== 'object') {
-                alert('Este arquivo não é um backup do PSC Pro. Nada foi alterado.');
-                return;
-            }
-            const keys = Object.keys(payload.data);
-            const valid = keys.every(function (k) {
-                return k.startsWith(BACKUP_PREFIX) && typeof payload.data[k] === 'string';
-            });
-            if (!valid) {
-                alert('Conteúdo do backup inesperado. Nada foi alterado.');
-                return;
-            }
-            const msg = 'Restaurar backup de ' + payload.createdAt + ' (' + keys.length + ' itens)?\n'
-                + 'Os dados atuais serão substituídos. Antes, será baixado um backup automático dos dados atuais.';
-            if (!confirm(msg)) return;
-
-            const saved = await backupAllData(); // salvaguarda do estado atual antes de qualquer escrita
-            if (!saved) {
-                alert('Restauração cancelada: o backup de segurança não foi salvo.');
-                return;
-            }
-            try {
-                Object.keys(collectLocalData()).forEach(function (k) { localStorage.removeItem(k); });
-                keys.forEach(function (k) { localStorage.setItem(k, payload.data[k]); });
-            } catch (e) {
-                alert('Falha ao restaurar. Use o backup automático baixado antes desta operação.');
-                return;
-            }
-            alert('Backup restaurado. A página será recarregada.');
-            location.reload();
-        };
-        reader.readAsText(file);
-    }
-
-
 
     // ── VIRADA DE CAMPO (Fase 3a): botão, confirmação e alternância ──
     function askSwitchSides() {
@@ -5933,7 +6291,6 @@
     });
 
     Object.assign(window, {
-        backupAllData, restoreAllDataPrompt, restoreAllDataFile,
         askSwitchSides, swCancel, swConfirm,
         addPoint, removePoint,
         showPointLogDetail,
@@ -5965,7 +6322,7 @@
         incStat, decStatById,
         // Point Log — popup de pausa técnica
         closePointLogPopup, pointLogPrev, pointLogNext,
-        setGameLogMode, openGameLogMenu, setPointLogActiveSet, setPointLogViewIndex, setAiAnalysisLanguage,
+        setGameLogMode, openGameLogMenu, openPlayerPicker, choosePlayerPhoto, playerPickerUpload, closePlayerPicker, buildRecentPlayers, openOrgLogoPicker, chooseOrgLogo, closeOrgLogoPicker, renderOrgLogoPicker, orgLogoUpload, setPointLogActiveSet, setPointLogViewIndex, setUiLanguage,
         regenerateAiAnalysisForEntry, dismissAiErrorPopup, retryAiAnalysis,
         openGrandSlamCard, closeGrandSlamCard, closeGrandSlamCardOnBg,
         handleAiButtonForEntry,
